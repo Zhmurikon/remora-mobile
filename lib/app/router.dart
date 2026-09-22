@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../features/auth/auth_provider.dart';
 import '../features/auth/presentation/login_screen.dart';
 import '../features/auth/presentation/register_screen.dart';
+import '../features/library/library_screen.dart';
 import 'home_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -16,7 +17,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isAuthRoute = state.matchedLocation.startsWith('/auth');
       final isUnknown = authState.status == AuthStatus.unknown;
 
-      if (isUnknown) return null; // Ждём инициализацию
+      if (isUnknown) return null;
       if (!isAuth && !isAuthRoute) return '/auth/login';
       if (isAuth && isAuthRoute) return '/';
       return null;
@@ -24,6 +25,10 @@ final routerProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(
         path: '/',
+        builder: (context, state) => const LibraryScreen(),
+      ),
+      GoRoute(
+        path: '/profile',
         builder: (context, state) => const HomeScreen(),
       ),
       GoRoute(
