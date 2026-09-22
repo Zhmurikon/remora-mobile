@@ -104,11 +104,19 @@ class RemoraApiClient {
 
   Future<StudyQueue> getStudyQueue({
     required String setId,
-    String mode = 'flashcards',
+    String mode = 'learn',
+    String scope = 'due',
+    String direction = 'term_to_def',
+    int limit = 60,
   }) async {
     final response = await _dio.get(
-      '/api/v1/study/queue',
-      queryParameters: {'set_id': setId, 'mode': mode},
+      '/api/v1/study/sets/$setId/queue',
+      queryParameters: {
+        'mode': mode,
+        'scope': scope,
+        'direction': direction,
+        'limit': limit,
+      },
     );
     return StudyQueue.fromJson(response.data as Map<String, dynamic>);
   }
@@ -337,6 +345,10 @@ class StudyQueue {
     required this.langTerm,
     required this.langDefinition,
     required this.answerStrictness,
+    this.learnQuestionTypes = const ['choice', 'typing', 'recall'],
+    this.learnSuccessesRequired = 1,
+    this.learnTypingCheck = 'automatic',
+    this.learnMatchPercent = 90,
     required this.mode,
     required this.schedulerVersion,
     required this.items,
@@ -353,6 +365,13 @@ class StudyQueue {
       langTerm: json['lang_term'] as String,
       langDefinition: json['lang_definition'] as String,
       answerStrictness: json['answer_strictness'] as String,
+      learnQuestionTypes: (json['learn_question_types'] as List?)
+              ?.map((e) => e as String)
+              .toList() ??
+          ['choice', 'typing', 'recall'],
+      learnSuccessesRequired: json['learn_successes_required'] as int? ?? 1,
+      learnTypingCheck: json['learn_typing_check'] as String? ?? 'automatic',
+      learnMatchPercent: json['learn_match_percent'] as int? ?? 90,
       mode: json['mode'] as String,
       schedulerVersion: json['scheduler_version'] as String,
       items: (json['items'] as List)
@@ -370,6 +389,10 @@ class StudyQueue {
   final String langTerm;
   final String langDefinition;
   final String answerStrictness;
+  final List<String> learnQuestionTypes;
+  final int learnSuccessesRequired;
+  final String learnTypingCheck;
+  final int learnMatchPercent;
   final String mode;
   final String schedulerVersion;
   final List<QueueItem> items;
@@ -407,23 +430,43 @@ class QueueItem {
 class QueueCard {
   QueueCard({
     required this.id,
+    required this.position,
     required this.term,
     required this.definition,
+    this.termTranscription,
+    this.definitionTranscription,
     this.hint,
+    this.contentType = 'text',
+    this.codeLanguage,
     this.termImageUrl,
     this.definitionImageUrl,
     this.altAnswers = const [],
+    this.wrongTermAnswers = const [],
+    this.wrongDefinitionAnswers = const [],
   });
 
   factory QueueCard.fromJson(Map<String, dynamic> json) {
     return QueueCard(
       id: json['id'] as String,
+      position: json['position'] as int? ?? 0,
       term: json['term'] as String,
       definition: json['definition'] as String,
+      termTranscription: json['term_transcription'] as String?,
+      definitionTranscription: json['definition_transcription'] as String?,
       hint: json['hint'] as String?,
+      contentType: json['content_type'] as String? ?? 'text',
+      codeLanguage: json['code_language'] as String?,
       termImageUrl: json['term_image_url'] as String?,
       definitionImageUrl: json['definition_image_url'] as String?,
       altAnswers: (json['alt_answers'] as List?)
+              ?.map((e) => e as String)
+              .toList() ??
+          [],
+      wrongTermAnswers: (json['wrong_term_answers'] as List?)
+              ?.map((e) => e as String)
+              .toList() ??
+          [],
+      wrongDefinitionAnswers: (json['wrong_definition_answers'] as List?)
               ?.map((e) => e as String)
               .toList() ??
           [],
@@ -431,12 +474,19 @@ class QueueCard {
   }
 
   final String id;
+  final int position;
   final String term;
   final String definition;
+  final String? termTranscription;
+  final String? definitionTranscription;
   final String? hint;
+  final String contentType;
+  final String? codeLanguage;
   final String? termImageUrl;
   final String? definitionImageUrl;
   final List<String> altAnswers;
+  final List<String> wrongTermAnswers;
+  final List<String> wrongDefinitionAnswers;
 }
 
 class CardStateData {

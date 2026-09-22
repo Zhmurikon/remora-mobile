@@ -108,7 +108,9 @@ class LibraryScreen extends ConsumerWidget {
                         : null,
                   ),
             onTap: () {
-              // Переход к обучению — добавим на M4
+              context.push(
+                '/set/${set.id}/study?title=${Uri.encodeComponent(set.title)}',
+              );
             },
           ),
         );

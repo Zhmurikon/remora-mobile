@@ -49,6 +49,7 @@ class Cards extends Table {
 }
 
 /// Состояние FSRS по паре (карточка, направление). Зеркало CardStateOut.
+@DataClassName('CardStateRow')
 class CardStates extends Table {
   TextColumn get cardId => text().references(Cards, #id)();
   TextColumn get direction => text()(); // term_to_def | def_to_term

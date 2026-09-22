@@ -1579,7 +1579,7 @@ class CardsCompanion extends UpdateCompanion<Card> {
 }
 
 class $CardStatesTable extends CardStates
-    with TableInfo<$CardStatesTable, CardState> {
+    with TableInfo<$CardStatesTable, CardStateRow> {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
@@ -1686,7 +1686,7 @@ class $CardStatesTable extends CardStates
   static const String $name = 'card_states';
   @override
   VerificationContext validateIntegrity(
-    Insertable<CardState> instance, {
+    Insertable<CardStateRow> instance, {
     bool isInserting = false,
   }) {
     final context = VerificationContext();
@@ -1756,9 +1756,9 @@ class $CardStatesTable extends CardStates
   @override
   Set<GeneratedColumn> get $primaryKey => {cardId, direction};
   @override
-  CardState map(Map<String, dynamic> data, {String? tablePrefix}) {
+  CardStateRow map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return CardState(
+    return CardStateRow(
       cardId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}card_id'],
@@ -1800,7 +1800,7 @@ class $CardStatesTable extends CardStates
   }
 }
 
-class CardState extends DataClass implements Insertable<CardState> {
+class CardStateRow extends DataClass implements Insertable<CardStateRow> {
   final String cardId;
   final String direction;
   final String state;
@@ -1809,7 +1809,7 @@ class CardState extends DataClass implements Insertable<CardState> {
   final int? step;
   final DateTime dueAt;
   final DateTime? lastReviewedAt;
-  const CardState({
+  const CardStateRow({
     required this.cardId,
     required this.direction,
     required this.state,
@@ -1860,12 +1860,12 @@ class CardState extends DataClass implements Insertable<CardState> {
     );
   }
 
-  factory CardState.fromJson(
+  factory CardStateRow.fromJson(
     Map<String, dynamic> json, {
     ValueSerializer? serializer,
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
-    return CardState(
+    return CardStateRow(
       cardId: serializer.fromJson<String>(json['cardId']),
       direction: serializer.fromJson<String>(json['direction']),
       state: serializer.fromJson<String>(json['state']),
@@ -1891,7 +1891,7 @@ class CardState extends DataClass implements Insertable<CardState> {
     };
   }
 
-  CardState copyWith({
+  CardStateRow copyWith({
     String? cardId,
     String? direction,
     String? state,
@@ -1900,7 +1900,7 @@ class CardState extends DataClass implements Insertable<CardState> {
     Value<int?> step = const Value.absent(),
     DateTime? dueAt,
     Value<DateTime?> lastReviewedAt = const Value.absent(),
-  }) => CardState(
+  }) => CardStateRow(
     cardId: cardId ?? this.cardId,
     direction: direction ?? this.direction,
     state: state ?? this.state,
@@ -1912,8 +1912,8 @@ class CardState extends DataClass implements Insertable<CardState> {
         ? lastReviewedAt.value
         : this.lastReviewedAt,
   );
-  CardState copyWithCompanion(CardStatesCompanion data) {
-    return CardState(
+  CardStateRow copyWithCompanion(CardStatesCompanion data) {
+    return CardStateRow(
       cardId: data.cardId.present ? data.cardId.value : this.cardId,
       direction: data.direction.present ? data.direction.value : this.direction,
       state: data.state.present ? data.state.value : this.state,
@@ -1931,7 +1931,7 @@ class CardState extends DataClass implements Insertable<CardState> {
 
   @override
   String toString() {
-    return (StringBuffer('CardState(')
+    return (StringBuffer('CardStateRow(')
           ..write('cardId: $cardId, ')
           ..write('direction: $direction, ')
           ..write('state: $state, ')
@@ -1958,7 +1958,7 @@ class CardState extends DataClass implements Insertable<CardState> {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      (other is CardState &&
+      (other is CardStateRow &&
           other.cardId == this.cardId &&
           other.direction == this.direction &&
           other.state == this.state &&
@@ -1969,7 +1969,7 @@ class CardState extends DataClass implements Insertable<CardState> {
           other.lastReviewedAt == this.lastReviewedAt);
 }
 
-class CardStatesCompanion extends UpdateCompanion<CardState> {
+class CardStatesCompanion extends UpdateCompanion<CardStateRow> {
   final Value<String> cardId;
   final Value<String> direction;
   final Value<String> state;
@@ -2004,7 +2004,7 @@ class CardStatesCompanion extends UpdateCompanion<CardState> {
        direction = Value(direction),
        state = Value(state),
        dueAt = Value(dueAt);
-  static Insertable<CardState> custom({
+  static Insertable<CardStateRow> custom({
     Expression<String>? cardId,
     Expression<String>? direction,
     Expression<String>? state,
@@ -3614,7 +3614,7 @@ final class $$CardsTableReferences
     );
   }
 
-  static MultiTypedResultKey<$CardStatesTable, List<CardState>>
+  static MultiTypedResultKey<$CardStatesTable, List<CardStateRow>>
   _cardStatesRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
     db.cardStates,
     aliasName: 'cards__id__card_states__card_id',
@@ -4128,7 +4128,7 @@ class $$CardsTableTableManager
               getPrefetchedDataCallback: (items) async {
                 return [
                   if (cardStatesRefs)
-                    await $_getPrefetchedData<Card, $CardsTable, CardState>(
+                    await $_getPrefetchedData<Card, $CardsTable, CardStateRow>(
                       currentTable: table,
                       referencedTable: $$CardsTableReferences
                           ._cardStatesRefsTable(db),
@@ -4186,7 +4186,7 @@ typedef $$CardStatesTableUpdateCompanionBuilder =
     });
 
 final class $$CardStatesTableReferences
-    extends BaseReferences<_$AppDatabase, $CardStatesTable, CardState> {
+    extends BaseReferences<_$AppDatabase, $CardStatesTable, CardStateRow> {
   $$CardStatesTableReferences(super.$_db, super.$_table, super.$_typedResult);
 
   static $CardsTable _cardIdTable(_$AppDatabase db) =>
@@ -4406,14 +4406,14 @@ class $$CardStatesTableTableManager
         RootTableManager<
           _$AppDatabase,
           $CardStatesTable,
-          CardState,
+          CardStateRow,
           $$CardStatesTableFilterComposer,
           $$CardStatesTableOrderingComposer,
           $$CardStatesTableAnnotationComposer,
           $$CardStatesTableCreateCompanionBuilder,
           $$CardStatesTableUpdateCompanionBuilder,
-          (CardState, $$CardStatesTableReferences),
-          CardState,
+          (CardStateRow, $$CardStatesTableReferences),
+          CardStateRow,
           PrefetchHooks Function({bool cardId})
         > {
   $$CardStatesTableTableManager(_$AppDatabase db, $CardStatesTable table)
@@ -4474,7 +4474,7 @@ class $$CardStatesTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable<$CardStatesTable, CardState>(table),
+                  e.readTable<$CardStatesTable, CardStateRow>(table),
                   $$CardStatesTableReferences(db, table, e),
                 ),
               )
@@ -4528,14 +4528,14 @@ typedef $$CardStatesTableProcessedTableManager =
     ProcessedTableManager<
       _$AppDatabase,
       $CardStatesTable,
-      CardState,
+      CardStateRow,
       $$CardStatesTableFilterComposer,
       $$CardStatesTableOrderingComposer,
       $$CardStatesTableAnnotationComposer,
       $$CardStatesTableCreateCompanionBuilder,
       $$CardStatesTableUpdateCompanionBuilder,
-      (CardState, $$CardStatesTableReferences),
-      CardState,
+      (CardStateRow, $$CardStatesTableReferences),
+      CardStateRow,
       PrefetchHooks Function({bool cardId})
     >;
 typedef $$SyncMetaTableCreateCompanionBuilder =
