@@ -1,0 +1,51 @@
+name: remora_mobile
+description: Remora — платформа для заучивания через карточки. Мобильный клиент.
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.12.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Сеть
+  dio: ^5.7.0
+
+  # Состояние
+  flutter_riverpod: ^2.6.1
+
+  # Навигация
+  go_router: ^14.8.1
+
+  # Безопасное хранение токенов
+  flutter_secure_storage: ^9.2.4
+
+  # Изображения
+  cached_network_image: ^3.4.1
+
+  # SVG
+  flutter_svg: ^2.0.17
+
+  # Ошибки и аналитика
+  sentry_flutter: ^9.0.0
+
+  # Формулы LaTeX
+  flutter_math_fork: ^0.7.3
+
+  # Подсветка кода
+  flutter_highlight: ^0.7.0
+
+  # Markdown
+  markdown: ^7.3.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/
