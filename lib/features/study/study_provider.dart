@@ -4,9 +4,11 @@ import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../core/log.dart';
 import '../../data/api_client.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/outbox_service.dart';
+import '../../data/repositories/study_repository.dart';
 
 const _uuid = Uuid();
 
@@ -113,7 +115,7 @@ class StudySessionState {
 /// Загружает очередь из API, управляет продвижением по карточкам,
 /// записывает ответы в outbox (Drift → сервер), отслеживает прогресс.
 class StudySessionNotifier extends StateNotifier<StudySessionState> {
-  StudySessionNotifier(this._api, this._outbox)
+  StudySessionNotifier(this._api, this._outbox, this._study)
       : super(StudySessionState(
           mode: StudyMode.flashcards,
           items: [],
@@ -128,8 +130,13 @@ class StudySessionNotifier extends StateNotifier<StudySessionState> {
 
   final RemoraApiClient _api;
   final OutboxService _outbox;
+  final StudyRepository _study;
 
   /// Загрузить очередь и начать сессию.
+  ///
+  /// Онлайн — берём очередь с сервера и кэшируем её (карточки, состояния FSRS,
+  /// настройки) для будущих офлайн-сессий. Офлайн — строим очередь локально из
+  /// Drift + Dart-порт FSRS.
   Future<void> begin(String setId, StudyMode mode) async {
     state = state.copyWith(
       mode: mode,
@@ -149,29 +156,61 @@ class StudySessionNotifier extends StateNotifier<StudySessionState> {
 
       _outbox.sessionId = null;
 
-      state = state.copyWith(
-        items: queue.items,
-        total: queue.items.length,
-        isLoading: false,
-        isOnline: true,
-        setTitle: queue.setTitle,
-        langTerm: queue.langTerm,
-        langDefinition: queue.langDefinition,
-        answerStrictness: queue.answerStrictness,
-        learnQuestionTypes: queue.learnQuestionTypes,
-        learnSuccessesRequired: queue.learnSuccessesRequired,
-        learnTypingCheck: queue.learnTypingCheck,
-        learnMatchPercent: queue.learnMatchPercent,
-      );
+      // Кэшируем набор для офлайна. Не блокируем показ очереди при сбое записи.
+      try {
+        await _study.cacheQueueCards(setId, queue.items);
+        await _study.persistQueueStates(queue.items);
+        await _study.saveStudySettings(setId, queue);
+      } catch (_) {
+        // Кэш — вспомогательный; онлайн-сессия работает и без него.
+      }
 
+      _applyQueue(queue, isOnline: true);
+      logRemora('study', 'онлайн-очередь: ${queue.items.length} карт.');
       unawaited(_refreshPendingCount());
     } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        isOnline: false,
-        error: 'Не удалось загрузить очередь',
-      );
+      // Сеть недоступна — пробуем собрать очередь из скачанного набора.
+      StudyQueue? local;
+      try {
+        local = await _study.buildOfflineQueue(setId, mode: mode.name);
+      } catch (_) {
+        local = null;
+      }
+      if (local != null && local.items.isNotEmpty) {
+        _outbox.sessionId = null;
+        _applyQueue(local, isOnline: false);
+        logRemora('study', 'офлайн-очередь: ${local.items.length} карт.');
+        unawaited(_refreshPendingCount());
+      } else {
+        state = state.copyWith(
+          isLoading: false,
+          isOnline: false,
+          error: local == null
+              ? 'Набор не скачан для офлайна. Откройте его один раз при сети.'
+              : 'На сегодня карточек нет. Продолжите, когда появится сеть.',
+        );
+        logRemora('study',
+            local == null ? 'офлайн: набор не скачан' : 'офлайн: на сегодня пусто');
+      }
     }
+  }
+
+  /// Применить очередь (онлайн или офлайн) к состоянию сессии.
+  void _applyQueue(StudyQueue queue, {required bool isOnline}) {
+    state = state.copyWith(
+      items: queue.items,
+      total: queue.items.length,
+      isLoading: false,
+      isOnline: isOnline,
+      setTitle: queue.setTitle,
+      langTerm: queue.langTerm,
+      langDefinition: queue.langDefinition,
+      answerStrictness: queue.answerStrictness,
+      learnQuestionTypes: queue.learnQuestionTypes,
+      learnSuccessesRequired: queue.learnSuccessesRequired,
+      learnTypingCheck: queue.learnTypingCheck,
+      learnMatchPercent: queue.learnMatchPercent,
+    );
   }
 
   /// Записать ответ и продвинуться дальше.
@@ -195,6 +234,16 @@ class StudySessionNotifier extends StateNotifier<StudySessionState> {
       answerCorrect: Value(answerCorrect),
       durationMs: Value(durationMs),
       reviewedAt: Value(now),
+    ));
+
+    // Продвигаем локальное состояние FSRS — для следующих офлайн-сессий.
+    // Не блокируем UI: онлайн сервер всё равно перезапишет due/stability
+    // через outbox, а локальный шаг learning сохранится.
+    unawaited(_study.applyLocalReview(
+      cardId: item.card.id,
+      direction: item.direction,
+      rating: rating,
+      reviewedAt: now,
     ));
 
     final isCorrect = answerCorrect ?? (rating >= 3);
@@ -263,5 +312,6 @@ final studySessionProvider =
   return StudySessionNotifier(
     ref.watch(apiClientProvider),
     ref.watch(outboxServiceProvider),
+    ref.watch(studyRepositoryProvider),
   );
 });

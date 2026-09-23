@@ -26,6 +26,7 @@ class LibraryState {
     this.error,
     required this.isOnline,
     required this.downloadingSetIds,
+    required this.downloadedSetIds,
   });
 
   final List<SetRecord> sets;
@@ -33,6 +34,7 @@ class LibraryState {
   final String? error;
   final bool isOnline;
   final Set<String> downloadingSetIds;
+  final Set<String> downloadedSetIds;
 
   LibraryState copyWith({
     List<SetRecord>? sets,
@@ -40,6 +42,7 @@ class LibraryState {
     String? error,
     bool? isOnline,
     Set<String>? downloadingSetIds,
+    Set<String>? downloadedSetIds,
   }) {
     return LibraryState(
       sets: sets ?? this.sets,
@@ -47,6 +50,7 @@ class LibraryState {
       error: error,
       isOnline: isOnline ?? this.isOnline,
       downloadingSetIds: downloadingSetIds ?? this.downloadingSetIds,
+      downloadedSetIds: downloadedSetIds ?? this.downloadedSetIds,
     );
   }
 }
@@ -59,6 +63,7 @@ class LibraryNotifier extends StateNotifier<LibraryState> {
           isLoading: true,
           isOnline: true,
           downloadingSetIds: {},
+          downloadedSetIds: {},
         )) {
     _init();
   }
@@ -69,7 +74,12 @@ class LibraryNotifier extends StateNotifier<LibraryState> {
     try {
       // Сначала показываем локальные данные
       final localSets = await _repo.getDownloadedSets();
-      state = state.copyWith(sets: localSets, isLoading: false);
+      final downloadedIds = await _repo.getDownloadedSetIds();
+      state = state.copyWith(
+        sets: localSets,
+        isLoading: false,
+        downloadedSetIds: downloadedIds,
+      );
 
       // Затем пробуем синхронизировать из API
       await refresh();
@@ -100,9 +110,11 @@ class LibraryNotifier extends StateNotifier<LibraryState> {
     try {
       await _repo.downloadSet(setId);
       final sets = await _repo.getDownloadedSets();
+      final downloadedIds = await _repo.getDownloadedSetIds();
       state = state.copyWith(
         sets: sets,
         downloadingSetIds: state.downloadingSetIds..remove(setId),
+        downloadedSetIds: downloadedIds,
       );
     } catch (e) {
       state = state.copyWith(

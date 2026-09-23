@@ -3115,6 +3115,1793 @@ class ReviewOutboxCompanion extends UpdateCompanion<ReviewOutboxData> {
   }
 }
 
+class $CoursesTable extends Courses
+    with TableInfo<$CoursesTable, CourseRecord> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CoursesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _slugMeta = const VerificationMeta('slug');
+  @override
+  late final GeneratedColumn<String> slug = GeneratedColumn<String>(
+    'slug',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+    'title',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _descriptionMeta = const VerificationMeta(
+    'description',
+  );
+  @override
+  late final GeneratedColumn<String> description = GeneratedColumn<String>(
+    'description',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _authorNameMeta = const VerificationMeta(
+    'authorName',
+  );
+  @override
+  late final GeneratedColumn<String> authorName = GeneratedColumn<String>(
+    'author_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _isPublishedMeta = const VerificationMeta(
+    'isPublished',
+  );
+  @override
+  late final GeneratedColumn<bool> isPublished = GeneratedColumn<bool>(
+    'is_published',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_published" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    slug,
+    title,
+    description,
+    authorName,
+    isPublished,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'courses';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CourseRecord> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('slug')) {
+      context.handle(
+        _slugMeta,
+        slug.isAcceptableOrUnknown(data['slug']!, _slugMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_slugMeta);
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+        _titleMeta,
+        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_titleMeta);
+    }
+    if (data.containsKey('description')) {
+      context.handle(
+        _descriptionMeta,
+        description.isAcceptableOrUnknown(
+          data['description']!,
+          _descriptionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('author_name')) {
+      context.handle(
+        _authorNameMeta,
+        authorName.isAcceptableOrUnknown(data['author_name']!, _authorNameMeta),
+      );
+    }
+    if (data.containsKey('is_published')) {
+      context.handle(
+        _isPublishedMeta,
+        isPublished.isAcceptableOrUnknown(
+          data['is_published']!,
+          _isPublishedMeta,
+        ),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  CourseRecord map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CourseRecord(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      slug: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}slug'],
+      )!,
+      title: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}title'],
+      )!,
+      description: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}description'],
+      )!,
+      authorName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}author_name'],
+      )!,
+      isPublished: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_published'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $CoursesTable createAlias(String alias) {
+    return $CoursesTable(attachedDatabase, alias);
+  }
+}
+
+class CourseRecord extends DataClass implements Insertable<CourseRecord> {
+  final String id;
+  final String slug;
+  final String title;
+  final String description;
+  final String authorName;
+  final bool isPublished;
+  final DateTime updatedAt;
+  const CourseRecord({
+    required this.id,
+    required this.slug,
+    required this.title,
+    required this.description,
+    required this.authorName,
+    required this.isPublished,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['slug'] = Variable<String>(slug);
+    map['title'] = Variable<String>(title);
+    map['description'] = Variable<String>(description);
+    map['author_name'] = Variable<String>(authorName);
+    map['is_published'] = Variable<bool>(isPublished);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  CoursesCompanion toCompanion(bool nullToAbsent) {
+    return CoursesCompanion(
+      id: Value(id),
+      slug: Value(slug),
+      title: Value(title),
+      description: Value(description),
+      authorName: Value(authorName),
+      isPublished: Value(isPublished),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory CourseRecord.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CourseRecord(
+      id: serializer.fromJson<String>(json['id']),
+      slug: serializer.fromJson<String>(json['slug']),
+      title: serializer.fromJson<String>(json['title']),
+      description: serializer.fromJson<String>(json['description']),
+      authorName: serializer.fromJson<String>(json['authorName']),
+      isPublished: serializer.fromJson<bool>(json['isPublished']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'slug': serializer.toJson<String>(slug),
+      'title': serializer.toJson<String>(title),
+      'description': serializer.toJson<String>(description),
+      'authorName': serializer.toJson<String>(authorName),
+      'isPublished': serializer.toJson<bool>(isPublished),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  CourseRecord copyWith({
+    String? id,
+    String? slug,
+    String? title,
+    String? description,
+    String? authorName,
+    bool? isPublished,
+    DateTime? updatedAt,
+  }) => CourseRecord(
+    id: id ?? this.id,
+    slug: slug ?? this.slug,
+    title: title ?? this.title,
+    description: description ?? this.description,
+    authorName: authorName ?? this.authorName,
+    isPublished: isPublished ?? this.isPublished,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  CourseRecord copyWithCompanion(CoursesCompanion data) {
+    return CourseRecord(
+      id: data.id.present ? data.id.value : this.id,
+      slug: data.slug.present ? data.slug.value : this.slug,
+      title: data.title.present ? data.title.value : this.title,
+      description: data.description.present
+          ? data.description.value
+          : this.description,
+      authorName: data.authorName.present
+          ? data.authorName.value
+          : this.authorName,
+      isPublished: data.isPublished.present
+          ? data.isPublished.value
+          : this.isPublished,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CourseRecord(')
+          ..write('id: $id, ')
+          ..write('slug: $slug, ')
+          ..write('title: $title, ')
+          ..write('description: $description, ')
+          ..write('authorName: $authorName, ')
+          ..write('isPublished: $isPublished, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    slug,
+    title,
+    description,
+    authorName,
+    isPublished,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CourseRecord &&
+          other.id == this.id &&
+          other.slug == this.slug &&
+          other.title == this.title &&
+          other.description == this.description &&
+          other.authorName == this.authorName &&
+          other.isPublished == this.isPublished &&
+          other.updatedAt == this.updatedAt);
+}
+
+class CoursesCompanion extends UpdateCompanion<CourseRecord> {
+  final Value<String> id;
+  final Value<String> slug;
+  final Value<String> title;
+  final Value<String> description;
+  final Value<String> authorName;
+  final Value<bool> isPublished;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const CoursesCompanion({
+    this.id = const Value.absent(),
+    this.slug = const Value.absent(),
+    this.title = const Value.absent(),
+    this.description = const Value.absent(),
+    this.authorName = const Value.absent(),
+    this.isPublished = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  CoursesCompanion.insert({
+    required String id,
+    required String slug,
+    required String title,
+    this.description = const Value.absent(),
+    this.authorName = const Value.absent(),
+    this.isPublished = const Value.absent(),
+    required DateTime updatedAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       slug = Value(slug),
+       title = Value(title),
+       updatedAt = Value(updatedAt);
+  static Insertable<CourseRecord> custom({
+    Expression<String>? id,
+    Expression<String>? slug,
+    Expression<String>? title,
+    Expression<String>? description,
+    Expression<String>? authorName,
+    Expression<bool>? isPublished,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (slug != null) 'slug': slug,
+      if (title != null) 'title': title,
+      if (description != null) 'description': description,
+      if (authorName != null) 'author_name': authorName,
+      if (isPublished != null) 'is_published': isPublished,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  CoursesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? slug,
+    Value<String>? title,
+    Value<String>? description,
+    Value<String>? authorName,
+    Value<bool>? isPublished,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return CoursesCompanion(
+      id: id ?? this.id,
+      slug: slug ?? this.slug,
+      title: title ?? this.title,
+      description: description ?? this.description,
+      authorName: authorName ?? this.authorName,
+      isPublished: isPublished ?? this.isPublished,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (slug.present) {
+      map['slug'] = Variable<String>(slug.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (description.present) {
+      map['description'] = Variable<String>(description.value);
+    }
+    if (authorName.present) {
+      map['author_name'] = Variable<String>(authorName.value);
+    }
+    if (isPublished.present) {
+      map['is_published'] = Variable<bool>(isPublished.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CoursesCompanion(')
+          ..write('id: $id, ')
+          ..write('slug: $slug, ')
+          ..write('title: $title, ')
+          ..write('description: $description, ')
+          ..write('authorName: $authorName, ')
+          ..write('isPublished: $isPublished, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $CourseSectionsTable extends CourseSections
+    with TableInfo<$CourseSectionsTable, CourseSectionRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CourseSectionsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _courseIdMeta = const VerificationMeta(
+    'courseId',
+  );
+  @override
+  late final GeneratedColumn<String> courseId = GeneratedColumn<String>(
+    'course_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES courses (id)',
+    ),
+  );
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+    'title',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _positionMeta = const VerificationMeta(
+    'position',
+  );
+  @override
+  late final GeneratedColumn<int> position = GeneratedColumn<int>(
+    'position',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, courseId, title, position];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'course_sections';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CourseSectionRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('course_id')) {
+      context.handle(
+        _courseIdMeta,
+        courseId.isAcceptableOrUnknown(data['course_id']!, _courseIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_courseIdMeta);
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+        _titleMeta,
+        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_titleMeta);
+    }
+    if (data.containsKey('position')) {
+      context.handle(
+        _positionMeta,
+        position.isAcceptableOrUnknown(data['position']!, _positionMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_positionMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  CourseSectionRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CourseSectionRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      courseId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}course_id'],
+      )!,
+      title: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}title'],
+      )!,
+      position: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}position'],
+      )!,
+    );
+  }
+
+  @override
+  $CourseSectionsTable createAlias(String alias) {
+    return $CourseSectionsTable(attachedDatabase, alias);
+  }
+}
+
+class CourseSectionRow extends DataClass
+    implements Insertable<CourseSectionRow> {
+  final String id;
+  final String courseId;
+  final String title;
+  final int position;
+  const CourseSectionRow({
+    required this.id,
+    required this.courseId,
+    required this.title,
+    required this.position,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['course_id'] = Variable<String>(courseId);
+    map['title'] = Variable<String>(title);
+    map['position'] = Variable<int>(position);
+    return map;
+  }
+
+  CourseSectionsCompanion toCompanion(bool nullToAbsent) {
+    return CourseSectionsCompanion(
+      id: Value(id),
+      courseId: Value(courseId),
+      title: Value(title),
+      position: Value(position),
+    );
+  }
+
+  factory CourseSectionRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CourseSectionRow(
+      id: serializer.fromJson<String>(json['id']),
+      courseId: serializer.fromJson<String>(json['courseId']),
+      title: serializer.fromJson<String>(json['title']),
+      position: serializer.fromJson<int>(json['position']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'courseId': serializer.toJson<String>(courseId),
+      'title': serializer.toJson<String>(title),
+      'position': serializer.toJson<int>(position),
+    };
+  }
+
+  CourseSectionRow copyWith({
+    String? id,
+    String? courseId,
+    String? title,
+    int? position,
+  }) => CourseSectionRow(
+    id: id ?? this.id,
+    courseId: courseId ?? this.courseId,
+    title: title ?? this.title,
+    position: position ?? this.position,
+  );
+  CourseSectionRow copyWithCompanion(CourseSectionsCompanion data) {
+    return CourseSectionRow(
+      id: data.id.present ? data.id.value : this.id,
+      courseId: data.courseId.present ? data.courseId.value : this.courseId,
+      title: data.title.present ? data.title.value : this.title,
+      position: data.position.present ? data.position.value : this.position,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CourseSectionRow(')
+          ..write('id: $id, ')
+          ..write('courseId: $courseId, ')
+          ..write('title: $title, ')
+          ..write('position: $position')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, courseId, title, position);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CourseSectionRow &&
+          other.id == this.id &&
+          other.courseId == this.courseId &&
+          other.title == this.title &&
+          other.position == this.position);
+}
+
+class CourseSectionsCompanion extends UpdateCompanion<CourseSectionRow> {
+  final Value<String> id;
+  final Value<String> courseId;
+  final Value<String> title;
+  final Value<int> position;
+  final Value<int> rowid;
+  const CourseSectionsCompanion({
+    this.id = const Value.absent(),
+    this.courseId = const Value.absent(),
+    this.title = const Value.absent(),
+    this.position = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  CourseSectionsCompanion.insert({
+    required String id,
+    required String courseId,
+    required String title,
+    required int position,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       courseId = Value(courseId),
+       title = Value(title),
+       position = Value(position);
+  static Insertable<CourseSectionRow> custom({
+    Expression<String>? id,
+    Expression<String>? courseId,
+    Expression<String>? title,
+    Expression<int>? position,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (courseId != null) 'course_id': courseId,
+      if (title != null) 'title': title,
+      if (position != null) 'position': position,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  CourseSectionsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? courseId,
+    Value<String>? title,
+    Value<int>? position,
+    Value<int>? rowid,
+  }) {
+    return CourseSectionsCompanion(
+      id: id ?? this.id,
+      courseId: courseId ?? this.courseId,
+      title: title ?? this.title,
+      position: position ?? this.position,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (courseId.present) {
+      map['course_id'] = Variable<String>(courseId.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (position.present) {
+      map['position'] = Variable<int>(position.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CourseSectionsCompanion(')
+          ..write('id: $id, ')
+          ..write('courseId: $courseId, ')
+          ..write('title: $title, ')
+          ..write('position: $position, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $CourseArticlesTable extends CourseArticles
+    with TableInfo<$CourseArticlesTable, CourseArticleRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CourseArticlesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sectionIdMeta = const VerificationMeta(
+    'sectionId',
+  );
+  @override
+  late final GeneratedColumn<String> sectionId = GeneratedColumn<String>(
+    'section_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES course_sections (id)',
+    ),
+  );
+  static const VerificationMeta _courseIdMeta = const VerificationMeta(
+    'courseId',
+  );
+  @override
+  late final GeneratedColumn<String> courseId = GeneratedColumn<String>(
+    'course_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _setIdMeta = const VerificationMeta('setId');
+  @override
+  late final GeneratedColumn<String> setId = GeneratedColumn<String>(
+    'set_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+    'title',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _bodyMeta = const VerificationMeta('body');
+  @override
+  late final GeneratedColumn<String> body = GeneratedColumn<String>(
+    'body',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _positionMeta = const VerificationMeta(
+    'position',
+  );
+  @override
+  late final GeneratedColumn<int> position = GeneratedColumn<int>(
+    'position',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _mediaJsonMeta = const VerificationMeta(
+    'mediaJson',
+  );
+  @override
+  late final GeneratedColumn<String> mediaJson = GeneratedColumn<String>(
+    'media_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('[]'),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    sectionId,
+    courseId,
+    setId,
+    title,
+    body,
+    position,
+    mediaJson,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'course_articles';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CourseArticleRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('section_id')) {
+      context.handle(
+        _sectionIdMeta,
+        sectionId.isAcceptableOrUnknown(data['section_id']!, _sectionIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_sectionIdMeta);
+    }
+    if (data.containsKey('course_id')) {
+      context.handle(
+        _courseIdMeta,
+        courseId.isAcceptableOrUnknown(data['course_id']!, _courseIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_courseIdMeta);
+    }
+    if (data.containsKey('set_id')) {
+      context.handle(
+        _setIdMeta,
+        setId.isAcceptableOrUnknown(data['set_id']!, _setIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_setIdMeta);
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+        _titleMeta,
+        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_titleMeta);
+    }
+    if (data.containsKey('body')) {
+      context.handle(
+        _bodyMeta,
+        body.isAcceptableOrUnknown(data['body']!, _bodyMeta),
+      );
+    }
+    if (data.containsKey('position')) {
+      context.handle(
+        _positionMeta,
+        position.isAcceptableOrUnknown(data['position']!, _positionMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_positionMeta);
+    }
+    if (data.containsKey('media_json')) {
+      context.handle(
+        _mediaJsonMeta,
+        mediaJson.isAcceptableOrUnknown(data['media_json']!, _mediaJsonMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  CourseArticleRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CourseArticleRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      sectionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}section_id'],
+      )!,
+      courseId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}course_id'],
+      )!,
+      setId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}set_id'],
+      )!,
+      title: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}title'],
+      )!,
+      body: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}body'],
+      )!,
+      position: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}position'],
+      )!,
+      mediaJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}media_json'],
+      )!,
+    );
+  }
+
+  @override
+  $CourseArticlesTable createAlias(String alias) {
+    return $CourseArticlesTable(attachedDatabase, alias);
+  }
+}
+
+class CourseArticleRow extends DataClass
+    implements Insertable<CourseArticleRow> {
+  final String id;
+  final String sectionId;
+  final String courseId;
+  final String setId;
+  final String title;
+  final String body;
+  final int position;
+  final String mediaJson;
+  const CourseArticleRow({
+    required this.id,
+    required this.sectionId,
+    required this.courseId,
+    required this.setId,
+    required this.title,
+    required this.body,
+    required this.position,
+    required this.mediaJson,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['section_id'] = Variable<String>(sectionId);
+    map['course_id'] = Variable<String>(courseId);
+    map['set_id'] = Variable<String>(setId);
+    map['title'] = Variable<String>(title);
+    map['body'] = Variable<String>(body);
+    map['position'] = Variable<int>(position);
+    map['media_json'] = Variable<String>(mediaJson);
+    return map;
+  }
+
+  CourseArticlesCompanion toCompanion(bool nullToAbsent) {
+    return CourseArticlesCompanion(
+      id: Value(id),
+      sectionId: Value(sectionId),
+      courseId: Value(courseId),
+      setId: Value(setId),
+      title: Value(title),
+      body: Value(body),
+      position: Value(position),
+      mediaJson: Value(mediaJson),
+    );
+  }
+
+  factory CourseArticleRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CourseArticleRow(
+      id: serializer.fromJson<String>(json['id']),
+      sectionId: serializer.fromJson<String>(json['sectionId']),
+      courseId: serializer.fromJson<String>(json['courseId']),
+      setId: serializer.fromJson<String>(json['setId']),
+      title: serializer.fromJson<String>(json['title']),
+      body: serializer.fromJson<String>(json['body']),
+      position: serializer.fromJson<int>(json['position']),
+      mediaJson: serializer.fromJson<String>(json['mediaJson']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'sectionId': serializer.toJson<String>(sectionId),
+      'courseId': serializer.toJson<String>(courseId),
+      'setId': serializer.toJson<String>(setId),
+      'title': serializer.toJson<String>(title),
+      'body': serializer.toJson<String>(body),
+      'position': serializer.toJson<int>(position),
+      'mediaJson': serializer.toJson<String>(mediaJson),
+    };
+  }
+
+  CourseArticleRow copyWith({
+    String? id,
+    String? sectionId,
+    String? courseId,
+    String? setId,
+    String? title,
+    String? body,
+    int? position,
+    String? mediaJson,
+  }) => CourseArticleRow(
+    id: id ?? this.id,
+    sectionId: sectionId ?? this.sectionId,
+    courseId: courseId ?? this.courseId,
+    setId: setId ?? this.setId,
+    title: title ?? this.title,
+    body: body ?? this.body,
+    position: position ?? this.position,
+    mediaJson: mediaJson ?? this.mediaJson,
+  );
+  CourseArticleRow copyWithCompanion(CourseArticlesCompanion data) {
+    return CourseArticleRow(
+      id: data.id.present ? data.id.value : this.id,
+      sectionId: data.sectionId.present ? data.sectionId.value : this.sectionId,
+      courseId: data.courseId.present ? data.courseId.value : this.courseId,
+      setId: data.setId.present ? data.setId.value : this.setId,
+      title: data.title.present ? data.title.value : this.title,
+      body: data.body.present ? data.body.value : this.body,
+      position: data.position.present ? data.position.value : this.position,
+      mediaJson: data.mediaJson.present ? data.mediaJson.value : this.mediaJson,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CourseArticleRow(')
+          ..write('id: $id, ')
+          ..write('sectionId: $sectionId, ')
+          ..write('courseId: $courseId, ')
+          ..write('setId: $setId, ')
+          ..write('title: $title, ')
+          ..write('body: $body, ')
+          ..write('position: $position, ')
+          ..write('mediaJson: $mediaJson')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    sectionId,
+    courseId,
+    setId,
+    title,
+    body,
+    position,
+    mediaJson,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CourseArticleRow &&
+          other.id == this.id &&
+          other.sectionId == this.sectionId &&
+          other.courseId == this.courseId &&
+          other.setId == this.setId &&
+          other.title == this.title &&
+          other.body == this.body &&
+          other.position == this.position &&
+          other.mediaJson == this.mediaJson);
+}
+
+class CourseArticlesCompanion extends UpdateCompanion<CourseArticleRow> {
+  final Value<String> id;
+  final Value<String> sectionId;
+  final Value<String> courseId;
+  final Value<String> setId;
+  final Value<String> title;
+  final Value<String> body;
+  final Value<int> position;
+  final Value<String> mediaJson;
+  final Value<int> rowid;
+  const CourseArticlesCompanion({
+    this.id = const Value.absent(),
+    this.sectionId = const Value.absent(),
+    this.courseId = const Value.absent(),
+    this.setId = const Value.absent(),
+    this.title = const Value.absent(),
+    this.body = const Value.absent(),
+    this.position = const Value.absent(),
+    this.mediaJson = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  CourseArticlesCompanion.insert({
+    required String id,
+    required String sectionId,
+    required String courseId,
+    required String setId,
+    required String title,
+    this.body = const Value.absent(),
+    required int position,
+    this.mediaJson = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       sectionId = Value(sectionId),
+       courseId = Value(courseId),
+       setId = Value(setId),
+       title = Value(title),
+       position = Value(position);
+  static Insertable<CourseArticleRow> custom({
+    Expression<String>? id,
+    Expression<String>? sectionId,
+    Expression<String>? courseId,
+    Expression<String>? setId,
+    Expression<String>? title,
+    Expression<String>? body,
+    Expression<int>? position,
+    Expression<String>? mediaJson,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (sectionId != null) 'section_id': sectionId,
+      if (courseId != null) 'course_id': courseId,
+      if (setId != null) 'set_id': setId,
+      if (title != null) 'title': title,
+      if (body != null) 'body': body,
+      if (position != null) 'position': position,
+      if (mediaJson != null) 'media_json': mediaJson,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  CourseArticlesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? sectionId,
+    Value<String>? courseId,
+    Value<String>? setId,
+    Value<String>? title,
+    Value<String>? body,
+    Value<int>? position,
+    Value<String>? mediaJson,
+    Value<int>? rowid,
+  }) {
+    return CourseArticlesCompanion(
+      id: id ?? this.id,
+      sectionId: sectionId ?? this.sectionId,
+      courseId: courseId ?? this.courseId,
+      setId: setId ?? this.setId,
+      title: title ?? this.title,
+      body: body ?? this.body,
+      position: position ?? this.position,
+      mediaJson: mediaJson ?? this.mediaJson,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (sectionId.present) {
+      map['section_id'] = Variable<String>(sectionId.value);
+    }
+    if (courseId.present) {
+      map['course_id'] = Variable<String>(courseId.value);
+    }
+    if (setId.present) {
+      map['set_id'] = Variable<String>(setId.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (body.present) {
+      map['body'] = Variable<String>(body.value);
+    }
+    if (position.present) {
+      map['position'] = Variable<int>(position.value);
+    }
+    if (mediaJson.present) {
+      map['media_json'] = Variable<String>(mediaJson.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CourseArticlesCompanion(')
+          ..write('id: $id, ')
+          ..write('sectionId: $sectionId, ')
+          ..write('courseId: $courseId, ')
+          ..write('setId: $setId, ')
+          ..write('title: $title, ')
+          ..write('body: $body, ')
+          ..write('position: $position, ')
+          ..write('mediaJson: $mediaJson, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $PendingLearnSettingsTable extends PendingLearnSettings
+    with TableInfo<$PendingLearnSettingsTable, PendingLearnSettingsRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PendingLearnSettingsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _setIdMeta = const VerificationMeta('setId');
+  @override
+  late final GeneratedColumn<String> setId = GeneratedColumn<String>(
+    'set_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _actionMeta = const VerificationMeta('action');
+  @override
+  late final GeneratedColumn<String> action = GeneratedColumn<String>(
+    'action',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _questionTypesMeta = const VerificationMeta(
+    'questionTypes',
+  );
+  @override
+  late final GeneratedColumn<String> questionTypes = GeneratedColumn<String>(
+    'question_types',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _successesRequiredMeta = const VerificationMeta(
+    'successesRequired',
+  );
+  @override
+  late final GeneratedColumn<int> successesRequired = GeneratedColumn<int>(
+    'successes_required',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _typingCheckMeta = const VerificationMeta(
+    'typingCheck',
+  );
+  @override
+  late final GeneratedColumn<String> typingCheck = GeneratedColumn<String>(
+    'typing_check',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _matchPercentMeta = const VerificationMeta(
+    'matchPercent',
+  );
+  @override
+  late final GeneratedColumn<int> matchPercent = GeneratedColumn<int>(
+    'match_percent',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    setId,
+    action,
+    questionTypes,
+    successesRequired,
+    typingCheck,
+    matchPercent,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'pending_learn_settings';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<PendingLearnSettingsRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('set_id')) {
+      context.handle(
+        _setIdMeta,
+        setId.isAcceptableOrUnknown(data['set_id']!, _setIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_setIdMeta);
+    }
+    if (data.containsKey('action')) {
+      context.handle(
+        _actionMeta,
+        action.isAcceptableOrUnknown(data['action']!, _actionMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_actionMeta);
+    }
+    if (data.containsKey('question_types')) {
+      context.handle(
+        _questionTypesMeta,
+        questionTypes.isAcceptableOrUnknown(
+          data['question_types']!,
+          _questionTypesMeta,
+        ),
+      );
+    }
+    if (data.containsKey('successes_required')) {
+      context.handle(
+        _successesRequiredMeta,
+        successesRequired.isAcceptableOrUnknown(
+          data['successes_required']!,
+          _successesRequiredMeta,
+        ),
+      );
+    }
+    if (data.containsKey('typing_check')) {
+      context.handle(
+        _typingCheckMeta,
+        typingCheck.isAcceptableOrUnknown(
+          data['typing_check']!,
+          _typingCheckMeta,
+        ),
+      );
+    }
+    if (data.containsKey('match_percent')) {
+      context.handle(
+        _matchPercentMeta,
+        matchPercent.isAcceptableOrUnknown(
+          data['match_percent']!,
+          _matchPercentMeta,
+        ),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {setId};
+  @override
+  PendingLearnSettingsRow map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return PendingLearnSettingsRow(
+      setId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}set_id'],
+      )!,
+      action: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}action'],
+      )!,
+      questionTypes: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}question_types'],
+      ),
+      successesRequired: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}successes_required'],
+      ),
+      typingCheck: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}typing_check'],
+      ),
+      matchPercent: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}match_percent'],
+      ),
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $PendingLearnSettingsTable createAlias(String alias) {
+    return $PendingLearnSettingsTable(attachedDatabase, alias);
+  }
+}
+
+class PendingLearnSettingsRow extends DataClass
+    implements Insertable<PendingLearnSettingsRow> {
+  final String setId;
+  final String action;
+  final String? questionTypes;
+  final int? successesRequired;
+  final String? typingCheck;
+  final int? matchPercent;
+  final DateTime updatedAt;
+  const PendingLearnSettingsRow({
+    required this.setId,
+    required this.action,
+    this.questionTypes,
+    this.successesRequired,
+    this.typingCheck,
+    this.matchPercent,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['set_id'] = Variable<String>(setId);
+    map['action'] = Variable<String>(action);
+    if (!nullToAbsent || questionTypes != null) {
+      map['question_types'] = Variable<String>(questionTypes);
+    }
+    if (!nullToAbsent || successesRequired != null) {
+      map['successes_required'] = Variable<int>(successesRequired);
+    }
+    if (!nullToAbsent || typingCheck != null) {
+      map['typing_check'] = Variable<String>(typingCheck);
+    }
+    if (!nullToAbsent || matchPercent != null) {
+      map['match_percent'] = Variable<int>(matchPercent);
+    }
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  PendingLearnSettingsCompanion toCompanion(bool nullToAbsent) {
+    return PendingLearnSettingsCompanion(
+      setId: Value(setId),
+      action: Value(action),
+      questionTypes: questionTypes == null && nullToAbsent
+          ? const Value.absent()
+          : Value(questionTypes),
+      successesRequired: successesRequired == null && nullToAbsent
+          ? const Value.absent()
+          : Value(successesRequired),
+      typingCheck: typingCheck == null && nullToAbsent
+          ? const Value.absent()
+          : Value(typingCheck),
+      matchPercent: matchPercent == null && nullToAbsent
+          ? const Value.absent()
+          : Value(matchPercent),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory PendingLearnSettingsRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return PendingLearnSettingsRow(
+      setId: serializer.fromJson<String>(json['setId']),
+      action: serializer.fromJson<String>(json['action']),
+      questionTypes: serializer.fromJson<String?>(json['questionTypes']),
+      successesRequired: serializer.fromJson<int?>(json['successesRequired']),
+      typingCheck: serializer.fromJson<String?>(json['typingCheck']),
+      matchPercent: serializer.fromJson<int?>(json['matchPercent']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'setId': serializer.toJson<String>(setId),
+      'action': serializer.toJson<String>(action),
+      'questionTypes': serializer.toJson<String?>(questionTypes),
+      'successesRequired': serializer.toJson<int?>(successesRequired),
+      'typingCheck': serializer.toJson<String?>(typingCheck),
+      'matchPercent': serializer.toJson<int?>(matchPercent),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  PendingLearnSettingsRow copyWith({
+    String? setId,
+    String? action,
+    Value<String?> questionTypes = const Value.absent(),
+    Value<int?> successesRequired = const Value.absent(),
+    Value<String?> typingCheck = const Value.absent(),
+    Value<int?> matchPercent = const Value.absent(),
+    DateTime? updatedAt,
+  }) => PendingLearnSettingsRow(
+    setId: setId ?? this.setId,
+    action: action ?? this.action,
+    questionTypes: questionTypes.present
+        ? questionTypes.value
+        : this.questionTypes,
+    successesRequired: successesRequired.present
+        ? successesRequired.value
+        : this.successesRequired,
+    typingCheck: typingCheck.present ? typingCheck.value : this.typingCheck,
+    matchPercent: matchPercent.present ? matchPercent.value : this.matchPercent,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  PendingLearnSettingsRow copyWithCompanion(
+    PendingLearnSettingsCompanion data,
+  ) {
+    return PendingLearnSettingsRow(
+      setId: data.setId.present ? data.setId.value : this.setId,
+      action: data.action.present ? data.action.value : this.action,
+      questionTypes: data.questionTypes.present
+          ? data.questionTypes.value
+          : this.questionTypes,
+      successesRequired: data.successesRequired.present
+          ? data.successesRequired.value
+          : this.successesRequired,
+      typingCheck: data.typingCheck.present
+          ? data.typingCheck.value
+          : this.typingCheck,
+      matchPercent: data.matchPercent.present
+          ? data.matchPercent.value
+          : this.matchPercent,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PendingLearnSettingsRow(')
+          ..write('setId: $setId, ')
+          ..write('action: $action, ')
+          ..write('questionTypes: $questionTypes, ')
+          ..write('successesRequired: $successesRequired, ')
+          ..write('typingCheck: $typingCheck, ')
+          ..write('matchPercent: $matchPercent, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    setId,
+    action,
+    questionTypes,
+    successesRequired,
+    typingCheck,
+    matchPercent,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PendingLearnSettingsRow &&
+          other.setId == this.setId &&
+          other.action == this.action &&
+          other.questionTypes == this.questionTypes &&
+          other.successesRequired == this.successesRequired &&
+          other.typingCheck == this.typingCheck &&
+          other.matchPercent == this.matchPercent &&
+          other.updatedAt == this.updatedAt);
+}
+
+class PendingLearnSettingsCompanion
+    extends UpdateCompanion<PendingLearnSettingsRow> {
+  final Value<String> setId;
+  final Value<String> action;
+  final Value<String?> questionTypes;
+  final Value<int?> successesRequired;
+  final Value<String?> typingCheck;
+  final Value<int?> matchPercent;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const PendingLearnSettingsCompanion({
+    this.setId = const Value.absent(),
+    this.action = const Value.absent(),
+    this.questionTypes = const Value.absent(),
+    this.successesRequired = const Value.absent(),
+    this.typingCheck = const Value.absent(),
+    this.matchPercent = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  PendingLearnSettingsCompanion.insert({
+    required String setId,
+    required String action,
+    this.questionTypes = const Value.absent(),
+    this.successesRequired = const Value.absent(),
+    this.typingCheck = const Value.absent(),
+    this.matchPercent = const Value.absent(),
+    required DateTime updatedAt,
+    this.rowid = const Value.absent(),
+  }) : setId = Value(setId),
+       action = Value(action),
+       updatedAt = Value(updatedAt);
+  static Insertable<PendingLearnSettingsRow> custom({
+    Expression<String>? setId,
+    Expression<String>? action,
+    Expression<String>? questionTypes,
+    Expression<int>? successesRequired,
+    Expression<String>? typingCheck,
+    Expression<int>? matchPercent,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (setId != null) 'set_id': setId,
+      if (action != null) 'action': action,
+      if (questionTypes != null) 'question_types': questionTypes,
+      if (successesRequired != null) 'successes_required': successesRequired,
+      if (typingCheck != null) 'typing_check': typingCheck,
+      if (matchPercent != null) 'match_percent': matchPercent,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  PendingLearnSettingsCompanion copyWith({
+    Value<String>? setId,
+    Value<String>? action,
+    Value<String?>? questionTypes,
+    Value<int?>? successesRequired,
+    Value<String?>? typingCheck,
+    Value<int?>? matchPercent,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return PendingLearnSettingsCompanion(
+      setId: setId ?? this.setId,
+      action: action ?? this.action,
+      questionTypes: questionTypes ?? this.questionTypes,
+      successesRequired: successesRequired ?? this.successesRequired,
+      typingCheck: typingCheck ?? this.typingCheck,
+      matchPercent: matchPercent ?? this.matchPercent,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (setId.present) {
+      map['set_id'] = Variable<String>(setId.value);
+    }
+    if (action.present) {
+      map['action'] = Variable<String>(action.value);
+    }
+    if (questionTypes.present) {
+      map['question_types'] = Variable<String>(questionTypes.value);
+    }
+    if (successesRequired.present) {
+      map['successes_required'] = Variable<int>(successesRequired.value);
+    }
+    if (typingCheck.present) {
+      map['typing_check'] = Variable<String>(typingCheck.value);
+    }
+    if (matchPercent.present) {
+      map['match_percent'] = Variable<int>(matchPercent.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PendingLearnSettingsCompanion(')
+          ..write('setId: $setId, ')
+          ..write('action: $action, ')
+          ..write('questionTypes: $questionTypes, ')
+          ..write('successesRequired: $successesRequired, ')
+          ..write('typingCheck: $typingCheck, ')
+          ..write('matchPercent: $matchPercent, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -3123,6 +4910,11 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $CardStatesTable cardStates = $CardStatesTable(this);
   late final $SyncMetaTable syncMeta = $SyncMetaTable(this);
   late final $ReviewOutboxTable reviewOutbox = $ReviewOutboxTable(this);
+  late final $CoursesTable courses = $CoursesTable(this);
+  late final $CourseSectionsTable courseSections = $CourseSectionsTable(this);
+  late final $CourseArticlesTable courseArticles = $CourseArticlesTable(this);
+  late final $PendingLearnSettingsTable pendingLearnSettings =
+      $PendingLearnSettingsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -3133,6 +4925,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     cardStates,
     syncMeta,
     reviewOutbox,
+    courses,
+    courseSections,
+    courseArticles,
+    pendingLearnSettings,
   ];
   @override
   DriftDatabaseOptions get options =>
@@ -5065,6 +6861,1409 @@ typedef $$ReviewOutboxTableProcessedTableManager =
       ReviewOutboxData,
       PrefetchHooks Function()
     >;
+typedef $$CoursesTableCreateCompanionBuilder =
+    CoursesCompanion Function({
+      required String id,
+      required String slug,
+      required String title,
+      Value<String> description,
+      Value<String> authorName,
+      Value<bool> isPublished,
+      required DateTime updatedAt,
+      Value<int> rowid,
+    });
+typedef $$CoursesTableUpdateCompanionBuilder =
+    CoursesCompanion Function({
+      Value<String> id,
+      Value<String> slug,
+      Value<String> title,
+      Value<String> description,
+      Value<String> authorName,
+      Value<bool> isPublished,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+
+final class $$CoursesTableReferences
+    extends BaseReferences<_$AppDatabase, $CoursesTable, CourseRecord> {
+  $$CoursesTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static MultiTypedResultKey<$CourseSectionsTable, List<CourseSectionRow>>
+  _courseSectionsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.courseSections,
+    aliasName: 'courses__id__course_sections__course_id',
+  );
+
+  $$CourseSectionsTableProcessedTableManager get courseSectionsRefs {
+    final manager = $$CourseSectionsTableTableManager(
+      $_db,
+      $_db.courseSections,
+    ).filter((f) => f.courseId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_courseSectionsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $$CoursesTableFilterComposer
+    extends Composer<_$AppDatabase, $CoursesTable> {
+  $$CoursesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get slug => $composableBuilder(
+    column: $table.slug,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get authorName => $composableBuilder(
+    column: $table.authorName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isPublished => $composableBuilder(
+    column: $table.isPublished,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  Expression<bool> courseSectionsRefs(
+    Expression<bool> Function($$CourseSectionsTableFilterComposer f) f,
+  ) {
+    final $$CourseSectionsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.courseSections,
+      getReferencedColumn: (t) => t.courseId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CourseSectionsTableFilterComposer(
+            $db: $db,
+            $table: $db.courseSections,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$CoursesTableOrderingComposer
+    extends Composer<_$AppDatabase, $CoursesTable> {
+  $$CoursesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get slug => $composableBuilder(
+    column: $table.slug,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get authorName => $composableBuilder(
+    column: $table.authorName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isPublished => $composableBuilder(
+    column: $table.isPublished,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CoursesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CoursesTable> {
+  $$CoursesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get slug =>
+      $composableBuilder(column: $table.slug, builder: (column) => column);
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get authorName => $composableBuilder(
+    column: $table.authorName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isPublished => $composableBuilder(
+    column: $table.isPublished,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  Expression<T> courseSectionsRefs<T extends Object>(
+    Expression<T> Function($$CourseSectionsTableAnnotationComposer a) f,
+  ) {
+    final $$CourseSectionsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.courseSections,
+      getReferencedColumn: (t) => t.courseId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CourseSectionsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.courseSections,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$CoursesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CoursesTable,
+          CourseRecord,
+          $$CoursesTableFilterComposer,
+          $$CoursesTableOrderingComposer,
+          $$CoursesTableAnnotationComposer,
+          $$CoursesTableCreateCompanionBuilder,
+          $$CoursesTableUpdateCompanionBuilder,
+          (CourseRecord, $$CoursesTableReferences),
+          CourseRecord,
+          PrefetchHooks Function({bool courseSectionsRefs})
+        > {
+  $$CoursesTableTableManager(_$AppDatabase db, $CoursesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CoursesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CoursesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CoursesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> slug = const Value.absent(),
+                Value<String> title = const Value.absent(),
+                Value<String> description = const Value.absent(),
+                Value<String> authorName = const Value.absent(),
+                Value<bool> isPublished = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CoursesCompanion(
+                id: id,
+                slug: slug,
+                title: title,
+                description: description,
+                authorName: authorName,
+                isPublished: isPublished,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String slug,
+                required String title,
+                Value<String> description = const Value.absent(),
+                Value<String> authorName = const Value.absent(),
+                Value<bool> isPublished = const Value.absent(),
+                required DateTime updatedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => CoursesCompanion.insert(
+                id: id,
+                slug: slug,
+                title: title,
+                description: description,
+                authorName: authorName,
+                isPublished: isPublished,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$CoursesTable, CourseRecord>(table),
+                  $$CoursesTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({courseSectionsRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [
+                if (courseSectionsRefs) db.courseSections,
+              ],
+              addJoins: null,
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (courseSectionsRefs)
+                    await $_getPrefetchedData<
+                      CourseRecord,
+                      $CoursesTable,
+                      CourseSectionRow
+                    >(
+                      currentTable: table,
+                      referencedTable: $$CoursesTableReferences
+                          ._courseSectionsRefsTable(db),
+                      managerFromTypedResult: (p0) => $$CoursesTableReferences(
+                        db,
+                        table,
+                        p0,
+                      ).courseSectionsRefs,
+                      referencedItemsForCurrentItem: (item, referencedItems) =>
+                          referencedItems.where((e) => e.courseId == item.id),
+                      typedResults: items,
+                    ),
+                ];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$CoursesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CoursesTable,
+      CourseRecord,
+      $$CoursesTableFilterComposer,
+      $$CoursesTableOrderingComposer,
+      $$CoursesTableAnnotationComposer,
+      $$CoursesTableCreateCompanionBuilder,
+      $$CoursesTableUpdateCompanionBuilder,
+      (CourseRecord, $$CoursesTableReferences),
+      CourseRecord,
+      PrefetchHooks Function({bool courseSectionsRefs})
+    >;
+typedef $$CourseSectionsTableCreateCompanionBuilder =
+    CourseSectionsCompanion Function({
+      required String id,
+      required String courseId,
+      required String title,
+      required int position,
+      Value<int> rowid,
+    });
+typedef $$CourseSectionsTableUpdateCompanionBuilder =
+    CourseSectionsCompanion Function({
+      Value<String> id,
+      Value<String> courseId,
+      Value<String> title,
+      Value<int> position,
+      Value<int> rowid,
+    });
+
+final class $$CourseSectionsTableReferences
+    extends
+        BaseReferences<_$AppDatabase, $CourseSectionsTable, CourseSectionRow> {
+  $$CourseSectionsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $CoursesTable _courseIdTable(_$AppDatabase db) =>
+      db.courses.createAlias('course_sections__course_id__courses__id');
+
+  $$CoursesTableProcessedTableManager get courseId {
+    final $_column = $_itemColumn<String>('course_id')!;
+
+    final manager = $$CoursesTableTableManager(
+      $_db,
+      $_db.courses,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_courseIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static MultiTypedResultKey<$CourseArticlesTable, List<CourseArticleRow>>
+  _courseArticlesRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.courseArticles,
+    aliasName: 'course_sections__id__course_articles__section_id',
+  );
+
+  $$CourseArticlesTableProcessedTableManager get courseArticlesRefs {
+    final manager = $$CourseArticlesTableTableManager(
+      $_db,
+      $_db.courseArticles,
+    ).filter((f) => f.sectionId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_courseArticlesRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $$CourseSectionsTableFilterComposer
+    extends Composer<_$AppDatabase, $CourseSectionsTable> {
+  $$CourseSectionsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get position => $composableBuilder(
+    column: $table.position,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$CoursesTableFilterComposer get courseId {
+    final $$CoursesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.courseId,
+      referencedTable: $db.courses,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CoursesTableFilterComposer(
+            $db: $db,
+            $table: $db.courses,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  Expression<bool> courseArticlesRefs(
+    Expression<bool> Function($$CourseArticlesTableFilterComposer f) f,
+  ) {
+    final $$CourseArticlesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.courseArticles,
+      getReferencedColumn: (t) => t.sectionId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CourseArticlesTableFilterComposer(
+            $db: $db,
+            $table: $db.courseArticles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$CourseSectionsTableOrderingComposer
+    extends Composer<_$AppDatabase, $CourseSectionsTable> {
+  $$CourseSectionsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get position => $composableBuilder(
+    column: $table.position,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$CoursesTableOrderingComposer get courseId {
+    final $$CoursesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.courseId,
+      referencedTable: $db.courses,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CoursesTableOrderingComposer(
+            $db: $db,
+            $table: $db.courses,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$CourseSectionsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CourseSectionsTable> {
+  $$CourseSectionsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<int> get position =>
+      $composableBuilder(column: $table.position, builder: (column) => column);
+
+  $$CoursesTableAnnotationComposer get courseId {
+    final $$CoursesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.courseId,
+      referencedTable: $db.courses,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CoursesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.courses,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  Expression<T> courseArticlesRefs<T extends Object>(
+    Expression<T> Function($$CourseArticlesTableAnnotationComposer a) f,
+  ) {
+    final $$CourseArticlesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.courseArticles,
+      getReferencedColumn: (t) => t.sectionId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CourseArticlesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.courseArticles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$CourseSectionsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CourseSectionsTable,
+          CourseSectionRow,
+          $$CourseSectionsTableFilterComposer,
+          $$CourseSectionsTableOrderingComposer,
+          $$CourseSectionsTableAnnotationComposer,
+          $$CourseSectionsTableCreateCompanionBuilder,
+          $$CourseSectionsTableUpdateCompanionBuilder,
+          (CourseSectionRow, $$CourseSectionsTableReferences),
+          CourseSectionRow,
+          PrefetchHooks Function({bool courseId, bool courseArticlesRefs})
+        > {
+  $$CourseSectionsTableTableManager(
+    _$AppDatabase db,
+    $CourseSectionsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CourseSectionsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CourseSectionsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CourseSectionsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> courseId = const Value.absent(),
+                Value<String> title = const Value.absent(),
+                Value<int> position = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CourseSectionsCompanion(
+                id: id,
+                courseId: courseId,
+                title: title,
+                position: position,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String courseId,
+                required String title,
+                required int position,
+                Value<int> rowid = const Value.absent(),
+              }) => CourseSectionsCompanion.insert(
+                id: id,
+                courseId: courseId,
+                title: title,
+                position: position,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$CourseSectionsTable, CourseSectionRow>(table),
+                  $$CourseSectionsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback:
+              ({courseId = false, courseArticlesRefs = false}) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (courseArticlesRefs) db.courseArticles,
+                  ],
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (courseId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.courseId,
+                                    referencedTable:
+                                        $$CourseSectionsTableReferences
+                                            ._courseIdTable(db),
+                                    referencedColumn:
+                                        $$CourseSectionsTableReferences
+                                            ._courseIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+
+                        return state;
+                      },
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (courseArticlesRefs)
+                        await $_getPrefetchedData<
+                          CourseSectionRow,
+                          $CourseSectionsTable,
+                          CourseArticleRow
+                        >(
+                          currentTable: table,
+                          referencedTable: $$CourseSectionsTableReferences
+                              ._courseArticlesRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$CourseSectionsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).courseArticlesRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.sectionId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
+              },
+        ),
+      );
+}
+
+typedef $$CourseSectionsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CourseSectionsTable,
+      CourseSectionRow,
+      $$CourseSectionsTableFilterComposer,
+      $$CourseSectionsTableOrderingComposer,
+      $$CourseSectionsTableAnnotationComposer,
+      $$CourseSectionsTableCreateCompanionBuilder,
+      $$CourseSectionsTableUpdateCompanionBuilder,
+      (CourseSectionRow, $$CourseSectionsTableReferences),
+      CourseSectionRow,
+      PrefetchHooks Function({bool courseId, bool courseArticlesRefs})
+    >;
+typedef $$CourseArticlesTableCreateCompanionBuilder =
+    CourseArticlesCompanion Function({
+      required String id,
+      required String sectionId,
+      required String courseId,
+      required String setId,
+      required String title,
+      Value<String> body,
+      required int position,
+      Value<String> mediaJson,
+      Value<int> rowid,
+    });
+typedef $$CourseArticlesTableUpdateCompanionBuilder =
+    CourseArticlesCompanion Function({
+      Value<String> id,
+      Value<String> sectionId,
+      Value<String> courseId,
+      Value<String> setId,
+      Value<String> title,
+      Value<String> body,
+      Value<int> position,
+      Value<String> mediaJson,
+      Value<int> rowid,
+    });
+
+final class $$CourseArticlesTableReferences
+    extends
+        BaseReferences<_$AppDatabase, $CourseArticlesTable, CourseArticleRow> {
+  $$CourseArticlesTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $CourseSectionsTable _sectionIdTable(_$AppDatabase db) => db
+      .courseSections
+      .createAlias('course_articles__section_id__course_sections__id');
+
+  $$CourseSectionsTableProcessedTableManager get sectionId {
+    final $_column = $_itemColumn<String>('section_id')!;
+
+    final manager = $$CourseSectionsTableTableManager(
+      $_db,
+      $_db.courseSections,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_sectionIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$CourseArticlesTableFilterComposer
+    extends Composer<_$AppDatabase, $CourseArticlesTable> {
+  $$CourseArticlesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get courseId => $composableBuilder(
+    column: $table.courseId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get setId => $composableBuilder(
+    column: $table.setId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get body => $composableBuilder(
+    column: $table.body,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get position => $composableBuilder(
+    column: $table.position,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get mediaJson => $composableBuilder(
+    column: $table.mediaJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$CourseSectionsTableFilterComposer get sectionId {
+    final $$CourseSectionsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.sectionId,
+      referencedTable: $db.courseSections,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CourseSectionsTableFilterComposer(
+            $db: $db,
+            $table: $db.courseSections,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$CourseArticlesTableOrderingComposer
+    extends Composer<_$AppDatabase, $CourseArticlesTable> {
+  $$CourseArticlesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get courseId => $composableBuilder(
+    column: $table.courseId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get setId => $composableBuilder(
+    column: $table.setId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get body => $composableBuilder(
+    column: $table.body,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get position => $composableBuilder(
+    column: $table.position,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get mediaJson => $composableBuilder(
+    column: $table.mediaJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$CourseSectionsTableOrderingComposer get sectionId {
+    final $$CourseSectionsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.sectionId,
+      referencedTable: $db.courseSections,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CourseSectionsTableOrderingComposer(
+            $db: $db,
+            $table: $db.courseSections,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$CourseArticlesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CourseArticlesTable> {
+  $$CourseArticlesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get courseId =>
+      $composableBuilder(column: $table.courseId, builder: (column) => column);
+
+  GeneratedColumn<String> get setId =>
+      $composableBuilder(column: $table.setId, builder: (column) => column);
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<String> get body =>
+      $composableBuilder(column: $table.body, builder: (column) => column);
+
+  GeneratedColumn<int> get position =>
+      $composableBuilder(column: $table.position, builder: (column) => column);
+
+  GeneratedColumn<String> get mediaJson =>
+      $composableBuilder(column: $table.mediaJson, builder: (column) => column);
+
+  $$CourseSectionsTableAnnotationComposer get sectionId {
+    final $$CourseSectionsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.sectionId,
+      referencedTable: $db.courseSections,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CourseSectionsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.courseSections,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$CourseArticlesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CourseArticlesTable,
+          CourseArticleRow,
+          $$CourseArticlesTableFilterComposer,
+          $$CourseArticlesTableOrderingComposer,
+          $$CourseArticlesTableAnnotationComposer,
+          $$CourseArticlesTableCreateCompanionBuilder,
+          $$CourseArticlesTableUpdateCompanionBuilder,
+          (CourseArticleRow, $$CourseArticlesTableReferences),
+          CourseArticleRow,
+          PrefetchHooks Function({bool sectionId})
+        > {
+  $$CourseArticlesTableTableManager(
+    _$AppDatabase db,
+    $CourseArticlesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CourseArticlesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CourseArticlesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CourseArticlesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> sectionId = const Value.absent(),
+                Value<String> courseId = const Value.absent(),
+                Value<String> setId = const Value.absent(),
+                Value<String> title = const Value.absent(),
+                Value<String> body = const Value.absent(),
+                Value<int> position = const Value.absent(),
+                Value<String> mediaJson = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CourseArticlesCompanion(
+                id: id,
+                sectionId: sectionId,
+                courseId: courseId,
+                setId: setId,
+                title: title,
+                body: body,
+                position: position,
+                mediaJson: mediaJson,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String sectionId,
+                required String courseId,
+                required String setId,
+                required String title,
+                Value<String> body = const Value.absent(),
+                required int position,
+                Value<String> mediaJson = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CourseArticlesCompanion.insert(
+                id: id,
+                sectionId: sectionId,
+                courseId: courseId,
+                setId: setId,
+                title: title,
+                body: body,
+                position: position,
+                mediaJson: mediaJson,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$CourseArticlesTable, CourseArticleRow>(table),
+                  $$CourseArticlesTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({sectionId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (sectionId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.sectionId,
+                                referencedTable: $$CourseArticlesTableReferences
+                                    ._sectionIdTable(db),
+                                referencedColumn:
+                                    $$CourseArticlesTableReferences
+                                        ._sectionIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$CourseArticlesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CourseArticlesTable,
+      CourseArticleRow,
+      $$CourseArticlesTableFilterComposer,
+      $$CourseArticlesTableOrderingComposer,
+      $$CourseArticlesTableAnnotationComposer,
+      $$CourseArticlesTableCreateCompanionBuilder,
+      $$CourseArticlesTableUpdateCompanionBuilder,
+      (CourseArticleRow, $$CourseArticlesTableReferences),
+      CourseArticleRow,
+      PrefetchHooks Function({bool sectionId})
+    >;
+typedef $$PendingLearnSettingsTableCreateCompanionBuilder =
+    PendingLearnSettingsCompanion Function({
+      required String setId,
+      required String action,
+      Value<String?> questionTypes,
+      Value<int?> successesRequired,
+      Value<String?> typingCheck,
+      Value<int?> matchPercent,
+      required DateTime updatedAt,
+      Value<int> rowid,
+    });
+typedef $$PendingLearnSettingsTableUpdateCompanionBuilder =
+    PendingLearnSettingsCompanion Function({
+      Value<String> setId,
+      Value<String> action,
+      Value<String?> questionTypes,
+      Value<int?> successesRequired,
+      Value<String?> typingCheck,
+      Value<int?> matchPercent,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+
+class $$PendingLearnSettingsTableFilterComposer
+    extends Composer<_$AppDatabase, $PendingLearnSettingsTable> {
+  $$PendingLearnSettingsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get setId => $composableBuilder(
+    column: $table.setId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get action => $composableBuilder(
+    column: $table.action,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get questionTypes => $composableBuilder(
+    column: $table.questionTypes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get successesRequired => $composableBuilder(
+    column: $table.successesRequired,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get typingCheck => $composableBuilder(
+    column: $table.typingCheck,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get matchPercent => $composableBuilder(
+    column: $table.matchPercent,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$PendingLearnSettingsTableOrderingComposer
+    extends Composer<_$AppDatabase, $PendingLearnSettingsTable> {
+  $$PendingLearnSettingsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get setId => $composableBuilder(
+    column: $table.setId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get action => $composableBuilder(
+    column: $table.action,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get questionTypes => $composableBuilder(
+    column: $table.questionTypes,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get successesRequired => $composableBuilder(
+    column: $table.successesRequired,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get typingCheck => $composableBuilder(
+    column: $table.typingCheck,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get matchPercent => $composableBuilder(
+    column: $table.matchPercent,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$PendingLearnSettingsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $PendingLearnSettingsTable> {
+  $$PendingLearnSettingsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get setId =>
+      $composableBuilder(column: $table.setId, builder: (column) => column);
+
+  GeneratedColumn<String> get action =>
+      $composableBuilder(column: $table.action, builder: (column) => column);
+
+  GeneratedColumn<String> get questionTypes => $composableBuilder(
+    column: $table.questionTypes,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get successesRequired => $composableBuilder(
+    column: $table.successesRequired,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get typingCheck => $composableBuilder(
+    column: $table.typingCheck,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get matchPercent => $composableBuilder(
+    column: $table.matchPercent,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$PendingLearnSettingsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $PendingLearnSettingsTable,
+          PendingLearnSettingsRow,
+          $$PendingLearnSettingsTableFilterComposer,
+          $$PendingLearnSettingsTableOrderingComposer,
+          $$PendingLearnSettingsTableAnnotationComposer,
+          $$PendingLearnSettingsTableCreateCompanionBuilder,
+          $$PendingLearnSettingsTableUpdateCompanionBuilder,
+          (
+            PendingLearnSettingsRow,
+            BaseReferences<
+              _$AppDatabase,
+              $PendingLearnSettingsTable,
+              PendingLearnSettingsRow
+            >,
+          ),
+          PendingLearnSettingsRow,
+          PrefetchHooks Function()
+        > {
+  $$PendingLearnSettingsTableTableManager(
+    _$AppDatabase db,
+    $PendingLearnSettingsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$PendingLearnSettingsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$PendingLearnSettingsTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$PendingLearnSettingsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> setId = const Value.absent(),
+                Value<String> action = const Value.absent(),
+                Value<String?> questionTypes = const Value.absent(),
+                Value<int?> successesRequired = const Value.absent(),
+                Value<String?> typingCheck = const Value.absent(),
+                Value<int?> matchPercent = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => PendingLearnSettingsCompanion(
+                setId: setId,
+                action: action,
+                questionTypes: questionTypes,
+                successesRequired: successesRequired,
+                typingCheck: typingCheck,
+                matchPercent: matchPercent,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String setId,
+                required String action,
+                Value<String?> questionTypes = const Value.absent(),
+                Value<int?> successesRequired = const Value.absent(),
+                Value<String?> typingCheck = const Value.absent(),
+                Value<int?> matchPercent = const Value.absent(),
+                required DateTime updatedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => PendingLearnSettingsCompanion.insert(
+                setId: setId,
+                action: action,
+                questionTypes: questionTypes,
+                successesRequired: successesRequired,
+                typingCheck: typingCheck,
+                matchPercent: matchPercent,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<
+                    $PendingLearnSettingsTable,
+                    PendingLearnSettingsRow
+                  >(table),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $PendingLearnSettingsTable,
+                    PendingLearnSettingsRow
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$PendingLearnSettingsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $PendingLearnSettingsTable,
+      PendingLearnSettingsRow,
+      $$PendingLearnSettingsTableFilterComposer,
+      $$PendingLearnSettingsTableOrderingComposer,
+      $$PendingLearnSettingsTableAnnotationComposer,
+      $$PendingLearnSettingsTableCreateCompanionBuilder,
+      $$PendingLearnSettingsTableUpdateCompanionBuilder,
+      (
+        PendingLearnSettingsRow,
+        BaseReferences<
+          _$AppDatabase,
+          $PendingLearnSettingsTable,
+          PendingLearnSettingsRow
+        >,
+      ),
+      PendingLearnSettingsRow,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -5078,4 +8277,12 @@ class $AppDatabaseManager {
       $$SyncMetaTableTableManager(_db, _db.syncMeta);
   $$ReviewOutboxTableTableManager get reviewOutbox =>
       $$ReviewOutboxTableTableManager(_db, _db.reviewOutbox);
+  $$CoursesTableTableManager get courses =>
+      $$CoursesTableTableManager(_db, _db.courses);
+  $$CourseSectionsTableTableManager get courseSections =>
+      $$CourseSectionsTableTableManager(_db, _db.courseSections);
+  $$CourseArticlesTableTableManager get courseArticles =>
+      $$CourseArticlesTableTableManager(_db, _db.courseArticles);
+  $$PendingLearnSettingsTableTableManager get pendingLearnSettings =>
+      $$PendingLearnSettingsTableTableManager(_db, _db.pendingLearnSettings);
 }

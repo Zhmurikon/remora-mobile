@@ -22,6 +22,9 @@ dependencies:
   # Безопасное хранение токенов
   flutter_secure_storage: ^9.2.4
 
+  # Настройки приложения (тумблеры)
+  shared_preferences: ^2.3.5
+
   # Изображения
   cached_network_image: ^3.4.1
 

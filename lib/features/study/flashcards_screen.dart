@@ -1,6 +1,9 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../app/theme.dart';
 import '../../core/format.dart';
@@ -71,8 +74,16 @@ class _FlashcardsScreenState extends ConsumerState<FlashcardsScreen>
   Widget build(BuildContext context) {
     final state = ref.watch(studySessionProvider);
 
+    ref.listen<StudySessionState>(studySessionProvider, (prev, next) {
+      if (next.isFinished && !(prev?.isFinished ?? false)) {
+        final setId =
+            GoRouterState.of(context).pathParameters['setId'] ?? '';
+        context.go('/set/$setId/study/result');
+      }
+    });
+
     if (state.isFinished) {
-      return StudyShell(child: _buildSummary(context, state));
+      return const StudyShell(child: SizedBox.shrink());
     }
 
     final item = state.currentItem;
@@ -107,17 +118,13 @@ class _FlashcardsScreenState extends ConsumerState<FlashcardsScreen>
     );
   }
 
+  /// Высота зоны с кнопками самооценки резервируется заранее — так карточка
+  /// не скачет по высоте в момент переворота, когда кнопки появляются.
+  static const double _ratingAreaHeight = 78;
+
   Widget _buildCard(BuildContext context, QueueItem item, StudySessionState state) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final isTermToDef = item.direction == 'term_to_def';
-
-    final questionText = isTermToDef ? item.card.term : item.card.definition;
-    final answerText = isTermToDef ? item.card.definition : item.card.term;
-    final questionImage =
-        isTermToDef ? item.card.termImageUrl : item.card.definitionImageUrl;
-    final answerImage =
-        isTermToDef ? item.card.definitionImageUrl : item.card.termImageUrl;
 
     return GestureDetector(
       onTap: _flip,
@@ -129,76 +136,151 @@ class _FlashcardsScreenState extends ConsumerState<FlashcardsScreen>
               child: AnimatedBuilder(
                 animation: _flipAnimation,
                 builder: (context, child) {
-                  final isAnswer = _flipAnimation.value > 0.5;
-                  return Card(
-                    elevation: 2,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(24),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          if (!isAnswer && item.card.hint != null) ...[
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 6,
-                              ),
-                              decoration: BoxDecoration(
-                                color: isDark
-                                    ? RemoraColors.darkAccentSubtle
-                                    : RemoraColors.lightAccentSubtle,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                '💡 ${item.card.hint!}',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: isDark
-                                      ? RemoraColors.darkAccent
-                                      : RemoraColors.lightAccent,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                          ],
-                          Expanded(
-                            child: Center(
-                              child: SingleChildScrollView(
-                                child: CardContentWidget(
-                                  value: isAnswer ? answerText : questionText,
-                                  contentType: item.card.contentType,
-                                  codeLanguage: item.card.codeLanguage,
-                                  imageUrl:
-                                      isAnswer ? answerImage : questionImage,
-                                ),
-                              ),
-                            ),
-                          ),
-                          if (!_isFlipped)
-                            Text(
-                              'Нажмите, чтобы перевернуть',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: isDark
-                                    ? RemoraColors.darkFgSubtle
-                                    : RemoraColors.lightFgSubtle,
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
+                  final angle = _flipAnimation.value * math.pi;
+                  final isAnswer = angle > math.pi / 2;
+                  final face = _buildCardFace(
+                    context,
+                    item: item,
+                    isAnswer: isAnswer,
+                    isDark: isDark,
+                  );
+                  return Transform(
+                    alignment: Alignment.center,
+                    transform: Matrix4.identity()
+                      ..setEntry(3, 2, 0.0012)
+                      ..rotateY(angle),
+                    child: isAnswer
+                        ? Transform(
+                            alignment: Alignment.center,
+                            // Разворачиваем содержимое обратно, иначе текст
+                            // на второй половине анимации получается зеркальным.
+                            transform: Matrix4.identity()..rotateY(math.pi),
+                            child: face,
+                          )
+                        : face,
                   );
                 },
               ),
             ),
             const SizedBox(height: 16),
-            if (_isFlipped) _buildRatingButtons(context, item, state),
+            SizedBox(
+              height: _ratingAreaHeight,
+              child: _isFlipped
+                  ? _buildRatingButtons(context, item, state)
+                  : null,
+            ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildCardFace(
+    BuildContext context, {
+    required QueueItem item,
+    required bool isAnswer,
+    required bool isDark,
+  }) {
+    final isTermToDef = item.direction == 'term_to_def';
+    final text = isAnswer
+        ? (isTermToDef ? item.card.definition : item.card.term)
+        : (isTermToDef ? item.card.term : item.card.definition);
+    final imageUrl = isAnswer
+        ? (isTermToDef ? item.card.definitionImageUrl : item.card.termImageUrl)
+        : (isTermToDef ? item.card.termImageUrl : item.card.definitionImageUrl);
+
+    final faceColor = isAnswer
+        ? (isDark ? RemoraColors.darkSurfaceMuted : RemoraColors.lightSurfaceMuted)
+        : (isDark ? RemoraColors.darkSurface : RemoraColors.lightSurface);
+    final borderColor = isDark ? RemoraColors.darkBorder : RemoraColors.lightBorder;
+    final labelColor = isAnswer
+        ? (isDark ? RemoraColors.darkPrimary : RemoraColors.lightPrimary)
+        : (isDark ? RemoraColors.darkFgSubtle : RemoraColors.lightFgSubtle);
+    final subtleColor =
+        isDark ? RemoraColors.darkFgSubtle : RemoraColors.lightFgSubtle;
+
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: faceColor,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: borderColor),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.08),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            isAnswer ? 'ОТВЕТ' : 'ВОПРОС',
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: labelColor,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.1,
+                ),
+          ),
+          if (!isAnswer && item.card.hint != null) ...[
+            const SizedBox(height: 12),
+            Align(
+              alignment: Alignment.center,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? RemoraColors.darkAccentSubtle
+                      : RemoraColors.lightAccentSubtle,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  '💡 ${item.card.hint!}',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: isDark
+                        ? RemoraColors.darkAccent
+                        : RemoraColors.lightAccent,
+                  ),
+                ),
+              ),
+            ),
+          ],
+          Expanded(
+            child: Center(
+              child: SingleChildScrollView(
+                child: CardContentWidget(
+                  value: text,
+                  contentType: item.card.contentType,
+                  codeLanguage: item.card.codeLanguage,
+                  imageUrl: imageUrl,
+                ),
+              ),
+            ),
+          ),
+          if (!isAnswer)
+            Align(
+              alignment: Alignment.center,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.flip, size: 14, color: subtleColor),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Нажмите, чтобы перевернуть',
+                    style: TextStyle(fontSize: 13, color: subtleColor),
+                  ),
+                ],
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -269,48 +351,4 @@ class _FlashcardsScreenState extends ConsumerState<FlashcardsScreen>
     );
   }
 
-  Widget _buildSummary(BuildContext context, StudySessionState state) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.check_circle_outline,
-              size: 64,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Сессия завершена!',
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Отвечено: ${state.answered}\n'
-              'Правильных: ${state.correct}\n'
-              'Ошибок: ${state.answered - state.correct}',
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyLarge,
-            ),
-            if (state.pending > 0) ...[
-              const SizedBox(height: 12),
-              Text(
-                'Неотправленных ответов: ${state.pending}',
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.error,
-                ),
-              ),
-            ],
-            const SizedBox(height: 24),
-            FilledButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('К наборам'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }

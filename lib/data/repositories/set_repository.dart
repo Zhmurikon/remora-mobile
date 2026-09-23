@@ -17,6 +17,14 @@ class SetRepository {
     return _db.sets.select().get();
   }
 
+  /// ID наборов, у которых карточки реально скачаны (не только метаданные).
+  Future<Set<String>> getDownloadedSetIds() async {
+    final rows = await (_db.select(_db.syncMeta)
+          ..where((s) => s.entityType.equals('set')))
+        .get();
+    return rows.map((r) => r.entityId).toSet();
+  }
+
   /// Синхронизирует список наборов пользователя из API в БД.
   Future<List<SetRecord>> syncMySets() async {
     final summaries = await _api.getMySets();

@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:convert';
 
+import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/api_client.dart';
@@ -38,7 +40,8 @@ class OutboxService {
     }
   }
 
-  /// Отправить все накопленные ответы на сервер.
+  /// Отправить все накопленные ответы и отложенные настройки заучивания
+  /// на сервер.
   ///
   /// Single-flight: параллельные вызовы делят одно выполнение.
   Future<void> flush() async {
@@ -46,49 +49,106 @@ class OutboxService {
     _flushing = true;
 
     try {
-      while (true) {
-        final pending = await _repo.getPendingReviews();
-        if (pending.isEmpty) break;
-
-        final batch = pending.take(_maxBatch).toList();
-        final reviews = batch
-            .map((r) => ReviewIn(
-                  clientReviewId: r.clientReviewId,
-                  cardId: r.cardId,
-                  direction: r.direction,
-                  mode: r.mode,
-                  rating: r.rating,
-                  answerCorrect: r.answerCorrect,
-                  durationMs: r.durationMs,
-                  reviewedAt: r.reviewedAt,
-                ))
-            .toList();
-
-        try {
-          final result = await _api.submitReviews(ReviewBatch(
-            sessionId: sessionId,
-            reviews: reviews,
-          ));
-
-          // Убираем принятые + дубликаты (уже были на сервере)
-          final toRemove = [
-            ...result.accepted,
-            ...result.duplicates,
-          ];
-          await _repo.removeReviews(toRemove);
-
-          // Обновляем card_states из ответа сервера
-          // (сервер возвращает новые состояния для затронутых карточек)
-        } catch (_) {
-          // Сеть недоступна — увеличиваем attempts и выходим
-          for (final r in batch) {
-            await _repo.bumpAttempts(r.clientReviewId);
-          }
-          break;
-        }
-      }
+      await _flushReviews();
+      await _flushLearnSettings();
     } finally {
       _flushing = false;
+    }
+  }
+
+  Future<void> _flushReviews() async {
+    while (true) {
+      final pending = await _repo.getPendingReviews();
+      if (pending.isEmpty) break;
+
+      final batch = pending.take(_maxBatch).toList();
+      final reviews = batch
+          .map(
+            (r) => ReviewIn(
+              clientReviewId: r.clientReviewId,
+              cardId: r.cardId,
+              direction: r.direction,
+              mode: r.mode,
+              rating: r.rating,
+              answerCorrect: r.answerCorrect,
+              durationMs: r.durationMs,
+              reviewedAt: r.reviewedAt,
+            ),
+          )
+          .toList();
+
+      try {
+        final result = await _api.submitReviews(
+          ReviewBatch(sessionId: sessionId, reviews: reviews),
+        );
+
+        // Убираем принятые + дубликаты (уже были на сервере)
+        final toRemove = [...result.accepted, ...result.duplicates];
+        await _repo.removeReviews(toRemove);
+
+        // Синхронизируем card_states: серверные интервалы — источник правды.
+        if (result.states.isNotEmpty) {
+          final companions = result.states
+              .map(
+                (s) => CardStatesCompanion(
+                  cardId: Value(s.cardId),
+                  direction: Value(s.direction),
+                  state: Value(s.state),
+                  stability: Value(s.stability),
+                  difficulty: Value(s.difficulty),
+                  // step сервер в CardStateOut не присылает — не трогаем,
+                  // чтобы не затереть локальный шаг learning офлайн-планировщика.
+                  dueAt: Value(s.dueAt),
+                  lastReviewedAt: Value(s.lastReviewedAt),
+                ),
+              )
+              .toList();
+          await _repo.upsertCardStates(companions);
+        }
+      } catch (_) {
+        // Сеть недоступна — увеличиваем attempts и выходим
+        for (final r in batch) {
+          await _repo.bumpAttempts(r.clientReviewId);
+        }
+        break;
+      }
+    }
+  }
+
+  /// Отправляет накопленные офлайн изменения настроек заучивания.
+  /// Запись, отправка которой не удалась, остаётся в очереди до следующей
+  /// попытки — молча не теряется и не блокирует остальные наборы.
+  Future<void> _flushLearnSettings() async {
+    final pending = await _repo.getAllPendingLearnSettings();
+    for (final entry in pending) {
+      try {
+        if (entry.action == 'reset') {
+          await _api.resetSetLearnSettings(entry.setId);
+        } else {
+          await _api.updateSetLearnSettings(
+            entry.setId,
+            SetLearnSettingsInput(
+              questionTypes: _decodeQuestionTypes(entry.questionTypes),
+              successesRequired: entry.successesRequired ?? 1,
+              typingCheck: entry.typingCheck ?? 'automatic',
+              matchPercent: entry.matchPercent ?? 90,
+            ),
+          );
+        }
+        await _repo.clearPendingLearnSettings(entry.setId);
+      } catch (_) {
+        // Сеть всё ещё недоступна или сервер отверг — попробуем в следующий раз.
+      }
+    }
+  }
+
+  List<String> _decodeQuestionTypes(String? raw) {
+    if (raw == null) return const ['choice', 'typing', 'recall'];
+    try {
+      final decoded = jsonDecode(raw);
+      return decoded is List ? decoded.map((e) => e.toString()).toList() : const [];
+    } catch (_) {
+      return const ['choice', 'typing', 'recall'];
     }
   }
 

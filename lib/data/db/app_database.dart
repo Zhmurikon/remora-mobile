@@ -36,11 +36,15 @@ class Cards extends Table {
   TextColumn get termTranscription => text().nullable()();
   TextColumn get definitionTranscription => text().nullable()();
   TextColumn get hint => text().nullable()();
-  TextColumn get contentType => text().withDefault(const Constant('text'))(); // text | code
+  TextColumn get contentType =>
+      text().withDefault(const Constant('text'))(); // text | code
   TextColumn get codeLanguage => text().nullable()();
-  TextColumn get altAnswers => text().withDefault(const Constant('[]'))(); // JSON array
-  TextColumn get wrongTermAnswers => text().withDefault(const Constant('[]'))(); // JSON array
-  TextColumn get wrongDefinitionAnswers => text().withDefault(const Constant('[]'))(); // JSON
+  TextColumn get altAnswers =>
+      text().withDefault(const Constant('[]'))(); // JSON array
+  TextColumn get wrongTermAnswers =>
+      text().withDefault(const Constant('[]'))(); // JSON array
+  TextColumn get wrongDefinitionAnswers =>
+      text().withDefault(const Constant('[]'))(); // JSON
   TextColumn get termImageUrl => text().nullable()();
   TextColumn get definitionImageUrl => text().nullable()();
 
@@ -75,6 +79,23 @@ class SyncMeta extends Table {
   Set<Column> get primaryKey => {entityType, entityId};
 }
 
+/// Несинхронизированное изменение настроек заучивания набора: сделано офлайн,
+/// ждёт отправки на сервер. Одна запись на набор — последнее изменение
+/// побеждает, промежуточные состояния синхронизировать не нужно.
+@DataClassName('PendingLearnSettingsRow')
+class PendingLearnSettings extends Table {
+  TextColumn get setId => text()();
+  TextColumn get action => text()(); // 'update' | 'reset'
+  TextColumn get questionTypes => text().nullable()(); // JSON-массив, для update
+  IntColumn get successesRequired => integer().nullable()();
+  TextColumn get typingCheck => text().nullable()();
+  IntColumn get matchPercent => integer().nullable()();
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {setId};
+}
+
 /// Очередь неотправленных ответов. Никогда не очищается до подтверждения сервером.
 class ReviewOutbox extends Table {
   TextColumn get clientReviewId => text()();
@@ -93,7 +114,65 @@ class ReviewOutbox extends Table {
   Set<Column> get primaryKey => {clientReviewId};
 }
 
-@DriftDatabase(tables: [Sets, Cards, CardStates, SyncMeta, ReviewOutbox])
+/// Курс: метаданные и автор. Карточки статей лежат в Sets/Cards, теория — в CourseArticles.
+@DataClassName('CourseRecord')
+class Courses extends Table {
+  TextColumn get id => text()();
+  TextColumn get slug => text()();
+  TextColumn get title => text()();
+  TextColumn get description => text().withDefault(const Constant(''))();
+  TextColumn get authorName => text().withDefault(const Constant(''))();
+  BoolColumn get isPublished => boolean().withDefault(const Constant(false))();
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// Раздел курса. Зеркало серверного CourseSectionPublic.
+@DataClassName('CourseSectionRow')
+class CourseSections extends Table {
+  TextColumn get id => text()();
+  TextColumn get courseId => text().references(Courses, #id)();
+  TextColumn get title => text()();
+  IntColumn get position => integer()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// Статья теории: markdown-тело и ссылка на набор карточек (`setId`).
+/// `mediaJson` — карта подписанных ссылок изображений (протокол media:UUID в теле).
+@DataClassName('CourseArticleRow')
+class CourseArticles extends Table {
+  TextColumn get id => text()();
+  TextColumn get sectionId => text().references(CourseSections, #id)();
+  TextColumn get courseId => text()();
+  TextColumn get setId => text()();
+  TextColumn get title => text()();
+  TextColumn get body => text().withDefault(const Constant(''))();
+  IntColumn get position => integer()();
+  TextColumn get mediaJson => text().withDefault(
+    const Constant('[]'),
+  )(); // JSON [{id,url,width,height}]
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+@DriftDatabase(
+  tables: [
+    Sets,
+    Cards,
+    CardStates,
+    SyncMeta,
+    ReviewOutbox,
+    Courses,
+    CourseSections,
+    CourseArticles,
+    PendingLearnSettings,
+  ],
+)
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
@@ -101,14 +180,26 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
-        onCreate: (Migrator m) async {
-          await m.createAll();
-        },
-      );
+    onCreate: (Migrator m) async {
+      await m.createAll();
+    },
+    onUpgrade: (Migrator m, int from, int to) async {
+      // v2 — таблицы теории курсов (M6). Наборы и состояния FSRS не трогаем.
+      if (from < 2) {
+        await m.createTable(courses);
+        await m.createTable(courseSections);
+        await m.createTable(courseArticles);
+      }
+      // v3 — офлайн-очередь изменений настроек заучивания.
+      if (from < 3) {
+        await m.createTable(pendingLearnSettings);
+      }
+    },
+  );
 }
 
 LazyDatabase _openConnection() {

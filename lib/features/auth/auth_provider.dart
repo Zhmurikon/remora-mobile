@@ -1,7 +1,11 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/log.dart';
 import '../../data/api_client.dart';
+import 'auth_errors.dart';
 import 'data/token_storage.dart';
 
 enum AuthStatus { unknown, authenticated, unauthenticated }
@@ -53,7 +57,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
       state = state.copyWith(status: AuthStatus.unauthenticated);
       return;
     }
-    await _tryRefresh(refreshToken);
+    // Кэшированный профиль — единственный источник данных о пользователе офлайн.
+    final cachedUser = await _readCachedUser();
+    await _tryRefresh(refreshToken, cachedUser: cachedUser);
   }
 
   Future<void> login({required String email, required String password}) async {
@@ -90,6 +96,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<void> logout() async {
     final refreshToken = await TokenStorage.readRefreshToken();
     await TokenStorage.deleteRefreshToken();
+    await TokenStorage.deleteUser();
     try {
       await _api.logout(refreshToken: refreshToken);
     } catch (_) {
@@ -111,6 +118,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     if (refreshToken != null) {
       await TokenStorage.writeRefreshToken(refreshToken);
     }
+    await TokenStorage.writeUser(jsonEncode(data.user.toJson()));
     state = state.copyWith(
       status: AuthStatus.authenticated,
       accessToken: data.accessToken,
@@ -120,22 +128,63 @@ class AuthNotifier extends StateNotifier<AuthState> {
     );
   }
 
-  Future<void> _tryRefresh(String refreshToken) async {
+  Future<void> _tryRefresh(String refreshToken, {UserProfile? cachedUser}) async {
     try {
       final result = await _api.refresh(refreshToken: refreshToken);
       if (result.refreshToken != null) {
         await TokenStorage.writeRefreshToken(result.refreshToken!);
       }
-      final user = await _api.getMe();
+      // refresh прошёл — тянем профиль, но его отсутствие сессию не рушит.
+      UserProfile? user = cachedUser;
+      try {
+        user = await _api.getMe();
+        await TokenStorage.writeUser(jsonEncode(user.toJson()));
+      } catch (_) {
+        // Профиль не пришёл (сеть моргнула) — оставляем кэшированный.
+      }
       state = state.copyWith(
         status: AuthStatus.authenticated,
         accessToken: result.accessToken,
         user: user,
         isLoading: false,
       );
+      logRemora('auth', 'сессия восстановлена онлайн');
+    } on DioException catch (e) {
+      if (isSessionRejection(e)) {
+        // Сервер отверг refresh-токен (401): сессия действительно недействительна.
+        await TokenStorage.deleteRefreshToken();
+        await TokenStorage.deleteUser();
+        state = state.copyWith(status: AuthStatus.unauthenticated);
+        logRemora('auth', 'сервер отверг refresh (401/403) — выходим');
+      } else {
+        // Сеть недоступна — НЕ выходим и НЕ удаляем токен: иначе офлайн-запуск
+        // выкидывает из аккаунта, а войти без сети нельзя. Остаёмся в сессии;
+        // access-токен добудет интерсептор при первом онлайн-запросе.
+        state = state.copyWith(
+          status: AuthStatus.authenticated,
+          user: cachedUser,
+          isLoading: false,
+        );
+        logRemora('auth', 'офлайн: остаёмся в сессии по кэшу, токен сохранён');
+      }
     } catch (_) {
-      await TokenStorage.deleteRefreshToken();
-      state = state.copyWith(status: AuthStatus.unauthenticated);
+      // Непредвиденная не-Dio ошибка — тоже не выкидываем из аккаунта офлайн.
+      state = state.copyWith(
+        status: AuthStatus.authenticated,
+        user: cachedUser,
+        isLoading: false,
+      );
+      logRemora('auth', 'непредвиденная ошибка refresh — остаёмся в сессии');
+    }
+  }
+
+  Future<UserProfile?> _readCachedUser() async {
+    final raw = await TokenStorage.readUser();
+    if (raw == null) return null;
+    try {
+      return UserProfile.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+    } catch (_) {
+      return null;
     }
   }
 

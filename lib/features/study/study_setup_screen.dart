@@ -6,16 +6,47 @@ import '../../app/theme.dart';
 import 'study_provider.dart';
 
 /// Экран выбора режима обучения перед стартом сессии.
-class StudySetupScreen extends ConsumerWidget {
+class StudySetupScreen extends ConsumerStatefulWidget {
   const StudySetupScreen({super.key, required this.setId, required this.setTitle});
 
   final String setId;
   final String setTitle;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<StudySetupScreen> createState() => _StudySetupScreenState();
+}
+
+class _StudySetupScreenState extends ConsumerState<StudySetupScreen> {
+  // Режим, для которого сейчас строится очередь. Пока не null — новые тапы
+  // игнорируются, чтобы на медленной сети не плодить параллельные begin.
+  StudyMode? _starting;
+
+  Future<void> _start(StudyMode mode) async {
+    if (_starting != null) return;
+    setState(() => _starting = mode);
+
+    await ref.read(studySessionProvider.notifier).begin(widget.setId, mode);
+    if (!mounted) return;
+
+    final session = ref.read(studySessionProvider);
+    if (session.items.isEmpty) {
+      // Очередь пуста (офлайн без скачивания или сбой) — не уходим в пустую сессию.
+      setState(() => _starting = null);
+      final message = session.error ?? 'Не удалось начать сессию.';
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(message)));
+      return;
+    }
+
+    context.go('/set/${widget.setId}/study/${mode.name}');
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final busy = _starting != null;
 
     final modes = [
       _ModeEntry(
@@ -42,7 +73,21 @@ class StudySetupScreen extends ConsumerWidget {
     ];
 
     return Scaffold(
-      appBar: AppBar(title: Text(setTitle)),
+      appBar: AppBar(
+        title: Text(widget.setTitle),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.tune),
+            tooltip: 'Настройки заучивания',
+            onPressed: busy
+                ? null
+                : () => context.push(
+                      '/set/${widget.setId}/study/settings'
+                      '?title=${Uri.encodeComponent(widget.setTitle)}',
+                    ),
+          ),
+        ],
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -57,16 +102,23 @@ class StudySetupScreen extends ConsumerWidget {
                   padding: const EdgeInsets.only(bottom: 12),
                   child: _ModeCard(
                     entry: m,
-                    onTap: () async {
-                      await ref
-                          .read(studySessionProvider.notifier)
-                          .begin(setId, m.mode);
-                      if (context.mounted) {
-                        context.go('/set/$setId/study/${m.mode.name}');
-                      }
-                    },
+                    loading: _starting == m.mode,
+                    enabled: !busy,
+                    onTap: () => _start(m.mode),
                   ),
                 )),
+            // Тест — отдельный маршрут (не использует StudySessionNotifier)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _TestCard(
+                onTap: busy
+                    ? null
+                    : () => context.go(
+                          '/set/${widget.setId}/test?title=${Uri.encodeComponent(widget.setTitle)}',
+                        ),
+                isDark: isDark,
+              ),
+            ),
           ],
         ),
       ),
@@ -91,14 +143,85 @@ class _ModeEntry {
 }
 
 class _ModeCard extends StatelessWidget {
-  const _ModeCard({required this.entry, required this.onTap});
+  const _ModeCard({
+    required this.entry,
+    required this.onTap,
+    this.loading = false,
+    this.enabled = true,
+  });
 
   final _ModeEntry entry;
   final VoidCallback onTap;
+  final bool loading;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+
+    return Opacity(
+      // Пока строится очередь — остальные карточки притушены.
+      opacity: enabled || loading ? 1 : 0.5,
+      child: Card(
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: enabled ? onTap : null,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: entry.color.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(entry.icon, color: entry.color, size: 24),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        entry.title,
+                        style: theme.textTheme.titleMedium,
+                      ),
+                      Text(
+                        entry.description,
+                        style: theme.textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+                ),
+                loading
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.chevron_right),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TestCard extends StatelessWidget {
+  const _TestCard({required this.onTap, required this.isDark});
+
+  final VoidCallback? onTap;
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final color =
+        isDark ? RemoraColors.darkAccent : RemoraColors.lightAccent;
 
     return Card(
       child: InkWell(
@@ -112,10 +235,10 @@ class _ModeCard extends StatelessWidget {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: entry.color.withValues(alpha: 0.12),
+                  color: color.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(entry.icon, color: entry.color, size: 24),
+                child: Icon(Icons.quiz, color: color, size: 24),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -123,11 +246,11 @@ class _ModeCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      entry.title,
+                      'Тест',
                       style: theme.textTheme.titleMedium,
                     ),
                     Text(
-                      entry.description,
+                      'Проверка знаний: выбор, верно/неверно, ввод',
                       style: theme.textTheme.bodySmall,
                     ),
                   ],

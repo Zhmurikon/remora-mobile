@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../app/brand_logo.dart';
 import '../auth_provider.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -25,7 +26,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    await ref.read(authProvider.notifier).login(
+    await ref
+        .read(authProvider.notifier)
+        .login(
           email: _emailController.text.trim(),
           password: _passwordController.text,
         );
@@ -49,20 +52,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Icon(
-                      Icons.school,
-                      size: 64,
-                      color: theme.colorScheme.primary,
-                    ),
+                    const Center(child: RemoraLogo()),
                     const SizedBox(height: 16),
-                    Text(
-                      'Remora',
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
                     Text(
                       'Войдите в аккаунт',
                       textAlign: TextAlign.center,
@@ -80,8 +71,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         border: OutlineInputBorder(),
                         prefixIcon: Icon(Icons.email_outlined),
                       ),
-                      validator: (v) =>
-                          v == null || !v.contains('@') ? 'Введите email' : null,
+                      validator: (v) => v == null || !v.contains('@')
+                          ? 'Введите email'
+                          : null,
                     ),
                     const SizedBox(height: 16),
                     TextFormField(

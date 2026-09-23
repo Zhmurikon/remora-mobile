@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:dio/dio.dart';
 
+import 'auth_errors.dart';
 import 'data/token_storage.dart';
 
 /// Dio-интерсептор: добавляет Bearer-токен, при 401 делает single-flight
@@ -84,7 +85,11 @@ class AuthInterceptor extends Interceptor {
     } catch (e) {
       _refreshCompleter?.complete(null);
       _refreshCompleter = null;
-      await _onLogout();
+      // Выходим только если сервер отверг refresh (401/403). Сетевой сбой во
+      // время refresh не должен выкидывать из аккаунта — иначе обрыв сети = логаут.
+      if (isSessionRejection(e)) {
+        await _onLogout();
+      }
       handler.next(err);
     }
   }

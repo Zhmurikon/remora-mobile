@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../app/brand_logo.dart';
 import '../auth_provider.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
@@ -29,7 +30,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    await ref.read(authProvider.notifier).register(
+    await ref
+        .read(authProvider.notifier)
+        .register(
           email: _emailController.text.trim(),
           password: _passwordController.text,
           username: _usernameController.text.trim(),
@@ -60,6 +63,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    const Center(child: RemoraLogo(width: 160)),
+                    const SizedBox(height: 24),
                     Text(
                       'Регистрация',
                       textAlign: TextAlign.center,
@@ -85,8 +90,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         border: OutlineInputBorder(),
                         prefixIcon: Icon(Icons.email_outlined),
                       ),
-                      validator: (v) =>
-                          v == null || !v.contains('@') ? 'Введите email' : null,
+                      validator: (v) => v == null || !v.contains('@')
+                          ? 'Введите email'
+                          : null,
                     ),
                     const SizedBox(height: 16),
                     TextFormField(

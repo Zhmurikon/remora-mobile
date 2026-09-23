@@ -27,6 +27,11 @@ class LibraryScreen extends ConsumerWidget {
               ),
             ),
           IconButton(
+            icon: const Icon(Icons.school_outlined),
+            tooltip: 'Курсы',
+            onPressed: () => context.push('/courses'),
+          ),
+          IconButton(
             icon: const Icon(Icons.person_outline),
             tooltip: 'Профиль',
             onPressed: () => context.push('/profile'),
@@ -85,6 +90,7 @@ class LibraryScreen extends ConsumerWidget {
       itemBuilder: (context, index) {
         final set = state.sets[index];
         final isDownloading = state.downloadingSetIds.contains(set.id);
+        final isDownloaded = state.downloadedSetIds.contains(set.id);
 
         return Card(
           margin: const EdgeInsets.only(bottom: 12),
@@ -100,13 +106,15 @@ class LibraryScreen extends ConsumerWidget {
                     height: 24,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : IconButton(
-                    icon: const Icon(Icons.download_outlined),
-                    tooltip: 'Скачать для офлайна',
-                    onPressed: state.isOnline
-                        ? () => notifier.downloadSet(set.id)
-                        : null,
-                  ),
+                : isDownloaded
+                    ? null
+                    : IconButton(
+                        icon: const Icon(Icons.download_outlined),
+                        tooltip: 'Скачать для офлайна',
+                        onPressed: state.isOnline
+                            ? () => notifier.downloadSet(set.id)
+                            : null,
+                      ),
             onTap: () {
               context.push(
                 '/set/${set.id}/study?title=${Uri.encodeComponent(set.title)}',

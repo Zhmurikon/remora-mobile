@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../app/theme.dart';
 import '../../core/answers.dart';
@@ -55,7 +56,9 @@ class _WriteScreenState extends ConsumerState<WriteScreen> {
         _expectedAnswer = exp;
         break;
       }
-      if (bestResult == null || _verdictPriority(result.verdict) < _verdictPriority(bestResult.verdict)) {
+      if (bestResult == null ||
+          _verdictPriority(result.verdict) <
+              _verdictPriority(bestResult.verdict)) {
         bestResult = result;
         _expectedAnswer = exp;
       }
@@ -67,15 +70,25 @@ class _WriteScreenState extends ConsumerState<WriteScreen> {
   }
 
   int _verdictPriority(String verdict) {
-    return verdict == 'correct' ? 0 : verdict == 'typo' ? 1 : 2;
+    return verdict == 'correct'
+        ? 0
+        : verdict == 'typo'
+        ? 1
+        : 2;
   }
 
-  Future<void> _submitRating(int rating, {bool? answerCorrect, bool requeue = false}) async {
+  Future<void> _submitRating(
+    int rating, {
+    bool? answerCorrect,
+    bool requeue = false,
+  }) async {
     final state = ref.read(studySessionProvider);
     final item = state.currentItem;
     if (item == null) return;
 
-    await ref.read(studySessionProvider.notifier).answer(
+    await ref
+        .read(studySessionProvider.notifier)
+        .answer(
           item: item,
           rating: rating,
           answerCorrect: answerCorrect,
@@ -88,15 +101,20 @@ class _WriteScreenState extends ConsumerState<WriteScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(studySessionProvider);
 
+    ref.listen<StudySessionState>(studySessionProvider, (prev, next) {
+      if (next.isFinished && !(prev?.isFinished ?? false)) {
+        final setId = GoRouterState.of(context).pathParameters['setId'] ?? '';
+        context.go('/set/$setId/study/result');
+      }
+    });
+
     if (state.isFinished) {
-      return StudyShell(child: _buildSummary(context, state));
+      return const StudyShell(child: SizedBox.shrink());
     }
 
     final item = state.currentItem;
     if (item == null) {
-      return const StudyShell(
-        child: Center(child: Text('Очередь пуста')),
-      );
+      return const StudyShell(child: Center(child: Text('Очередь пуста')));
     }
 
     return StudyShell(
@@ -116,8 +134,9 @@ class _WriteScreenState extends ConsumerState<WriteScreen> {
     final isDark = theme.brightness == Brightness.dark;
     final isTermToDef = item.direction == 'term_to_def';
     final questionText = isTermToDef ? item.card.term : item.card.definition;
-    final questionImage =
-        isTermToDef ? item.card.termImageUrl : item.card.definitionImageUrl;
+    final questionImage = isTermToDef
+        ? item.card.termImageUrl
+        : item.card.definitionImageUrl;
 
     return Column(
       children: [
@@ -128,7 +147,9 @@ class _WriteScreenState extends ConsumerState<WriteScreen> {
                 if (item.card.hint != null) ...[
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 6),
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: isDark
                           ? RemoraColors.darkAccentSubtle
@@ -204,10 +225,11 @@ class _WriteScreenState extends ConsumerState<WriteScreen> {
             width: double.infinity,
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: (isDark
-                      ? RemoraColors.darkSuccess
-                      : RemoraColors.lightSuccess)
-                  .withValues(alpha: 0.1),
+              color:
+                  (isDark
+                          ? RemoraColors.darkSuccess
+                          : RemoraColors.lightSuccess)
+                      .withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
@@ -227,24 +249,21 @@ class _WriteScreenState extends ConsumerState<WriteScreen> {
             children: [
               Expanded(
                 child: OutlinedButton(
-                  onPressed: () =>
-                      _submitRating(2, answerCorrect: true),
+                  onPressed: () => _submitRating(2, answerCorrect: true),
                   child: const Text('Трудно'),
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: FilledButton(
-                  onPressed: () =>
-                      _submitRating(3, answerCorrect: true),
+                  onPressed: () => _submitRating(3, answerCorrect: true),
                   child: const Text('Хорошо'),
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: FilledButton(
-                  onPressed: () =>
-                      _submitRating(4, answerCorrect: true),
+                  onPressed: () => _submitRating(4, answerCorrect: true),
                   style: FilledButton.styleFrom(
                     backgroundColor: theme.colorScheme.primary,
                   ),
@@ -264,10 +283,11 @@ class _WriteScreenState extends ConsumerState<WriteScreen> {
             width: double.infinity,
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: (isDark
-                      ? RemoraColors.darkWarning
-                      : RemoraColors.lightWarning)
-                  .withValues(alpha: 0.1),
+              color:
+                  (isDark
+                          ? RemoraColors.darkWarning
+                          : RemoraColors.lightWarning)
+                      .withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Column(
@@ -307,8 +327,7 @@ class _WriteScreenState extends ConsumerState<WriteScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: FilledButton(
-                  onPressed: () =>
-                      _submitRating(3, answerCorrect: true),
+                  onPressed: () => _submitRating(3, answerCorrect: true),
                   child: const Text('Засчитать'),
                 ),
               ),
@@ -354,11 +373,8 @@ class _WriteScreenState extends ConsumerState<WriteScreen> {
           children: [
             Expanded(
               child: FilledButton(
-                onPressed: () => _submitRating(
-                  1,
-                  answerCorrect: false,
-                  requeue: true,
-                ),
+                onPressed: () =>
+                    _submitRating(1, answerCorrect: false, requeue: true),
                 style: FilledButton.styleFrom(
                   backgroundColor: theme.colorScheme.error,
                 ),
@@ -368,59 +384,13 @@ class _WriteScreenState extends ConsumerState<WriteScreen> {
             const SizedBox(width: 12),
             Expanded(
               child: OutlinedButton(
-                onPressed: () =>
-                    _submitRating(2, answerCorrect: false),
+                onPressed: () => _submitRating(2, answerCorrect: false),
                 child: const Text('Пропустить'),
               ),
             ),
           ],
         ),
       ],
-    );
-  }
-
-  Widget _buildSummary(BuildContext context, StudySessionState state) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.edit_outlined,
-              size: 64,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Письмо завершено!',
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Отвечено: ${state.answered}\n'
-              'Правильных: ${state.correct}\n'
-              'Ошибок: ${state.answered - state.correct}',
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyLarge,
-            ),
-            if (state.pending > 0) ...[
-              const SizedBox(height: 12),
-              Text(
-                'Неотправленных ответов: ${state.pending}',
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.error,
-                ),
-              ),
-            ],
-            const SizedBox(height: 24),
-            FilledButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('К наборам'),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
