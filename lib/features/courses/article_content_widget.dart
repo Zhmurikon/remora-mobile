@@ -1,8 +1,11 @@
+import 'dart:math' as math;
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_highlight/flutter_highlight.dart';
 import 'package:flutter_highlight/themes/github.dart';
 import 'package:flutter_math_fork/flutter_math.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:markdown/markdown.dart' as md;
 
 import '../../app/theme.dart';
@@ -256,18 +259,32 @@ class _ArticleRenderer {
   }
 
   Widget _mathBlock(String tex) {
-    return Center(
-      child: Math.tex(
-        tex.trim(),
-        mathStyle: MathStyle.display,
-        textStyle: TextStyle(fontSize: 18, color: _fg),
-        onErrorFallback: (_) => Text(tex, style: _bodyStyle()),
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final viewportWidth = constraints.maxWidth.isFinite
+            ? constraints.maxWidth
+            : MediaQuery.sizeOf(context).width - 32;
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minWidth: viewportWidth),
+            child: Center(
+              child: Math.tex(
+                tex.trim(),
+                mathStyle: MathStyle.display,
+                textStyle: TextStyle(fontSize: 18, color: _fg),
+                onErrorFallback: (_) => Text(tex, style: _bodyStyle()),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
   Widget _table(md.Element node) {
     final rows = <TableRow>[];
+    var columnCount = 0;
     for (final section in node.children ?? <md.Node>[]) {
       if (section is! md.Element) continue;
       final isHead = section.tag == 'thead';
@@ -282,15 +299,11 @@ class _ArticleRenderer {
                   horizontal: 10,
                   vertical: 6,
                 ),
-                child: Text.rich(
-                  TextSpan(children: _inline(c.children ?? [])),
-                  style: _bodyStyle().copyWith(
-                    fontWeight: isHead ? FontWeight.w600 : FontWeight.normal,
-                  ),
-                ),
+                child: _tableCell(c, isHead: isHead),
               ),
             )
             .toList();
+        columnCount = math.max(columnCount, cells.length);
         rows.add(
           TableRow(
             decoration: isHead ? BoxDecoration(color: _muted) : null,
@@ -299,22 +312,54 @@ class _ArticleRenderer {
         );
       }
     }
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          minWidth: MediaQuery.of(context).size.width - 32,
-        ),
-        child: Table(
-          defaultColumnWidth: const IntrinsicColumnWidth(),
-          border: TableBorder.all(color: _border),
-          children: rows,
-        ),
-      ),
+    if (rows.isEmpty || columnCount == 0) return const SizedBox.shrink();
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final viewportWidth = constraints.maxWidth.isFinite
+            ? constraints.maxWidth
+            : MediaQuery.sizeOf(context).width - 32;
+        final columnWidth = math.max(140.0, viewportWidth / columnCount);
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Table(
+            defaultColumnWidth: FixedColumnWidth(columnWidth),
+            border: TableBorder.all(color: _border),
+            children: rows,
+          ),
+        );
+      },
     );
   }
 
-  Widget _image(md.Element node) {
+  Widget _tableCell(md.Element cell, {required bool isHead}) {
+    final content = Text.rich(
+      TextSpan(children: _inline(cell.children ?? [])),
+      style: _bodyStyle().copyWith(
+        fontWeight: isHead ? FontWeight.w600 : FontWeight.normal,
+      ),
+    );
+    if (!_containsInlineMath(cell.children ?? [])) return content;
+
+    // RichText ограничивает WidgetSpan шириной ячейки, а FlutterMath не умеет
+    // переносить произвольную формулу. Даём формуле естественную ширину и
+    // локальную прокрутку вместо RenderLine overflow.
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: content,
+    );
+  }
+
+  bool _containsInlineMath(List<md.Node> nodes) {
+    for (final node in nodes) {
+      if (node is md.Element) {
+        if (node.tag == 'math') return true;
+        if (_containsInlineMath(node.children ?? [])) return true;
+      }
+    }
+    return false;
+  }
+
+  Widget _image(md.Element node, {bool inline = false}) {
     final url = _resolveImage(node.attributes['src']);
     final alt = node.attributes['alt'] ?? '';
     if (url == null) {
@@ -326,24 +371,41 @@ class _ArticleRenderer {
               style: _bodyStyle().copyWith(fontStyle: FontStyle.italic),
             );
     }
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(10),
-      child: CachedNetworkImage(
-        imageUrl: url,
-        fit: BoxFit.contain,
-        placeholder: (_, _) => Container(
-          height: 120,
-          alignment: Alignment.center,
-          child: const CircularProgressIndicator(strokeWidth: 2),
-        ),
-        errorWidget: (_, _, _) => Container(
-          height: 80,
-          alignment: Alignment.center,
-          child: Icon(
-            Icons.broken_image_outlined,
-            color: theme.colorScheme.outline,
-          ),
-        ),
+
+    final width = inline ? 160.0 : double.infinity;
+    final isSvg = isSvgMediaUrl(url);
+    final error = Container(
+      height: inline ? 64 : 80,
+      alignment: Alignment.center,
+      child: Icon(
+        Icons.broken_image_outlined,
+        color: theme.colorScheme.outline,
+        semanticLabel: alt.isEmpty ? 'Не удалось загрузить изображение' : alt,
+      ),
+    );
+    final placeholder = Container(
+      height: inline ? 64 : 120,
+      alignment: Alignment.center,
+      child: const CircularProgressIndicator(strokeWidth: 2),
+    );
+
+    return SizedBox(
+      width: width,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(10),
+        child: isSvg
+            ? SvgPicture.network(
+                url,
+                fit: BoxFit.contain,
+                placeholderBuilder: (_) => placeholder,
+                errorBuilder: (_, _, _) => error,
+              )
+            : CachedNetworkImage(
+                imageUrl: url,
+                fit: BoxFit.contain,
+                placeholder: (_, _) => placeholder,
+                errorWidget: (_, _, _) => error,
+              ),
       ),
     );
   }
@@ -423,7 +485,7 @@ class _ArticleRenderer {
         return [
           WidgetSpan(
             alignment: PlaceholderAlignment.middle,
-            child: _image(node),
+            child: _image(node, inline: true),
           ),
         ];
       case 'math':
@@ -461,6 +523,12 @@ class _ArticleRenderer {
     'operator': TextStyle(color: Color(0xFFF92672)),
   };
 }
+
+/// Подписанные MinIO-ссылки содержат query-параметры после расширения файла.
+/// Проверяем именно path, иначе `.endsWith('.svg')` для такой ссылки не сработает.
+@visibleForTesting
+bool isSvgMediaUrl(String url) =>
+    Uri.tryParse(url)?.path.toLowerCase().endsWith('.svg') ?? false;
 
 /// Строчная формула `$…$`. Правила разделителей — как на сервере: после
 /// открывающего и перед закрывающим `$` не пробел, после закрывающего не цифра

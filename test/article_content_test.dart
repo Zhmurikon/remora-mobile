@@ -52,6 +52,24 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('длинная выключная формула прокручивается на мобильной ширине', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(375, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await pump(
+      tester,
+      r'$$P(X = k) = \binom{n}{k}p^k(1-p)^{n-k},\quad k=0,1,\ldots,n$$',
+    );
+    await tester.pump();
+
+    expect(tester.takeException(), isNull);
+    expect(find.byType(SingleChildScrollView), findsWidgets);
+  });
+
   testWidgets('код с языком строится', (tester) async {
     await pump(tester, '```dart\nvoid main() {}\n```');
     expect(tester.takeException(), isNull);
@@ -63,6 +81,26 @@ void main() {
     expect(find.textContaining('A'), findsWidgets);
   });
 
+  testWidgets('формула внутри таблицы не запрашивает intrinsic-размеры', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(375, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await pump(
+      tester,
+      r'| Величина | Формула |'
+      '\n'
+      r'|---|---|'
+      '\n'
+      r'| Биномиальное | $P(X=k)=\binom{n}{k}p^k(1-p)^{n-k}$ |',
+    );
+    await tester.pump();
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('media: изображение берёт ссылку из карты', (tester) async {
     await pump(
       tester,
@@ -70,6 +108,11 @@ void main() {
       media: {'m1': 'https://example.com/y.png'},
     );
     expect(tester.takeException(), isNull);
+  });
+
+  test('подписанная SVG-ссылка распознаётся по path', () {
+    expect(isSvgMediaUrl('https://example.com/graph.svg?signature=1'), isTrue);
+    expect(isSvgMediaUrl('https://example.com/graph.png?name=.svg'), isFalse);
   });
 
   testWidgets('изображение без media-карты показывает подпись', (tester) async {

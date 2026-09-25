@@ -6,9 +6,9 @@ import '../features/auth/auth_provider.dart';
 import 'circuit_breaker_interceptor.dart';
 import 'logging_interceptor.dart';
 
-/// Базовый URL API. Для эмулятора: http://10.0.2.2:8000 (локально),
-/// https://test.edu-remora.ru (дев-сервер).
-const baseUrl = 'https://test.edu-remora.ru';
+/// Канонический адрес Remora. Локально его можно временно заменить на
+/// http://10.0.2.2:8000 для Android-эмулятора.
+const baseUrl = 'https://remora.com.ru';
 
 /// Настроенный Dio с auth-интерсептором.
 final dioProvider = Provider<Dio>((ref) {
@@ -131,8 +131,7 @@ class RemoraApiClient {
 
   /// Настройки заучивания для набора: свои, если переопределены, иначе общие.
   Future<SetLearnSettings> getSetLearnSettings(String setId) async {
-    final response =
-        await _dio.get('/api/v1/study/sets/$setId/learn-settings');
+    final response = await _dio.get('/api/v1/study/sets/$setId/learn-settings');
     return SetLearnSettings.fromJson(response.data as Map<String, dynamic>);
   }
 
@@ -288,14 +287,14 @@ class UserProfile {
   final bool emailVerified;
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'email': email,
-        'username': username,
-        'display_name': displayName,
-        'avatar_url': avatarUrl,
-        'role': role,
-        'email_verified': emailVerified,
-      };
+    'id': id,
+    'email': email,
+    'username': username,
+    'display_name': displayName,
+    'avatar_url': avatarUrl,
+    'role': role,
+    'email_verified': emailVerified,
+  };
 }
 
 // --- Модели библиотеки и обучения ---
@@ -697,11 +696,11 @@ class SetLearnSettingsInput {
   final int matchPercent;
 
   Map<String, dynamic> toJson() => {
-        'question_types': questionTypes,
-        'successes_required': successesRequired,
-        'typing_check': typingCheck,
-        'match_percent': matchPercent,
-      };
+    'question_types': questionTypes,
+    'successes_required': successesRequired,
+    'typing_check': typingCheck,
+    'match_percent': matchPercent,
+  };
 }
 
 class ReviewIn {

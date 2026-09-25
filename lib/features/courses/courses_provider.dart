@@ -169,10 +169,7 @@ class CourseViewNotifier extends StateNotifier<CourseViewState> {
   }
 }
 
-final courseViewProvider =
-    StateNotifierProvider.family<CourseViewNotifier, CourseViewState, String>((
-      ref,
-      courseId,
-    ) {
+final courseViewProvider = StateNotifierProvider.autoDispose
+    .family<CourseViewNotifier, CourseViewState, String>((ref, courseId) {
       return CourseViewNotifier(ref.watch(courseRepositoryProvider), courseId);
     });

@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../data/api_client.dart';
@@ -26,16 +27,13 @@ final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: '/',
     redirect: (context, state) {
-      final isAuth = authState.status == AuthStatus.authenticated;
-      final isAuthRoute = state.matchedLocation.startsWith('/auth');
-      final isUnknown = authState.status == AuthStatus.unknown;
-
-      if (isUnknown) return null;
-      if (!isAuth && !isAuthRoute) return '/auth/login';
-      if (isAuth && isAuthRoute) return '/';
-      return null;
+      return authRedirect(authState.status, state.matchedLocation);
     },
     routes: [
+      GoRoute(
+        path: '/splash',
+        builder: (context, state) => const _AuthSplash(),
+      ),
       GoRoute(path: '/', builder: (context, state) => const LibraryScreen()),
       GoRoute(
         path: '/profile',
@@ -139,3 +137,28 @@ final routerProvider = Provider<GoRouter>((ref) {
     ],
   );
 });
+
+String? authRedirect(AuthStatus status, String location) {
+  final isAuth = status == AuthStatus.authenticated;
+  final isAuthRoute = location.startsWith('/auth');
+  final isUnknown = status == AuthStatus.unknown;
+  final isSplash = location == '/splash';
+
+  // Пока Keystore читается и refresh-токен ротируется, защищённые экраны
+  // нельзя строить: их параллельный 401 запустит второй refresh тем же
+  // одноразовым токеном и сервер отзовёт всю сессию.
+  if (isUnknown) return isSplash ? null : '/splash';
+  if (isSplash) return isAuth ? '/' : '/auth/login';
+  if (!isAuth && !isAuthRoute) return '/auth/login';
+  if (isAuth && isAuthRoute) return '/';
+  return null;
+}
+
+class _AuthSplash extends StatelessWidget {
+  const _AuthSplash();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(body: Center(child: CircularProgressIndicator()));
+  }
+}

@@ -12,9 +12,9 @@ class AuthInterceptor extends Interceptor {
     required String? Function() accessToken,
     required Future<void> Function(String token) onAccessToken,
     required Future<void> Function() onLogout,
-  })  : _accessToken = accessToken,
-        _onAccessToken = onAccessToken,
-        _onLogout = onLogout;
+  }) : _accessToken = accessToken,
+       _onAccessToken = onAccessToken,
+       _onLogout = onLogout;
 
   final String? Function() _accessToken;
   final Future<void> Function(String) _onAccessToken;
@@ -35,7 +35,11 @@ class AuthInterceptor extends Interceptor {
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) async {
-    if (err.response?.statusCode != 401) {
+    // Refresh-токен одноразовый: повторная попытка обновить сессию тем же
+    // токеном воспринимается сервером как его кража и отзывает всю семью.
+    // Поэтому 401 самого refresh-запроса нельзя пропускать через refresh-flow.
+    final isRefreshRequest = err.requestOptions.path.endsWith('/auth/refresh');
+    if (err.response?.statusCode != 401 || isRefreshRequest) {
       handler.next(err);
       return;
     }

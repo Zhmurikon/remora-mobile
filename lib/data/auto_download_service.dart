@@ -11,11 +11,10 @@ import 'repositories/set_repository.dart';
 ///
 /// Раньше нужно было зайти в каждый набор и курс (или нажать «Скачать» в
 /// библиотеке) вручную. Теперь при запуске приложения и при восстановлении
-/// связи сервис сам подтягивает то, чего ещё нет на устройстве: новые
+/// связи сервис сам подтягивает новое и изменившееся содержимое: новые
 /// наборы, новые курсы вместе с их разделами/статьями и наборы карточек,
 /// на которые ссылаются статьи курса (иначе встроенный квиз в статье не
-/// откроется офлайн). Уже скачанное повторно не трогаем — каждый экран
-/// и так обновляет своё содержимое при открытии.
+/// откроется офлайн). Неизменившееся содержимое повторно не скачиваем.
 ///
 /// Тихий и best-effort: одна неудача (сеть пропала на середине) не должна
 /// ронять весь проход — следующий набор или курс всё равно попробуем.
@@ -51,9 +50,10 @@ class AutoDownloadService {
     }
 
     final downloaded = await _sets.getDownloadedSetIds();
+    final outdated = await _sets.getOutdatedDownloadedSetIds();
     var added = 0;
     for (final set in sets) {
-      if (downloaded.contains(set.id)) continue;
+      if (downloaded.contains(set.id) && !outdated.contains(set.id)) continue;
       if (await _downloadSetSafely(set.id)) added++;
     }
     if (added > 0) logRemora('autodownload', 'наборы: скачано $added новых');
@@ -67,10 +67,13 @@ class AutoDownloadService {
       return;
     }
 
+    final outdated = await _courses.getOutdatedDownloadedCourseIds();
     var added = 0;
     for (final course in courses) {
       final id = course.id;
-      if (await _courses.hasDownloadedContent(id)) continue;
+      if (await _courses.hasDownloadedContent(id) && !outdated.contains(id)) {
+        continue;
+      }
 
       try {
         final detail = await _courses.downloadCourse(id);

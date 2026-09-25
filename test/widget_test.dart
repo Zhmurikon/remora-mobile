@@ -25,8 +25,9 @@ void main() {
       ),
     );
 
-    // Даём время на инициализацию auth-state и router
-    await tester.pumpAndSettle(const Duration(milliseconds: 500));
+    // Splash содержит постоянную анимацию, поэтому pumpAndSettle здесь
+    // принципиально не завершится.
+    await tester.pump(const Duration(milliseconds: 500));
 
     // Приложение стартует — показывает login (неавторизован) или библиотеку
     expect(find.byType(MaterialApp), findsOneWidget);

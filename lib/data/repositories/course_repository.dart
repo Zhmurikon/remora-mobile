@@ -65,6 +65,22 @@ class CourseRepository {
     return getDownloadedCourses();
   }
 
+  /// Скачанные курсы, структура которых старее серверных метаданных.
+  Future<Set<String>> getOutdatedDownloadedCourseIds() async {
+    final downloaded = await (_db.select(
+      _db.syncMeta,
+    )..where((meta) => meta.entityType.equals('course'))).get();
+    final coursesById = {
+      for (final course in await _db.courses.select().get()) course.id: course,
+    };
+    return {
+      for (final meta in downloaded)
+        if (coursesById[meta.entityId] case final course?)
+          if (meta.revision != _contentRevision(course.updatedAt))
+            meta.entityId,
+    };
+  }
+
   /// Скачивает полную структуру курса с теорией и сохраняет в БД.
   ///
   /// Разделы и статьи курса заменяются целиком: сервер — источник правды
@@ -126,6 +142,7 @@ class CourseRepository {
         entityType: const Value('course'),
         entityId: Value(courseId),
         lastSyncedAt: Value(DateTime.now()),
+        revision: Value(_contentRevision(detail.updatedAt)),
       ),
     );
 
@@ -135,10 +152,11 @@ class CourseRepository {
   /// Скачана ли теория курса (хотя бы один раздел) — для фонового автоскачивания:
   /// новые курсы качаем сразу, уже скачанные не трогаем при каждом старте.
   Future<bool> hasDownloadedContent(String courseId) async {
-    final section = await (_db.select(_db.courseSections)
-          ..where((s) => s.courseId.equals(courseId))
-          ..limit(1))
-        .getSingleOrNull();
+    final section =
+        await (_db.select(_db.courseSections)
+              ..where((s) => s.courseId.equals(courseId))
+              ..limit(1))
+            .getSingleOrNull();
     return section != null;
   }
 
@@ -172,3 +190,6 @@ class CourseRepository {
     )..where((a) => a.id.equals(articleId))).getSingleOrNull();
   }
 }
+
+String _contentRevision(DateTime value) =>
+    (value.millisecondsSinceEpoch ~/ Duration.millisecondsPerSecond).toString();

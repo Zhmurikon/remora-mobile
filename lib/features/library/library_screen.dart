@@ -50,6 +50,7 @@ class LibraryScreen extends ConsumerWidget {
     LibraryState state,
     LibraryNotifier notifier,
   ) {
+    final theme = Theme.of(context);
     if (state.isLoading && state.sets.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -91,14 +92,24 @@ class LibraryScreen extends ConsumerWidget {
         final set = state.sets[index];
         final isDownloading = state.downloadingSetIds.contains(set.id);
         final isDownloaded = state.downloadedSetIds.contains(set.id);
+        final hasUpdate = state.outdatedSetIds.contains(set.id);
 
         return Card(
           margin: const EdgeInsets.only(bottom: 12),
           child: ListTile(
             title: Text(set.title),
-            subtitle: Text(
-              '${set.cardsCount} ${_cardWord(set.cardsCount)}',
-              style: Theme.of(context).textTheme.bodySmall,
+            subtitle: Text.rich(
+              TextSpan(
+                text: '${set.cardsCount} ${_cardWord(set.cardsCount)}',
+                children: [
+                  if (hasUpdate)
+                    TextSpan(
+                      text: ' · Доступно обновление',
+                      style: TextStyle(color: theme.colorScheme.tertiary),
+                    ),
+                ],
+              ),
+              style: theme.textTheme.bodySmall,
             ),
             trailing: isDownloading
                 ? const SizedBox(
@@ -106,15 +117,21 @@ class LibraryScreen extends ConsumerWidget {
                     height: 24,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : isDownloaded
-                    ? null
-                    : IconButton(
-                        icon: const Icon(Icons.download_outlined),
-                        tooltip: 'Скачать для офлайна',
-                        onPressed: state.isOnline
-                            ? () => notifier.downloadSet(set.id)
-                            : null,
-                      ),
+                : isDownloaded && !hasUpdate
+                ? const Icon(Icons.download_done, semanticLabel: 'Скачано')
+                : IconButton(
+                    icon: Icon(
+                      hasUpdate
+                          ? Icons.system_update_alt
+                          : Icons.download_outlined,
+                    ),
+                    tooltip: hasUpdate
+                        ? 'Обновить скачанный набор'
+                        : 'Скачать для офлайна',
+                    onPressed: state.isOnline
+                        ? () => notifier.downloadSet(set.id)
+                        : null,
+                  ),
             onTap: () {
               context.push(
                 '/set/${set.id}/study?title=${Uri.encodeComponent(set.title)}',

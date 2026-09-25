@@ -27,6 +27,7 @@ class LibraryState {
     required this.isOnline,
     required this.downloadingSetIds,
     required this.downloadedSetIds,
+    required this.outdatedSetIds,
   });
 
   final List<SetRecord> sets;
@@ -35,6 +36,7 @@ class LibraryState {
   final bool isOnline;
   final Set<String> downloadingSetIds;
   final Set<String> downloadedSetIds;
+  final Set<String> outdatedSetIds;
 
   LibraryState copyWith({
     List<SetRecord>? sets,
@@ -43,6 +45,7 @@ class LibraryState {
     bool? isOnline,
     Set<String>? downloadingSetIds,
     Set<String>? downloadedSetIds,
+    Set<String>? outdatedSetIds,
   }) {
     return LibraryState(
       sets: sets ?? this.sets,
@@ -51,6 +54,7 @@ class LibraryState {
       isOnline: isOnline ?? this.isOnline,
       downloadingSetIds: downloadingSetIds ?? this.downloadingSetIds,
       downloadedSetIds: downloadedSetIds ?? this.downloadedSetIds,
+      outdatedSetIds: outdatedSetIds ?? this.outdatedSetIds,
     );
   }
 }
@@ -58,13 +62,16 @@ class LibraryState {
 /// Провайдер состояния библиотеки.
 class LibraryNotifier extends StateNotifier<LibraryState> {
   LibraryNotifier(this._repo)
-      : super(LibraryState(
+    : super(
+        LibraryState(
           sets: [],
           isLoading: true,
           isOnline: true,
           downloadingSetIds: {},
           downloadedSetIds: {},
-        )) {
+          outdatedSetIds: {},
+        ),
+      ) {
     _init();
   }
 
@@ -75,10 +82,12 @@ class LibraryNotifier extends StateNotifier<LibraryState> {
       // Сначала показываем локальные данные
       final localSets = await _repo.getDownloadedSets();
       final downloadedIds = await _repo.getDownloadedSetIds();
+      final outdatedIds = await _repo.getOutdatedDownloadedSetIds();
       state = state.copyWith(
         sets: localSets,
         isLoading: false,
         downloadedSetIds: downloadedIds,
+        outdatedSetIds: outdatedIds,
       );
 
       // Затем пробуем синхронизировать из API
@@ -92,7 +101,13 @@ class LibraryNotifier extends StateNotifier<LibraryState> {
   Future<void> refresh() async {
     try {
       final sets = await _repo.syncMySets();
-      state = state.copyWith(sets: sets, isOnline: true, error: null);
+      final outdatedIds = await _repo.getOutdatedDownloadedSetIds();
+      state = state.copyWith(
+        sets: sets,
+        outdatedSetIds: outdatedIds,
+        isOnline: true,
+        error: null,
+      );
     } catch (e) {
       // Не онлайн — показываем локальные данные без ошибки
       state = state.copyWith(isOnline: false);
@@ -111,14 +126,18 @@ class LibraryNotifier extends StateNotifier<LibraryState> {
       await _repo.downloadSet(setId);
       final sets = await _repo.getDownloadedSets();
       final downloadedIds = await _repo.getDownloadedSetIds();
+      final outdatedIds = await _repo.getOutdatedDownloadedSetIds();
+      final downloading = {...state.downloadingSetIds}..remove(setId);
       state = state.copyWith(
         sets: sets,
-        downloadingSetIds: state.downloadingSetIds..remove(setId),
+        downloadingSetIds: downloading,
         downloadedSetIds: downloadedIds,
+        outdatedSetIds: outdatedIds,
       );
     } catch (e) {
+      final downloading = {...state.downloadingSetIds}..remove(setId);
       state = state.copyWith(
-        downloadingSetIds: state.downloadingSetIds..remove(setId),
+        downloadingSetIds: downloading,
         error: 'Не удалось скачать: ${detail(e)}',
       );
     }
@@ -127,7 +146,8 @@ class LibraryNotifier extends StateNotifier<LibraryState> {
 
 String detail(Object e) => e.toString().split('\n').first;
 
-final libraryProvider =
-    StateNotifierProvider<LibraryNotifier, LibraryState>((ref) {
+final libraryProvider = StateNotifierProvider<LibraryNotifier, LibraryState>((
+  ref,
+) {
   return LibraryNotifier(ref.watch(setRepositoryProvider));
 });
