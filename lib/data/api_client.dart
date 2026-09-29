@@ -87,6 +87,26 @@ class RemoraApiClient {
     return UserProfile.fromJson(response.data as Map<String, dynamic>);
   }
 
+  // --- Главная и удержание ---
+
+  Future<RetentionSummary> getRetentionSummary() async {
+    final response = await _dio.get('/api/v1/retention/summary');
+    return RetentionSummary.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  Future<List<ActivityDay>> getRetentionActivity({
+    required DateTime from,
+    required DateTime to,
+  }) async {
+    final response = await _dio.get(
+      '/api/v1/retention/activity',
+      queryParameters: {'from': _dateOnly(from), 'to': _dateOnly(to)},
+    );
+    return (response.data as List)
+        .map((item) => ActivityDay.fromJson(item as Map<String, dynamic>))
+        .toList();
+  }
+
   Future<void> logout({String? refreshToken}) async {
     await _dio.post(
       '/api/v1/auth/logout',
@@ -219,6 +239,165 @@ class RemoraApiClient {
     final response = await _dio.get('/api/v1/courses/$courseId');
     return CourseDetailData.fromJson(response.data as Map<String, dynamic>);
   }
+
+  /// Публичные курсы. Каталог работает только онлайн.
+  Future<CourseSearchResult> searchCourses({
+    String query = '',
+    String sort = 'popular',
+    int cursor = 0,
+    int limit = 20,
+  }) async {
+    final response = await _dio.get(
+      '/api/v1/search/courses',
+      queryParameters: {
+        'q': query,
+        'sort': sort,
+        'cursor': cursor,
+        'limit': limit,
+      },
+    );
+    return CourseSearchResult.fromJson(response.data as Map<String, dynamic>);
+  }
+}
+
+String _dateOnly(DateTime value) =>
+    '${value.year.toString().padLeft(4, '0')}-'
+    '${value.month.toString().padLeft(2, '0')}-'
+    '${value.day.toString().padLeft(2, '0')}';
+
+class RetentionSummary {
+  const RetentionSummary({
+    required this.date,
+    required this.dailyGoal,
+    required this.reviewsToday,
+    required this.correctToday,
+    required this.xpToday,
+    required this.goalCompleted,
+    required this.currentStreakDays,
+    required this.longestStreakDays,
+    required this.freezesLeft,
+    required this.totalXp,
+    required this.level,
+  });
+
+  factory RetentionSummary.fromJson(Map<String, dynamic> json) {
+    return RetentionSummary(
+      date: DateTime.parse(json['date'] as String),
+      dailyGoal: json['daily_goal'] as int,
+      reviewsToday: json['reviews_today'] as int,
+      correctToday: json['correct_today'] as int,
+      xpToday: json['xp_today'] as int,
+      goalCompleted: json['goal_completed'] as bool,
+      currentStreakDays: json['current_streak_days'] as int,
+      longestStreakDays: json['longest_streak_days'] as int,
+      freezesLeft: json['freezes_left'] as int,
+      totalXp: json['total_xp'] as int,
+      level: json['level'] as int,
+    );
+  }
+
+  final DateTime date;
+  final int dailyGoal;
+  final int reviewsToday;
+  final int correctToday;
+  final int xpToday;
+  final bool goalCompleted;
+  final int currentStreakDays;
+  final int longestStreakDays;
+  final int freezesLeft;
+  final int totalXp;
+  final int level;
+
+  double get goalProgress =>
+      dailyGoal == 0 ? 0 : (reviewsToday / dailyGoal).clamp(0, 1).toDouble();
+}
+
+class ActivityDay {
+  const ActivityDay({
+    required this.date,
+    required this.reviewsCount,
+    required this.correctCount,
+    required this.xpEarned,
+    required this.goalReached,
+    required this.isFrozen,
+  });
+
+  factory ActivityDay.fromJson(Map<String, dynamic> json) {
+    return ActivityDay(
+      date: DateTime.parse(json['date'] as String),
+      reviewsCount: json['reviews_count'] as int,
+      correctCount: json['correct_count'] as int,
+      xpEarned: json['xp_earned'] as int,
+      goalReached: json['goal_reached_at'] != null,
+      isFrozen: json['is_frozen'] as bool,
+    );
+  }
+
+  final DateTime date;
+  final int reviewsCount;
+  final int correctCount;
+  final int xpEarned;
+  final bool goalReached;
+  final bool isFrozen;
+}
+
+class CourseSearchResult {
+  const CourseSearchResult({required this.items, this.nextCursor});
+
+  factory CourseSearchResult.fromJson(Map<String, dynamic> json) {
+    return CourseSearchResult(
+      items: (json['items'] as List)
+          .map(
+            (item) => CourseSearchItem.fromJson(item as Map<String, dynamic>),
+          )
+          .toList(),
+      nextCursor: json['next_cursor'] as int?,
+    );
+  }
+
+  final List<CourseSearchItem> items;
+  final int? nextCursor;
+}
+
+class CourseSearchItem {
+  const CourseSearchItem({
+    required this.id,
+    required this.slug,
+    required this.title,
+    required this.description,
+    required this.tags,
+    required this.author,
+    required this.languages,
+    required this.cardsCount,
+    required this.savesCount,
+    required this.updatedAt,
+  });
+
+  factory CourseSearchItem.fromJson(Map<String, dynamic> json) {
+    return CourseSearchItem(
+      id: json['id'] as String,
+      slug: json['slug'] as String,
+      title: json['title'] as String,
+      description: json['description'] as String? ?? '',
+      tags: (json['tags'] as List).cast<String>(),
+      author: json['author'] as String,
+      languages: (json['languages'] as List).cast<String>(),
+      cardsCount: json['cards_count'] as int,
+      savesCount: json['saves_count'] as int,
+      updatedAt: DateTime.parse(json['updated_at'] as String),
+    );
+  }
+
+  final String id;
+  final String slug;
+  final String title;
+  final String description;
+  final List<String> tags;
+  final String author;
+  final List<String> languages;
+  final int cardsCount;
+  final int savesCount;
+  final DateTime updatedAt;
 }
 
 class AuthResponse {
@@ -449,6 +628,7 @@ class StudyQueue {
     required this.answerStrictness,
     this.learnQuestionTypes = const ['choice', 'typing', 'recall'],
     this.learnSuccessesRequired = 1,
+    this.learnSessionSize = 10,
     this.learnTypingCheck = 'automatic',
     this.learnMatchPercent = 90,
     required this.mode,
@@ -473,6 +653,7 @@ class StudyQueue {
               .toList() ??
           ['choice', 'typing', 'recall'],
       learnSuccessesRequired: json['learn_successes_required'] as int? ?? 1,
+      learnSessionSize: json['learn_session_size'] as int? ?? 10,
       learnTypingCheck: json['learn_typing_check'] as String? ?? 'automatic',
       learnMatchPercent: json['learn_match_percent'] as int? ?? 90,
       mode: json['mode'] as String,
@@ -494,6 +675,7 @@ class StudyQueue {
   final String answerStrictness;
   final List<String> learnQuestionTypes;
   final int learnSuccessesRequired;
+  final int learnSessionSize;
   final String learnTypingCheck;
   final int learnMatchPercent;
   final String mode;
@@ -657,6 +839,7 @@ class SetLearnSettings {
   SetLearnSettings({
     required this.questionTypes,
     required this.successesRequired,
+    required this.sessionSize,
     required this.typingCheck,
     required this.matchPercent,
     required this.customized,
@@ -668,6 +851,7 @@ class SetLearnSettings {
           .map((e) => e as String)
           .toList(),
       successesRequired: json['successes_required'] as int,
+      sessionSize: json['session_size'] as int? ?? 10,
       typingCheck: json['typing_check'] as String,
       matchPercent: json['match_percent'] as int,
       customized: json['customized'] as bool,
@@ -676,6 +860,7 @@ class SetLearnSettings {
 
   final List<String> questionTypes;
   final int successesRequired;
+  final int sessionSize;
   final String typingCheck;
   final int matchPercent;
   final bool customized;
@@ -686,18 +871,21 @@ class SetLearnSettingsInput {
   const SetLearnSettingsInput({
     required this.questionTypes,
     required this.successesRequired,
+    required this.sessionSize,
     required this.typingCheck,
     required this.matchPercent,
   });
 
   final List<String> questionTypes;
   final int successesRequired;
+  final int sessionSize;
   final String typingCheck;
   final int matchPercent;
 
   Map<String, dynamic> toJson() => {
     'question_types': questionTypes,
     'successes_required': successesRequired,
+    'session_size': sessionSize,
     'typing_check': typingCheck,
     'match_percent': matchPercent,
   };

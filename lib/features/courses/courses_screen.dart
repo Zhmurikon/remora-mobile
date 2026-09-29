@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'courses_provider.dart';
+import '../library/list_sort.dart';
 
 /// Список моих курсов. Открытие курса ведёт к его структуре и теории.
 class CoursesScreen extends ConsumerWidget {
@@ -27,16 +28,33 @@ class CoursesScreen extends ConsumerWidget {
                 semanticLabel: 'Нет сети',
               ),
             ),
+          IconButton(
+            onPressed: () => context.go('/catalog'),
+            tooltip: 'Найти курсы',
+            icon: const Icon(Icons.search),
+          ),
+          const ListSortButton(storageKey: 'courses', includeSize: false),
         ],
       ),
       body: RefreshIndicator(
         onRefresh: notifier.refresh,
-        child: _buildBody(context, state),
+        child: _buildBody(context, ref, state),
       ),
     );
   }
 
-  Widget _buildBody(BuildContext context, CoursesListState state) {
+  Widget _buildBody(
+    BuildContext context,
+    WidgetRef ref,
+    CoursesListState state,
+  ) {
+    final sortMode = ref.watch(listSortProvider('courses'));
+    final sortedCourses = sortList(
+      state.courses,
+      sortMode,
+      title: (course) => course.title,
+      updatedAt: (course) => course.updatedAt,
+    );
     if (state.isLoading && state.courses.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -58,15 +76,34 @@ class CoursesScreen extends ConsumerWidget {
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodyLarge,
           ),
+          if (state.isOnline) ...[
+            const SizedBox(height: 24),
+            Center(
+              child: FilledButton.icon(
+                onPressed: () => context.go('/catalog'),
+                icon: const Icon(Icons.search),
+                label: const Text('Найти курс'),
+              ),
+            ),
+          ],
         ],
       );
     }
 
     return ListView.builder(
       padding: const EdgeInsets.all(16),
-      itemCount: state.courses.length,
+      itemCount: sortedCourses.length + 1,
       itemBuilder: (context, index) {
-        final course = state.courses[index];
+        if (index == 0) {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 14),
+            child: Text(
+              '${state.courses.length} ${_courseWord(state.courses.length)}',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+          );
+        }
+        final course = sortedCourses[index - 1];
         return Card(
           margin: const EdgeInsets.only(bottom: 12),
           child: ListTile(
@@ -88,5 +125,15 @@ class CoursesScreen extends ConsumerWidget {
         );
       },
     );
+  }
+
+  String _courseWord(int count) {
+    final mod10 = count % 10;
+    final mod100 = count % 100;
+    if (mod10 == 1 && mod100 != 11) return 'курс';
+    if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) {
+      return 'курса';
+    }
+    return 'курсов';
   }
 }

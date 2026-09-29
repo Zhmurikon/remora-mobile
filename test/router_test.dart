@@ -7,7 +7,20 @@ void main() {
   test('до восстановления сессии защищённый экран не открывается', () {
     expect(authRedirect(AuthStatus.unknown, '/'), '/splash');
     expect(authRedirect(AuthStatus.unknown, '/courses'), '/splash');
+    expect(authRedirect(AuthStatus.unknown, '/catalog'), '/splash');
     expect(authRedirect(AuthStatus.unknown, '/splash'), isNull);
+  });
+
+  test('авторизованному пользователю доступны все основные вкладки', () {
+    for (final location in [
+      '/',
+      '/courses',
+      '/sets',
+      '/catalog',
+      '/settings',
+    ]) {
+      expect(authRedirect(AuthStatus.authenticated, location), isNull);
+    }
   });
 
   test('после восстановления splash ведёт в приложение', () {

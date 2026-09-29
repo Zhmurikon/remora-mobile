@@ -130,6 +130,7 @@ class OutboxService {
             SetLearnSettingsInput(
               questionTypes: _decodeQuestionTypes(entry.questionTypes),
               successesRequired: entry.successesRequired ?? 1,
+              sessionSize: entry.sessionSize ?? 10,
               typingCheck: entry.typingCheck ?? 'automatic',
               matchPercent: entry.matchPercent ?? 90,
             ),
@@ -146,7 +147,9 @@ class OutboxService {
     if (raw == null) return const ['choice', 'typing', 'recall'];
     try {
       final decoded = jsonDecode(raw);
-      return decoded is List ? decoded.map((e) => e.toString()).toList() : const [];
+      return decoded is List
+          ? decoded.map((e) => e.toString()).toList()
+          : const [];
     } catch (_) {
       return const ['choice', 'typing', 'recall'];
     }

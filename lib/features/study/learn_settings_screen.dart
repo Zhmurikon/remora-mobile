@@ -63,6 +63,7 @@ class _LearnSettingsScreenState extends ConsumerState<LearnSettingsScreen> {
         _value = LearnPreferences(
           questionTypes: settings.questionTypes,
           successesRequired: settings.successesRequired,
+          sessionSize: settings.sessionSize,
           typingCheck: settings.typingCheck,
           matchPercent: settings.matchPercent,
         );
@@ -93,7 +94,9 @@ class _LearnSettingsScreenState extends ConsumerState<LearnSettingsScreen> {
         _value = LearnPreferences(
           questionTypes:
               _decodeTypes(pending.questionTypes) ?? cached.questionTypes,
-          successesRequired: pending.successesRequired ?? cached.successesRequired,
+          successesRequired:
+              pending.successesRequired ?? cached.successesRequired,
+          sessionSize: pending.sessionSize ?? cached.sessionSize,
           typingCheck: pending.typingCheck ?? cached.typingCheck,
           matchPercent: pending.matchPercent ?? cached.matchPercent,
         );
@@ -102,6 +105,7 @@ class _LearnSettingsScreenState extends ConsumerState<LearnSettingsScreen> {
         _value = LearnPreferences(
           questionTypes: cached.questionTypes,
           successesRequired: cached.successesRequired,
+          sessionSize: cached.sessionSize,
           typingCheck: cached.typingCheck,
           matchPercent: cached.matchPercent,
         );
@@ -124,11 +128,14 @@ class _LearnSettingsScreenState extends ConsumerState<LearnSettingsScreen> {
 
     final repo = ref.read(studyRepositoryProvider);
     try {
-      final settings = await ref.read(apiClientProvider).updateSetLearnSettings(
+      final settings = await ref
+          .read(apiClientProvider)
+          .updateSetLearnSettings(
             widget.setId,
             SetLearnSettingsInput(
               questionTypes: _value.questionTypes,
               successesRequired: _value.successesRequired,
+              sessionSize: _value.sessionSize,
               typingCheck: _value.typingCheck,
               matchPercent: _value.matchPercent,
             ),
@@ -152,13 +159,15 @@ class _LearnSettingsScreenState extends ConsumerState<LearnSettingsScreen> {
         widget.setId,
         _value.questionTypes,
         _value.successesRequired,
+        _value.sessionSize,
         _value.typingCheck,
         _value.matchPercent,
       );
       setState(() {
         _customized = true;
         _offline = true;
-        _message = 'Сети нет — сохранили на устройстве, отправим при подключении';
+        _message =
+            'Сети нет — сохранили на устройстве, отправим при подключении';
         _saving = false;
       });
     }
@@ -209,72 +218,70 @@ class _LearnSettingsScreenState extends ConsumerState<LearnSettingsScreen> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _loadError != null
-              ? Center(child: Text(_loadError!))
-              : SingleChildScrollView(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
+          ? Center(child: Text(_loadError!))
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (_offline) ...[
+                    _buildOfflineNotice(context),
+                    const SizedBox(height: 12),
+                  ],
+                  Row(
                     children: [
-                      if (_offline) ...[
-                        _buildOfflineNotice(context),
-                        const SizedBox(height: 12),
-                      ],
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              'Изменения применятся только к этому набору. '
-                              'Общие настройки профиля останутся прежними.',
-                              style: Theme.of(context).textTheme.bodySmall,
-                            ),
-                          ),
-                          if (_customized) ...[
-                            const SizedBox(width: 8),
-                            const Chip(label: Text('Для этого набора')),
-                          ],
-                        ],
-                      ),
-                      const SizedBox(height: 20),
-                      LearnSettingsControls(
-                        value: _value,
-                        onChanged: (v) => setState(() => _value = v),
-                      ),
-                      if (_message != null) ...[
-                        const SizedBox(height: 16),
-                        Text(
-                          _message!,
+                      Expanded(
+                        child: Text(
+                          'Изменения применятся только к этому набору. '
+                          'Общие настройки профиля останутся прежними.',
                           style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                      ],
-                      const SizedBox(height: 20),
-                      SizedBox(
-                        height: 48,
-                        child: FilledButton(
-                          onPressed: _saving ? null : _save,
-                          child: _saving
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : const Text('Сохранить для набора'),
                         ),
                       ),
                       if (_customized) ...[
-                        const SizedBox(height: 12),
-                        SizedBox(
-                          height: 48,
-                          child: OutlinedButton(
-                            onPressed: _saving ? null : _reset,
-                            child: const Text('Использовать общие'),
-                          ),
-                        ),
+                        const SizedBox(width: 8),
+                        const Chip(label: Text('Для этого набора')),
                       ],
                     ],
                   ),
-                ),
+                  const SizedBox(height: 20),
+                  LearnSettingsControls(
+                    value: _value,
+                    onChanged: (v) => setState(() => _value = v),
+                  ),
+                  if (_message != null) ...[
+                    const SizedBox(height: 16),
+                    Text(
+                      _message!,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    height: 48,
+                    child: FilledButton(
+                      onPressed: _saving ? null : _save,
+                      child: _saving
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Text('Сохранить для набора'),
+                    ),
+                  ),
+                  if (_customized) ...[
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      height: 48,
+                      child: OutlinedButton(
+                        onPressed: _saving ? null : _reset,
+                        child: const Text('Использовать общие'),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
     );
   }
 
@@ -288,14 +295,19 @@ class _LearnSettingsScreenState extends ConsumerState<LearnSettingsScreen> {
       ),
       child: Row(
         children: [
-          Icon(Icons.cloud_off, size: 18, color: theme.colorScheme.onSecondaryContainer),
+          Icon(
+            Icons.cloud_off,
+            size: 18,
+            color: theme.colorScheme.onSecondaryContainer,
+          ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               'Нет сети — показаны настройки с устройства. Изменения сохранятся '
               'локально и отправятся на сервер при подключении.',
-              style: theme.textTheme.bodySmall
-                  ?.copyWith(color: theme.colorScheme.onSecondaryContainer),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSecondaryContainer,
+              ),
             ),
           ),
         ],

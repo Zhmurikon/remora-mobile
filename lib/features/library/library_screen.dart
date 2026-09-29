@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'library_provider.dart';
+import 'list_sort.dart';
 
 class LibraryScreen extends ConsumerWidget {
   const LibraryScreen({super.key});
@@ -15,7 +16,7 @@ class LibraryScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Моя библиотека'),
+        title: const Text('Наборы'),
         actions: [
           if (!state.isOnline)
             Padding(
@@ -27,30 +28,35 @@ class LibraryScreen extends ConsumerWidget {
               ),
             ),
           IconButton(
-            icon: const Icon(Icons.school_outlined),
-            tooltip: 'Курсы',
-            onPressed: () => context.push('/courses'),
+            onPressed: () => context.go('/catalog'),
+            tooltip: 'Открыть каталог',
+            icon: const Icon(Icons.search),
           ),
-          IconButton(
-            icon: const Icon(Icons.person_outline),
-            tooltip: 'Профиль',
-            onPressed: () => context.push('/profile'),
-          ),
+          const ListSortButton(storageKey: 'sets'),
         ],
       ),
       body: RefreshIndicator(
         onRefresh: notifier.refresh,
-        child: _buildBody(context, state, notifier),
+        child: _buildBody(context, ref, state, notifier),
       ),
     );
   }
 
   Widget _buildBody(
     BuildContext context,
+    WidgetRef ref,
     LibraryState state,
     LibraryNotifier notifier,
   ) {
     final theme = Theme.of(context);
+    final sortMode = ref.watch(listSortProvider('sets'));
+    final sortedSets = sortList(
+      state.sets,
+      sortMode,
+      title: (set) => set.title,
+      updatedAt: (set) => set.updatedAt,
+      size: (set) => set.cardsCount,
+    );
     if (state.isLoading && state.sets.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -87,9 +93,18 @@ class LibraryScreen extends ConsumerWidget {
 
     return ListView.builder(
       padding: const EdgeInsets.all(16),
-      itemCount: state.sets.length,
+      itemCount: sortedSets.length + 1,
       itemBuilder: (context, index) {
-        final set = state.sets[index];
+        if (index == 0) {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 14),
+            child: Text(
+              '${state.sets.length} ${_setWord(state.sets.length)} · нажмите, чтобы учиться',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+          );
+        }
+        final set = sortedSets[index - 1];
         final isDownloading = state.downloadingSetIds.contains(set.id);
         final isDownloaded = state.downloadedSetIds.contains(set.id);
         final hasUpdate = state.outdatedSetIds.contains(set.id);
@@ -151,5 +166,15 @@ class LibraryScreen extends ConsumerWidget {
       return 'карточки';
     }
     return 'карточек';
+  }
+
+  String _setWord(int count) {
+    final mod10 = count % 10;
+    final mod100 = count % 100;
+    if (mod10 == 1 && mod100 != 11) return 'набор';
+    if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) {
+      return 'набора';
+    }
+    return 'наборов';
   }
 }

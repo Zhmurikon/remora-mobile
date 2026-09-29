@@ -11,24 +11,28 @@ class LearnPreferences {
   const LearnPreferences({
     required this.questionTypes,
     required this.successesRequired,
+    required this.sessionSize,
     required this.typingCheck,
     required this.matchPercent,
   });
 
   final List<String> questionTypes;
   final int successesRequired;
+  final int sessionSize;
   final String typingCheck;
   final int matchPercent;
 
   LearnPreferences copyWith({
     List<String>? questionTypes,
     int? successesRequired,
+    int? sessionSize,
     String? typingCheck,
     int? matchPercent,
   }) {
     return LearnPreferences(
       questionTypes: questionTypes ?? this.questionTypes,
       successesRequired: successesRequired ?? this.successesRequired,
+      sessionSize: sessionSize ?? this.sessionSize,
       typingCheck: typingCheck ?? this.typingCheck,
       matchPercent: matchPercent ?? this.matchPercent,
     );
@@ -38,6 +42,7 @@ class LearnPreferences {
 const defaultLearnPreferences = LearnPreferences(
   questionTypes: ['choice', 'typing', 'recall'],
   successesRequired: 1,
+  sessionSize: 10,
   typingCheck: 'automatic',
   matchPercent: 90,
 );
@@ -54,6 +59,7 @@ const _presets = [
     LearnPreferences(
       questionTypes: ['choice', 'recall'],
       successesRequired: 1,
+      sessionSize: 10,
       typingCheck: 'automatic',
       matchPercent: 80,
     ),
@@ -64,6 +70,7 @@ const _presets = [
     LearnPreferences(
       questionTypes: ['choice', 'typing', 'recall'],
       successesRequired: 3,
+      sessionSize: 10,
       typingCheck: 'automatic',
       matchPercent: 95,
     ),
@@ -98,8 +105,9 @@ class LearnSettingsControls extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final subtle =
-        isDark ? RemoraColors.darkFgSubtle : RemoraColors.lightFgSubtle;
+    final subtle = isDark
+        ? RemoraColors.darkFgSubtle
+        : RemoraColors.lightFgSubtle;
     final border = isDark ? RemoraColors.darkBorder : RemoraColors.lightBorder;
 
     return Column(
@@ -111,10 +119,12 @@ class LearnSettingsControls extends StatelessWidget {
           spacing: 8,
           runSpacing: 8,
           children: _presets
-              .map((preset) => OutlinedButton(
-                    onPressed: () => onChanged(preset.value),
-                    child: Text(preset.label),
-                  ))
+              .map(
+                (preset) => OutlinedButton(
+                  onPressed: () => onChanged(preset.value),
+                  child: Text(preset.label),
+                ),
+              )
               .toList(),
         ),
         const SizedBox(height: 8),
@@ -154,6 +164,22 @@ class LearnSettingsControls extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 20),
+        Text('Карточек в сессии', style: theme.textTheme.labelLarge),
+        const SizedBox(height: 8),
+        SegmentedButton<int>(
+          segments: const [5, 10, 15, 20]
+              .map((size) => ButtonSegment(value: size, label: Text('$size')))
+              .toList(),
+          selected: {value.sessionSize},
+          onSelectionChanged: (selection) =>
+              onChanged(value.copyWith(sessionSize: selection.first)),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'После сессии можно сразу продолжить учить.',
+          style: theme.textTheme.bodySmall?.copyWith(color: subtle),
+        ),
+        const SizedBox(height: 20),
         Text('Успешных ответов на карточку', style: theme.textTheme.labelLarge),
         const SizedBox(height: 4),
         Text(
@@ -178,8 +204,9 @@ class LearnSettingsControls extends StatelessWidget {
                       backgroundColor: selected
                           ? theme.colorScheme.primary
                           : null,
-                      foregroundColor:
-                          selected ? theme.colorScheme.onPrimary : null,
+                      foregroundColor: selected
+                          ? theme.colorScheme.onPrimary
+                          : null,
                     ),
                     child: Text('$n'),
                   ),
@@ -193,14 +220,8 @@ class LearnSettingsControls extends StatelessWidget {
         const SizedBox(height: 8),
         SegmentedButton<String>(
           segments: const [
-            ButtonSegment(
-              value: 'automatic',
-              label: Text('Автоматически'),
-            ),
-            ButtonSegment(
-              value: 'self_check',
-              label: Text('Самооценка'),
-            ),
+            ButtonSegment(value: 'automatic', label: Text('Автоматически')),
+            ButtonSegment(value: 'self_check', label: Text('Самооценка')),
           ],
           selected: {value.typingCheck},
           onSelectionChanged: (selection) =>
@@ -220,8 +241,10 @@ class LearnSettingsControls extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text('Минимальное совпадение: ${value.matchPercent}%',
-                    style: theme.textTheme.labelLarge),
+                Text(
+                  'Минимальное совпадение: ${value.matchPercent}%',
+                  style: theme.textTheme.labelLarge,
+                ),
                 Slider(
                   value: value.matchPercent.toDouble(),
                   min: 50,

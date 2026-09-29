@@ -185,15 +185,22 @@ class _SessionResultScreenState extends ConsumerState<SessionResultScreen> {
           SizedBox(
             width: double.infinity,
             child: FilledButton(
-              onPressed: () => context.go('/set/${widget.setId}/study'),
-              child: const Text('Продолжить обучение'),
+              onPressed: () async {
+                await ref
+                    .read(studySessionProvider.notifier)
+                    .begin(widget.setId, state.mode);
+                if (context.mounted) {
+                  context.go('/set/${widget.setId}/study/${state.mode.name}');
+                }
+              },
+              child: const Text('Продолжить учить'),
             ),
           ),
           const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
             child: OutlinedButton(
-              onPressed: () => context.go('/'),
+              onPressed: () => context.go('/sets'),
               child: const Text('К наборам'),
             ),
           ),

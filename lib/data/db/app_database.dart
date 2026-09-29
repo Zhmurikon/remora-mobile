@@ -86,8 +86,10 @@ class SyncMeta extends Table {
 class PendingLearnSettings extends Table {
   TextColumn get setId => text()();
   TextColumn get action => text()(); // 'update' | 'reset'
-  TextColumn get questionTypes => text().nullable()(); // JSON-массив, для update
+  TextColumn get questionTypes =>
+      text().nullable()(); // JSON-массив, для update
   IntColumn get successesRequired => integer().nullable()();
+  IntColumn get sessionSize => integer().nullable()();
   TextColumn get typingCheck => text().nullable()();
   IntColumn get matchPercent => integer().nullable()();
   DateTimeColumn get updatedAt => dateTime()();
@@ -180,7 +182,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -197,6 +199,11 @@ class AppDatabase extends _$AppDatabase {
       // v3 — офлайн-очередь изменений настроек заучивания.
       if (from < 3) {
         await m.createTable(pendingLearnSettings);
+      }
+      if (from < 4) {
+        await customStatement(
+          'ALTER TABLE pending_learn_settings ADD COLUMN session_size INTEGER',
+        );
       }
     },
   );

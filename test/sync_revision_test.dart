@@ -8,6 +8,15 @@ import 'package:remora_mobile/data/db/app_database.dart';
 import 'package:remora_mobile/data/repositories/course_repository.dart';
 import 'package:remora_mobile/data/repositories/set_repository.dart';
 
+class _SetsApiClient extends RemoraApiClient {
+  _SetsApiClient(this.summaries) : super(Dio());
+
+  final List<SetSummary> summaries;
+
+  @override
+  Future<List<SetSummary>> getMySets() async => summaries;
+}
+
 void main() {
   late AppDatabase db;
   late SetRepository sets;
@@ -77,5 +86,50 @@ void main() {
     );
 
     expect(await courses.getOutdatedDownloadedCourseIds(), {'course-1'});
+  });
+
+  test('синхронизация убирает архивный набор из локального кэша', () async {
+    final revision = DateTime.utc(2026, 3, 1);
+    await db.sets.insertOne(
+      SetsCompanion.insert(
+        id: 'archived-set',
+        title: 'Архивный набор',
+        visibility: 'private',
+        slug: 'archived',
+        cardsCount: 1,
+        createdAt: revision,
+        updatedAt: revision,
+      ),
+    );
+    await db.cards.insertOne(
+      CardsCompanion.insert(
+        id: 'card-1',
+        setId: 'archived-set',
+        position: 0,
+        term: 'Термин',
+        definition: 'Определение',
+      ),
+    );
+    await db.syncMeta.insertOne(
+      SyncMetaCompanion.insert(
+        entityType: 'set',
+        entityId: 'archived-set',
+        lastSyncedAt: revision,
+      ),
+    );
+
+    final synced = await SetRepository(
+      db,
+      _SetsApiClient(const []),
+    ).syncMySets();
+
+    expect(synced, isEmpty);
+    expect(await db.cards.select().get(), isEmpty);
+    expect(
+      await db.syncMeta.select().get().then(
+        (rows) => rows.where((row) => row.entityType == 'set'),
+      ),
+      isEmpty,
+    );
   });
 }

@@ -4448,6 +4448,17 @@ class $PendingLearnSettingsTable extends PendingLearnSettings
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _sessionSizeMeta = const VerificationMeta(
+    'sessionSize',
+  );
+  @override
+  late final GeneratedColumn<int> sessionSize = GeneratedColumn<int>(
+    'session_size',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _typingCheckMeta = const VerificationMeta(
     'typingCheck',
   );
@@ -4487,6 +4498,7 @@ class $PendingLearnSettingsTable extends PendingLearnSettings
     action,
     questionTypes,
     successesRequired,
+    sessionSize,
     typingCheck,
     matchPercent,
     updatedAt,
@@ -4534,6 +4546,15 @@ class $PendingLearnSettingsTable extends PendingLearnSettings
         successesRequired.isAcceptableOrUnknown(
           data['successes_required']!,
           _successesRequiredMeta,
+        ),
+      );
+    }
+    if (data.containsKey('session_size')) {
+      context.handle(
+        _sessionSizeMeta,
+        sessionSize.isAcceptableOrUnknown(
+          data['session_size']!,
+          _sessionSizeMeta,
         ),
       );
     }
@@ -4591,6 +4612,10 @@ class $PendingLearnSettingsTable extends PendingLearnSettings
         DriftSqlType.int,
         data['${effectivePrefix}successes_required'],
       ),
+      sessionSize: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}session_size'],
+      ),
       typingCheck: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}typing_check'],
@@ -4618,6 +4643,7 @@ class PendingLearnSettingsRow extends DataClass
   final String action;
   final String? questionTypes;
   final int? successesRequired;
+  final int? sessionSize;
   final String? typingCheck;
   final int? matchPercent;
   final DateTime updatedAt;
@@ -4626,6 +4652,7 @@ class PendingLearnSettingsRow extends DataClass
     required this.action,
     this.questionTypes,
     this.successesRequired,
+    this.sessionSize,
     this.typingCheck,
     this.matchPercent,
     required this.updatedAt,
@@ -4640,6 +4667,9 @@ class PendingLearnSettingsRow extends DataClass
     }
     if (!nullToAbsent || successesRequired != null) {
       map['successes_required'] = Variable<int>(successesRequired);
+    }
+    if (!nullToAbsent || sessionSize != null) {
+      map['session_size'] = Variable<int>(sessionSize);
     }
     if (!nullToAbsent || typingCheck != null) {
       map['typing_check'] = Variable<String>(typingCheck);
@@ -4661,6 +4691,9 @@ class PendingLearnSettingsRow extends DataClass
       successesRequired: successesRequired == null && nullToAbsent
           ? const Value.absent()
           : Value(successesRequired),
+      sessionSize: sessionSize == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sessionSize),
       typingCheck: typingCheck == null && nullToAbsent
           ? const Value.absent()
           : Value(typingCheck),
@@ -4681,6 +4714,7 @@ class PendingLearnSettingsRow extends DataClass
       action: serializer.fromJson<String>(json['action']),
       questionTypes: serializer.fromJson<String?>(json['questionTypes']),
       successesRequired: serializer.fromJson<int?>(json['successesRequired']),
+      sessionSize: serializer.fromJson<int?>(json['sessionSize']),
       typingCheck: serializer.fromJson<String?>(json['typingCheck']),
       matchPercent: serializer.fromJson<int?>(json['matchPercent']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
@@ -4694,6 +4728,7 @@ class PendingLearnSettingsRow extends DataClass
       'action': serializer.toJson<String>(action),
       'questionTypes': serializer.toJson<String?>(questionTypes),
       'successesRequired': serializer.toJson<int?>(successesRequired),
+      'sessionSize': serializer.toJson<int?>(sessionSize),
       'typingCheck': serializer.toJson<String?>(typingCheck),
       'matchPercent': serializer.toJson<int?>(matchPercent),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
@@ -4705,6 +4740,7 @@ class PendingLearnSettingsRow extends DataClass
     String? action,
     Value<String?> questionTypes = const Value.absent(),
     Value<int?> successesRequired = const Value.absent(),
+    Value<int?> sessionSize = const Value.absent(),
     Value<String?> typingCheck = const Value.absent(),
     Value<int?> matchPercent = const Value.absent(),
     DateTime? updatedAt,
@@ -4717,6 +4753,7 @@ class PendingLearnSettingsRow extends DataClass
     successesRequired: successesRequired.present
         ? successesRequired.value
         : this.successesRequired,
+    sessionSize: sessionSize.present ? sessionSize.value : this.sessionSize,
     typingCheck: typingCheck.present ? typingCheck.value : this.typingCheck,
     matchPercent: matchPercent.present ? matchPercent.value : this.matchPercent,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -4733,6 +4770,9 @@ class PendingLearnSettingsRow extends DataClass
       successesRequired: data.successesRequired.present
           ? data.successesRequired.value
           : this.successesRequired,
+      sessionSize: data.sessionSize.present
+          ? data.sessionSize.value
+          : this.sessionSize,
       typingCheck: data.typingCheck.present
           ? data.typingCheck.value
           : this.typingCheck,
@@ -4750,6 +4790,7 @@ class PendingLearnSettingsRow extends DataClass
           ..write('action: $action, ')
           ..write('questionTypes: $questionTypes, ')
           ..write('successesRequired: $successesRequired, ')
+          ..write('sessionSize: $sessionSize, ')
           ..write('typingCheck: $typingCheck, ')
           ..write('matchPercent: $matchPercent, ')
           ..write('updatedAt: $updatedAt')
@@ -4763,6 +4804,7 @@ class PendingLearnSettingsRow extends DataClass
     action,
     questionTypes,
     successesRequired,
+    sessionSize,
     typingCheck,
     matchPercent,
     updatedAt,
@@ -4775,6 +4817,7 @@ class PendingLearnSettingsRow extends DataClass
           other.action == this.action &&
           other.questionTypes == this.questionTypes &&
           other.successesRequired == this.successesRequired &&
+          other.sessionSize == this.sessionSize &&
           other.typingCheck == this.typingCheck &&
           other.matchPercent == this.matchPercent &&
           other.updatedAt == this.updatedAt);
@@ -4786,6 +4829,7 @@ class PendingLearnSettingsCompanion
   final Value<String> action;
   final Value<String?> questionTypes;
   final Value<int?> successesRequired;
+  final Value<int?> sessionSize;
   final Value<String?> typingCheck;
   final Value<int?> matchPercent;
   final Value<DateTime> updatedAt;
@@ -4795,6 +4839,7 @@ class PendingLearnSettingsCompanion
     this.action = const Value.absent(),
     this.questionTypes = const Value.absent(),
     this.successesRequired = const Value.absent(),
+    this.sessionSize = const Value.absent(),
     this.typingCheck = const Value.absent(),
     this.matchPercent = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -4805,6 +4850,7 @@ class PendingLearnSettingsCompanion
     required String action,
     this.questionTypes = const Value.absent(),
     this.successesRequired = const Value.absent(),
+    this.sessionSize = const Value.absent(),
     this.typingCheck = const Value.absent(),
     this.matchPercent = const Value.absent(),
     required DateTime updatedAt,
@@ -4817,6 +4863,7 @@ class PendingLearnSettingsCompanion
     Expression<String>? action,
     Expression<String>? questionTypes,
     Expression<int>? successesRequired,
+    Expression<int>? sessionSize,
     Expression<String>? typingCheck,
     Expression<int>? matchPercent,
     Expression<DateTime>? updatedAt,
@@ -4827,6 +4874,7 @@ class PendingLearnSettingsCompanion
       if (action != null) 'action': action,
       if (questionTypes != null) 'question_types': questionTypes,
       if (successesRequired != null) 'successes_required': successesRequired,
+      if (sessionSize != null) 'session_size': sessionSize,
       if (typingCheck != null) 'typing_check': typingCheck,
       if (matchPercent != null) 'match_percent': matchPercent,
       if (updatedAt != null) 'updated_at': updatedAt,
@@ -4839,6 +4887,7 @@ class PendingLearnSettingsCompanion
     Value<String>? action,
     Value<String?>? questionTypes,
     Value<int?>? successesRequired,
+    Value<int?>? sessionSize,
     Value<String?>? typingCheck,
     Value<int?>? matchPercent,
     Value<DateTime>? updatedAt,
@@ -4849,6 +4898,7 @@ class PendingLearnSettingsCompanion
       action: action ?? this.action,
       questionTypes: questionTypes ?? this.questionTypes,
       successesRequired: successesRequired ?? this.successesRequired,
+      sessionSize: sessionSize ?? this.sessionSize,
       typingCheck: typingCheck ?? this.typingCheck,
       matchPercent: matchPercent ?? this.matchPercent,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -4870,6 +4920,9 @@ class PendingLearnSettingsCompanion
     }
     if (successesRequired.present) {
       map['successes_required'] = Variable<int>(successesRequired.value);
+    }
+    if (sessionSize.present) {
+      map['session_size'] = Variable<int>(sessionSize.value);
     }
     if (typingCheck.present) {
       map['typing_check'] = Variable<String>(typingCheck.value);
@@ -4893,6 +4946,7 @@ class PendingLearnSettingsCompanion
           ..write('action: $action, ')
           ..write('questionTypes: $questionTypes, ')
           ..write('successesRequired: $successesRequired, ')
+          ..write('sessionSize: $sessionSize, ')
           ..write('typingCheck: $typingCheck, ')
           ..write('matchPercent: $matchPercent, ')
           ..write('updatedAt: $updatedAt, ')
@@ -7996,6 +8050,7 @@ typedef $$PendingLearnSettingsTableCreateCompanionBuilder =
       required String action,
       Value<String?> questionTypes,
       Value<int?> successesRequired,
+      Value<int?> sessionSize,
       Value<String?> typingCheck,
       Value<int?> matchPercent,
       required DateTime updatedAt,
@@ -8007,6 +8062,7 @@ typedef $$PendingLearnSettingsTableUpdateCompanionBuilder =
       Value<String> action,
       Value<String?> questionTypes,
       Value<int?> successesRequired,
+      Value<int?> sessionSize,
       Value<String?> typingCheck,
       Value<int?> matchPercent,
       Value<DateTime> updatedAt,
@@ -8039,6 +8095,11 @@ class $$PendingLearnSettingsTableFilterComposer
 
   ColumnFilters<int> get successesRequired => $composableBuilder(
     column: $table.successesRequired,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sessionSize => $composableBuilder(
+    column: $table.sessionSize,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -8087,6 +8148,11 @@ class $$PendingLearnSettingsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get sessionSize => $composableBuilder(
+    column: $table.sessionSize,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get typingCheck => $composableBuilder(
     column: $table.typingCheck,
     builder: (column) => ColumnOrderings(column),
@@ -8125,6 +8191,11 @@ class $$PendingLearnSettingsTableAnnotationComposer
 
   GeneratedColumn<int> get successesRequired => $composableBuilder(
     column: $table.successesRequired,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get sessionSize => $composableBuilder(
+    column: $table.sessionSize,
     builder: (column) => column,
   );
 
@@ -8189,6 +8260,7 @@ class $$PendingLearnSettingsTableTableManager
                 Value<String> action = const Value.absent(),
                 Value<String?> questionTypes = const Value.absent(),
                 Value<int?> successesRequired = const Value.absent(),
+                Value<int?> sessionSize = const Value.absent(),
                 Value<String?> typingCheck = const Value.absent(),
                 Value<int?> matchPercent = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
@@ -8198,6 +8270,7 @@ class $$PendingLearnSettingsTableTableManager
                 action: action,
                 questionTypes: questionTypes,
                 successesRequired: successesRequired,
+                sessionSize: sessionSize,
                 typingCheck: typingCheck,
                 matchPercent: matchPercent,
                 updatedAt: updatedAt,
@@ -8209,6 +8282,7 @@ class $$PendingLearnSettingsTableTableManager
                 required String action,
                 Value<String?> questionTypes = const Value.absent(),
                 Value<int?> successesRequired = const Value.absent(),
+                Value<int?> sessionSize = const Value.absent(),
                 Value<String?> typingCheck = const Value.absent(),
                 Value<int?> matchPercent = const Value.absent(),
                 required DateTime updatedAt,
@@ -8218,6 +8292,7 @@ class $$PendingLearnSettingsTableTableManager
                 action: action,
                 questionTypes: questionTypes,
                 successesRequired: successesRequired,
+                sessionSize: sessionSize,
                 typingCheck: typingCheck,
                 matchPercent: matchPercent,
                 updatedAt: updatedAt,

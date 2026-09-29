@@ -47,31 +47,67 @@ class SetRepository {
   Future<List<SetRecord>> syncMySets() async {
     final summaries = await _api.getMySets();
     final now = DateTime.now();
+    final serverIds = summaries.map((set) => set.id).toSet();
 
-    for (final s in summaries) {
-      await _db.sets.insertOnConflictUpdate(
-        SetsCompanion(
-          id: Value(s.id),
-          title: Value(s.title),
-          description: Value(s.description),
-          visibility: Value(s.visibility),
-          slug: Value(s.slug),
-          cardsCount: Value(s.cardsCount),
-          folderId: Value(s.folderId),
-          createdAt: Value(s.createdAt),
-          updatedAt: Value(s.updatedAt),
-          // langTerm/langDefinition берутся из SetDetail при скачивании
+    await _db.transaction(() async {
+      for (final s in summaries) {
+        await _db.sets.insertOnConflictUpdate(
+          SetsCompanion(
+            id: Value(s.id),
+            title: Value(s.title),
+            description: Value(s.description),
+            visibility: Value(s.visibility),
+            slug: Value(s.slug),
+            cardsCount: Value(s.cardsCount),
+            folderId: Value(s.folderId),
+            createdAt: Value(s.createdAt),
+            updatedAt: Value(s.updatedAt),
+            // langTerm/langDefinition берутся из SetDetail при скачивании
+          ),
+        );
+      }
+
+      final localIds = (await _db.sets.select().get())
+          .map((set) => set.id)
+          .toSet();
+      final removedIds = localIds.difference(serverIds).toList();
+      if (removedIds.isNotEmpty) {
+        final cardIds =
+            (await (_db.select(
+                  _db.cards,
+                )..where((card) => card.setId.isIn(removedIds))).get())
+                .map((card) => card.id)
+                .toList();
+        if (cardIds.isNotEmpty) {
+          await (_db.delete(
+            _db.cardStates,
+          )..where((state) => state.cardId.isIn(cardIds))).go();
+        }
+        await (_db.delete(
+          _db.cards,
+        )..where((card) => card.setId.isIn(removedIds))).go();
+        await (_db.delete(
+          _db.pendingLearnSettings,
+        )..where((settings) => settings.setId.isIn(removedIds))).go();
+        await (_db.delete(_db.syncMeta)..where(
+              (meta) =>
+                  meta.entityType.equals('set') &
+                  meta.entityId.isIn(removedIds),
+            ))
+            .go();
+        await (_db.delete(
+          _db.sets,
+        )..where((set) => set.id.isIn(removedIds))).go();
+      }
+
+      await _db.syncMeta.insertOnConflictUpdate(
+        SyncMetaCompanion(
+          entityType: const Value('sets_list'),
+          entityId: const Value('me'),
+          lastSyncedAt: Value(now),
         ),
       );
-    }
-
-    await _db.syncMeta.insertOnConflictUpdate(
-      SyncMetaCompanion(
-        entityType: const Value('sets_list'),
-        entityId: const Value('me'),
-        lastSyncedAt: Value(now),
-      ),
-    );
+    });
 
     return getDownloadedSets();
   }

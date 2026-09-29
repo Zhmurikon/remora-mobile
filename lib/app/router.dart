@@ -6,9 +6,11 @@ import '../data/api_client.dart';
 import '../features/auth/auth_provider.dart';
 import '../features/auth/presentation/login_screen.dart';
 import '../features/auth/presentation/register_screen.dart';
+import '../features/catalog/catalog_screen.dart';
 import '../features/courses/article_screen.dart';
 import '../features/courses/course_detail_screen.dart';
 import '../features/courses/courses_screen.dart';
+import '../features/dashboard/dashboard_screen.dart';
 import '../features/library/library_screen.dart';
 import '../features/study/flashcards_screen.dart';
 import '../features/study/learn_screen.dart';
@@ -19,6 +21,7 @@ import '../features/study/test_result_screen.dart';
 import '../features/study/test_setup_screen.dart';
 import '../features/study/test_taking_screen.dart';
 import '../features/study/write_screen.dart';
+import 'app_shell.dart';
 import 'home_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -34,16 +37,53 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/splash',
         builder: (context, state) => const _AuthSplash(),
       ),
-      GoRoute(path: '/', builder: (context, state) => const LibraryScreen()),
-      GoRoute(
-        path: '/profile',
-        builder: (context, state) => const HomeScreen(),
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) =>
+            AppShell(navigationShell: navigationShell),
+        branches: [
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/',
+                builder: (context, state) => const DashboardScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/courses',
+                builder: (context, state) => const CoursesScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/sets',
+                builder: (context, state) => const LibraryScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/catalog',
+                builder: (context, state) => const CatalogScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/settings',
+                builder: (context, state) => const HomeScreen(),
+              ),
+            ],
+          ),
+        ],
       ),
       // ── Курсы (чтение теории) ──
-      GoRoute(
-        path: '/courses',
-        builder: (context, state) => const CoursesScreen(),
-      ),
       GoRoute(
         path: '/course/:courseId',
         builder: (context, state) {

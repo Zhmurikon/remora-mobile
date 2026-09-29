@@ -85,9 +85,7 @@ ThemeData remoraLightTheme() {
         backgroundColor: RemoraColors.lightPrimary,
         foregroundColor: RemoraColors.lightPrimaryFg,
         minimumSize: const Size(44, 44),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
@@ -95,9 +93,7 @@ ThemeData remoraLightTheme() {
         foregroundColor: RemoraColors.lightPrimary,
         minimumSize: const Size(44, 44),
         side: const BorderSide(color: RemoraColors.lightBorder),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     ),
     textTheme: const TextTheme(
@@ -111,21 +107,18 @@ ThemeData remoraLightTheme() {
         fontWeight: FontWeight.w600,
         color: RemoraColors.lightFg,
       ),
-      bodyLarge: TextStyle(
-        fontSize: 16,
-        color: RemoraColors.lightFg,
-      ),
-      bodyMedium: TextStyle(
-        fontSize: 14,
-        color: RemoraColors.lightFgMuted,
-      ),
-      labelLarge: TextStyle(
-        fontSize: 16,
-        fontWeight: FontWeight.w500,
-      ),
+      bodyLarge: TextStyle(fontSize: 16, color: RemoraColors.lightFg),
+      bodyMedium: TextStyle(fontSize: 14, color: RemoraColors.lightFgMuted),
+      labelLarge: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
     ),
     dividerColor: RemoraColors.lightBorder,
     focusColor: RemoraColors.lightPrimary.withValues(alpha: 0.12),
+    navigationBarTheme: const NavigationBarThemeData(
+      backgroundColor: RemoraColors.lightSurface,
+      indicatorColor: RemoraColors.lightPrimarySubtle,
+      height: 72,
+      labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+    ),
   );
 }
 
@@ -164,9 +157,7 @@ ThemeData remoraDarkTheme() {
         backgroundColor: RemoraColors.darkPrimary,
         foregroundColor: RemoraColors.darkPrimaryFg,
         minimumSize: const Size(44, 44),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
@@ -174,9 +165,7 @@ ThemeData remoraDarkTheme() {
         foregroundColor: RemoraColors.darkPrimary,
         minimumSize: const Size(44, 44),
         side: const BorderSide(color: RemoraColors.darkBorder),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     ),
     textTheme: const TextTheme(
@@ -190,20 +179,17 @@ ThemeData remoraDarkTheme() {
         fontWeight: FontWeight.w600,
         color: RemoraColors.darkFg,
       ),
-      bodyLarge: TextStyle(
-        fontSize: 16,
-        color: RemoraColors.darkFg,
-      ),
-      bodyMedium: TextStyle(
-        fontSize: 14,
-        color: RemoraColors.darkFgMuted,
-      ),
-      labelLarge: TextStyle(
-        fontSize: 16,
-        fontWeight: FontWeight.w500,
-      ),
+      bodyLarge: TextStyle(fontSize: 16, color: RemoraColors.darkFg),
+      bodyMedium: TextStyle(fontSize: 14, color: RemoraColors.darkFgMuted),
+      labelLarge: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
     ),
     dividerColor: RemoraColors.darkBorder,
     focusColor: RemoraColors.darkPrimary.withValues(alpha: 0.12),
+    navigationBarTheme: const NavigationBarThemeData(
+      backgroundColor: RemoraColors.darkSurface,
+      indicatorColor: RemoraColors.darkPrimarySubtle,
+      height: 72,
+      labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+    ),
   );
 }

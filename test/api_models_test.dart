@@ -243,4 +243,69 @@ void main() {
       expect(attempt.correctCount, 0);
     });
   });
+
+  group('модели главной', () {
+    test('разбирает сводку удержания и ограничивает прогресс целью', () {
+      final summary = RetentionSummary.fromJson({
+        'date': '2026-09-29',
+        'daily_goal': 10,
+        'reviews_today': 12,
+        'correct_today': 9,
+        'xp_today': 95,
+        'goal_completed': true,
+        'current_streak_days': 7,
+        'longest_streak_days': 14,
+        'last_active_date': '2026-09-29',
+        'freezes_left': 2,
+        'total_xp': 420,
+        'level': 3,
+        'current_level_xp': 20,
+        'next_level_xp': 500,
+      });
+
+      expect(summary.currentStreakDays, 7);
+      expect(summary.totalXp, 420);
+      expect(summary.goalProgress, 1);
+    });
+
+    test('разбирает день активности', () {
+      final activity = ActivityDay.fromJson({
+        'date': '2026-09-28',
+        'reviews_count': 10,
+        'correct_count': 8,
+        'xp_earned': 80,
+        'goal_reached_at': '2026-09-28T12:00:00Z',
+        'is_frozen': false,
+      });
+
+      expect(activity.goalReached, isTrue);
+      expect(activity.reviewsCount, 10);
+      expect(activity.isFrozen, isFalse);
+    });
+  });
+
+  test('CourseSearchResult разбирает публичный каталог', () {
+    final result = CourseSearchResult.fromJson({
+      'items': [
+        {
+          'id': '11111111-1111-1111-1111-111111111111',
+          'slug': 'russian',
+          'title': 'Русский язык',
+          'description': 'Базовый курс',
+          'tags': ['языки'],
+          'author_id': '22222222-2222-2222-2222-222222222222',
+          'author': 'Иван',
+          'languages': ['ru'],
+          'cards_count': 120,
+          'saves_count': 42,
+          'updated_at': '2026-09-29T12:00:00Z',
+        },
+      ],
+      'next_cursor': 20,
+    });
+
+    expect(result.items.single.title, 'Русский язык');
+    expect(result.items.single.cardsCount, 120);
+    expect(result.nextCursor, 20);
+  });
 }
