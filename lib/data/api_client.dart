@@ -900,6 +900,7 @@ class ReviewIn {
     required this.rating,
     this.answerCorrect,
     this.durationMs,
+    this.updatesSchedule = true,
     required this.reviewedAt,
   });
 
@@ -911,6 +912,7 @@ class ReviewIn {
     'rating': rating,
     'answer_correct': answerCorrect,
     'duration_ms': durationMs,
+    'updates_schedule': updatesSchedule,
     'reviewed_at': reviewedAt.toUtc().toIso8601String(),
   };
 
@@ -921,6 +923,7 @@ class ReviewIn {
   final int rating;
   final bool? answerCorrect;
   final int? durationMs;
+  final bool updatesSchedule;
   final DateTime reviewedAt;
 }
 
