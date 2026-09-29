@@ -27,40 +27,68 @@ class CourseRepository {
   /// Синхронизирует список моих курсов из API в БД (метаданные без структуры).
   Future<List<CourseRecord>> syncMyCourses() async {
     final summaries = await _api.getMyCourses();
+    final serverIds = summaries.map((course) => course.id).toSet();
 
-    await _db.batch((batch) {
-      for (final c in summaries) {
-        // Только метаданные: разделы/статьи и автор приходят при скачивании.
-        batch.insert(
-          _db.courses,
-          CoursesCompanion(
-            id: Value(c.id),
-            slug: Value(c.slug),
-            title: Value(c.title),
-            description: Value(c.description),
-            isPublished: Value(c.isPublished),
-            updatedAt: Value(c.updatedAt),
-          ),
-          onConflict: DoUpdate(
-            (_) => CoursesCompanion(
+    await _db.transaction(() async {
+      await _db.batch((batch) {
+        for (final c in summaries) {
+          // Только метаданные: разделы/статьи и автор приходят при скачивании.
+          batch.insert(
+            _db.courses,
+            CoursesCompanion(
+              id: Value(c.id),
               slug: Value(c.slug),
               title: Value(c.title),
               description: Value(c.description),
               isPublished: Value(c.isPublished),
               updatedAt: Value(c.updatedAt),
             ),
-          ),
-        );
-      }
-    });
+            onConflict: DoUpdate(
+              (_) => CoursesCompanion(
+                slug: Value(c.slug),
+                title: Value(c.title),
+                description: Value(c.description),
+                isPublished: Value(c.isPublished),
+                updatedAt: Value(c.updatedAt),
+              ),
+            ),
+          );
+        }
+      });
 
-    await _db.syncMeta.insertOnConflictUpdate(
-      SyncMetaCompanion(
-        entityType: const Value('courses_list'),
-        entityId: const Value('me'),
-        lastSyncedAt: Value(DateTime.now()),
-      ),
-    );
+      final localIds = (await _db.courses.select().get())
+          .map((course) => course.id)
+          .toSet();
+      final removedIds = localIds.difference(serverIds).toList();
+      if (removedIds.isNotEmpty) {
+        // Ответ списка — полный снимок серверного состояния. Локальную теорию
+        // удаляем только после успешного ответа, поэтому при проблемах с сетью
+        // последняя рабочая офлайн-копия остаётся доступной.
+        await (_db.delete(
+          _db.courseArticles,
+        )..where((article) => article.courseId.isIn(removedIds))).go();
+        await (_db.delete(
+          _db.courseSections,
+        )..where((section) => section.courseId.isIn(removedIds))).go();
+        await (_db.delete(_db.syncMeta)..where(
+              (meta) =>
+                  meta.entityType.equals('course') &
+                  meta.entityId.isIn(removedIds),
+            ))
+            .go();
+        await (_db.delete(
+          _db.courses,
+        )..where((course) => course.id.isIn(removedIds))).go();
+      }
+
+      await _db.syncMeta.insertOnConflictUpdate(
+        SyncMetaCompanion(
+          entityType: const Value('courses_list'),
+          entityId: const Value('me'),
+          lastSyncedAt: Value(DateTime.now()),
+        ),
+      );
+    });
 
     return getDownloadedCourses();
   }

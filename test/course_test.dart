@@ -7,6 +7,15 @@ import 'package:remora_mobile/data/api_client.dart';
 import 'package:remora_mobile/data/db/app_database.dart';
 import 'package:remora_mobile/data/repositories/course_repository.dart';
 
+class _CourseApiClient extends RemoraApiClient {
+  _CourseApiClient(this.courses) : super(Dio());
+
+  final List<CourseSummaryData> courses;
+
+  @override
+  Future<List<CourseSummaryData>> getMyCourses() async => courses;
+}
+
 /// Офлайн-чтение курсов из локальной БД — DoD M6 «чтение теории офлайн».
 /// Методы чтения не трогают сеть, поэтому клиент здесь фиктивный.
 void main() {
@@ -113,5 +122,70 @@ void main() {
 
   test('getDownloadedCourses пуст на чистой БД', () async {
     expect(await repo.getDownloadedCourses(), isEmpty);
+  });
+
+  test(
+    'syncMyCourses удаляет исчезнувший на сервере курс и его теорию',
+    () async {
+      await seedCourse();
+      await db.syncMeta.insertOnConflictUpdate(
+        SyncMetaCompanion(
+          entityType: const Value('course'),
+          entityId: const Value('c1'),
+          lastSyncedAt: Value(DateTime(2026, 1, 1)),
+          revision: const Value('1'),
+        ),
+      );
+
+      final synced = await CourseRepository(
+        db,
+        _CourseApiClient(const []),
+      ).syncMyCourses();
+
+      expect(synced, isEmpty);
+      expect(await repo.getCourse('c1'), isNull);
+      expect(await repo.getSections('c1'), isEmpty);
+      expect(await repo.getArticles('c1'), isEmpty);
+      final revision =
+          await (db.select(db.syncMeta)..where(
+                (meta) =>
+                    meta.entityType.equals('course') &
+                    meta.entityId.equals('c1'),
+              ))
+              .getSingleOrNull();
+      expect(revision, isNull);
+    },
+  );
+
+  test('syncMyCourses обновляет существующий и добавляет новый курс', () async {
+    await seedCourse();
+    final updatedAt = DateTime.utc(2026, 2, 1);
+    final synced = await CourseRepository(
+      db,
+      _CourseApiClient([
+        CourseSummaryData(
+          id: 'c1',
+          slug: 'biology',
+          title: 'Новая биология',
+          description: 'Обновлённое описание',
+          isPublished: true,
+          updatedAt: updatedAt,
+        ),
+        CourseSummaryData(
+          id: 'c2',
+          slug: 'physics',
+          title: 'Физика',
+          description: '',
+          isPublished: false,
+          updatedAt: updatedAt,
+        ),
+      ]),
+    ).syncMyCourses();
+
+    expect(synced.map((course) => course.id).toSet(), {'c1', 'c2'});
+    expect((await repo.getCourse('c1'))!.title, 'Новая биология');
+    expect((await repo.getCourse('c2'))!.title, 'Физика');
+    // Метаданные списка не должны стирать уже скачанную теорию.
+    expect(await repo.getSections('c1'), hasLength(2));
   });
 }
