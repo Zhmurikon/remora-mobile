@@ -148,6 +148,9 @@ class CatalogNotifier extends StateNotifier<CatalogState> {
     try {
       final copied = await _api.copyCourse(courseId, idempotencyKey: key);
       _copyKeys.remove(courseId);
+      state = state.copyWith(
+        ownedCourseIds: {...state.ownedCourseIds, copied.id},
+      );
       await _ref.read(coursesListProvider.notifier).refresh();
       return copied;
     } catch (_) {

@@ -27,6 +27,11 @@ class CourseDetailScreen extends ConsumerWidget {
     final isOutdated = listState.outdatedCourseIds.contains(courseId);
     final theme = Theme.of(context);
     final catalog = ref.watch(catalogProvider);
+    final isOwned =
+        catalog.ownedCourseIds.contains(courseId) ||
+        listState.courses.any(
+          (course) => course.id == courseId && !course.isSaved,
+        );
 
     return Scaffold(
       appBar: AppBar(
@@ -75,7 +80,7 @@ class CourseDetailScreen extends ConsumerWidget {
       body: RefreshIndicator(
         onRefresh: () =>
             ref.read(courseViewProvider(courseId).notifier).refresh(),
-        child: _buildBody(context, ref, state, catalog),
+        child: _buildBody(context, ref, state, catalog, isOwned),
       ),
     );
   }
@@ -85,6 +90,7 @@ class CourseDetailScreen extends ConsumerWidget {
     WidgetRef ref,
     CourseViewState state,
     CatalogState catalog,
+    bool isOwned,
   ) {
     if (state.isLoading && state.sections.isEmpty) {
       return const Center(child: CircularProgressIndicator());
@@ -117,7 +123,7 @@ class CourseDetailScreen extends ConsumerWidget {
           Text(state.course!.description, style: theme.textTheme.bodyMedium),
           const SizedBox(height: 16),
         ],
-        if (!catalog.ownedCourseIds.contains(courseId)) ...[
+        if (!isOwned) ...[
           _CourseLibraryActions(
             courseId: courseId,
             title: state.course?.title ?? courseTitle,

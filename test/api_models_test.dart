@@ -331,10 +331,22 @@ void main() {
         'id': 'copy-1',
         'title': 'Копия курса',
       });
+      final item = LibraryItemData.fromJson({
+        'id': 'save-2',
+        'target_type': 'set',
+        'target_id': 'set-1',
+      });
+      final copiedSet = CopiedSetData.fromJson({
+        'id': 'set-copy-1',
+        'title': 'Копия набора',
+      });
 
       expect(saved.id, 'save-1');
       expect(saved.targetId, 'course-1');
       expect(copied.id, 'copy-1');
+      expect(item.targetType, 'set');
+      expect(item.targetId, 'set-1');
+      expect(copiedSet.title, 'Копия набора');
     });
   });
 }

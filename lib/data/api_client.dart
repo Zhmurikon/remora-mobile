@@ -277,6 +277,13 @@ class RemoraApiClient {
     await _dio.delete('/api/v1/library/$saveId');
   }
 
+  Future<List<LibraryItemData>> getLibraryItems() async {
+    final response = await _dio.get('/api/v1/library');
+    return (response.data as List)
+        .map((item) => LibraryItemData.fromJson(item as Map<String, dynamic>))
+        .toList();
+  }
+
   Future<CopiedCourseData> copyCourse(
     String courseId, {
     String? articleId,
@@ -494,6 +501,26 @@ class LibrarySaveData {
   }
 
   final String id;
+  final String targetId;
+}
+
+class LibraryItemData {
+  const LibraryItemData({
+    required this.id,
+    required this.targetType,
+    required this.targetId,
+  });
+
+  factory LibraryItemData.fromJson(Map<String, dynamic> json) {
+    return LibraryItemData(
+      id: json['id'] as String,
+      targetType: json['target_type'] as String,
+      targetId: json['target_id'] as String,
+    );
+  }
+
+  final String id;
+  final String targetType;
   final String targetId;
 }
 
