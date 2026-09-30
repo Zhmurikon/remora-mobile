@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:cached_network_image/cached_network_image.dart';
@@ -373,6 +374,7 @@ class _ArticleRenderer {
     }
 
     final width = inline ? 160.0 : double.infinity;
+    final isLocal = url.startsWith('/');
     final isSvg = isSvgMediaUrl(url);
     final error = Container(
       height: inline ? 64 : 80,
@@ -393,19 +395,32 @@ class _ArticleRenderer {
       width: width,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(10),
-        child: isSvg
-            ? SvgPicture.network(
-                url,
-                fit: BoxFit.contain,
-                placeholderBuilder: (_) => placeholder,
-                errorBuilder: (_, _, _) => error,
-              )
-            : CachedNetworkImage(
-                imageUrl: url,
-                fit: BoxFit.contain,
-                placeholder: (_, _) => placeholder,
-                errorWidget: (_, _, _) => error,
-              ),
+        child: isLocal
+            ? (isSvg
+                  ? SvgPicture.file(
+                      File(url),
+                      fit: BoxFit.contain,
+                      placeholderBuilder: (_) => placeholder,
+                      errorBuilder: (_, _, _) => error,
+                    )
+                  : Image.file(
+                      File(url),
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, _, _) => error,
+                    ))
+            : (isSvg
+                  ? SvgPicture.network(
+                      url,
+                      fit: BoxFit.contain,
+                      placeholderBuilder: (_) => placeholder,
+                      errorBuilder: (_, _, _) => error,
+                    )
+                  : CachedNetworkImage(
+                      imageUrl: url,
+                      fit: BoxFit.contain,
+                      placeholder: (_, _) => placeholder,
+                      errorWidget: (_, _, _) => error,
+                    )),
       ),
     );
   }

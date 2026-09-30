@@ -6,12 +6,14 @@ import '../../core/domain.dart';
 import '../../core/fsrs.dart';
 import '../api_client.dart';
 import '../db/app_database.dart';
+import '../media_cache.dart';
 
 /// CRUD для review_outbox и card_states — ядро офлайн-обучения.
 class StudyRepository {
-  StudyRepository(this._db);
+  StudyRepository(this._db, [this._mediaCache]);
 
   final AppDatabase _db;
+  final MediaCache? _mediaCache;
 
   // ── Review Outbox ──
 
@@ -221,9 +223,21 @@ class StudyRepository {
   /// скачанные карточки, поэтому покрытие только растёт.
   Future<void> cacheQueueCards(String setId, List<QueueItem> items) async {
     if (items.isEmpty) return;
+    final cachedImages = <String, ({String? term, String? definition})>{};
+    for (final item in items) {
+      final card = item.card;
+      cachedImages[card.id] = (
+        term: await _cacheImage(card.termImageUrl, key: 'card-${card.id}-term'),
+        definition: await _cacheImage(
+          card.definitionImageUrl,
+          key: 'card-${card.id}-definition',
+        ),
+      );
+    }
     await _db.transaction(() async {
       for (final it in items) {
         final c = it.card;
+        final images = cachedImages[c.id]!;
         await _db.cards.insertOnConflictUpdate(
           CardsCompanion(
             id: Value(c.id),
@@ -239,12 +253,17 @@ class StudyRepository {
             altAnswers: Value(jsonEncode(c.altAnswers)),
             wrongTermAnswers: Value(jsonEncode(c.wrongTermAnswers)),
             wrongDefinitionAnswers: Value(jsonEncode(c.wrongDefinitionAnswers)),
-            termImageUrl: Value(c.termImageUrl),
-            definitionImageUrl: Value(c.definitionImageUrl),
+            termImageUrl: Value(images.term),
+            definitionImageUrl: Value(images.definition),
           ),
         );
       }
     });
+  }
+
+  Future<String?> _cacheImage(String? url, {required String key}) async {
+    if (url == null || url.isEmpty || _mediaCache == null) return url;
+    return await _mediaCache.download(url, key: key) ?? url;
   }
 
   /// Кэширует состояния FSRS из онлайн-очереди (сервер — источник правды).

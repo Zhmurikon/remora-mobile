@@ -51,7 +51,8 @@ class _ArticleScreenState extends ConsumerState<ArticleScreen> {
       final list = jsonDecode(article.mediaJson) as List;
       return {
         for (final item in list)
-          (item as Map)['id'] as String: item['url'] as String,
+          (item as Map)['id'] as String:
+              (item['local_path'] as String?) ?? item['url'] as String,
       };
     } catch (_) {
       return const {};

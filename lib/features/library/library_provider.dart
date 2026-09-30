@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/api_client.dart';
 import '../../data/db/app_database.dart';
 import '../../data/db/database_provider.dart';
+import '../../data/media_cache.dart';
 import '../../data/repositories/set_repository.dart';
 
 /// Доступность сети.
@@ -15,6 +16,7 @@ final setRepositoryProvider = Provider<SetRepository>((ref) {
   return SetRepository(
     ref.watch(databaseProvider),
     ref.watch(apiClientProvider),
+    ref.watch(mediaCacheProvider),
   );
 });
 

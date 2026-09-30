@@ -4,6 +4,7 @@ import 'package:drift/drift.dart';
 
 import '../../data/api_client.dart';
 import '../../data/db/app_database.dart';
+import '../media_cache.dart';
 
 /// Репозиторий курсов: синхронизация API ↔ локальная БД.
 ///
@@ -12,10 +13,11 @@ import '../../data/db/app_database.dart';
 /// приносит весь курс сразу (разделы, статьи, медиа), поэтому скачивание —
 /// одна транзакция.
 class CourseRepository {
-  CourseRepository(this._db, this._api);
+  CourseRepository(this._db, this._api, [this._mediaCache]);
 
   final AppDatabase _db;
   final RemoraApiClient _api;
+  final MediaCache? _mediaCache;
 
   /// Скачанные курсы из локальной БД (для экрана списка).
   Future<List<CourseRecord>> getDownloadedCourses() {
@@ -115,6 +117,22 @@ class CourseRepository {
   /// структуры, а осиротевшие статьи не должны оставаться в кэше.
   Future<CourseDetailData> downloadCourse(String courseId) async {
     final detail = await _api.getCourseDetail(courseId);
+    final cachedMedia = <String, List<Map<String, dynamic>>>{};
+    for (final section in detail.sections) {
+      for (final article in section.articles) {
+        final media = <Map<String, dynamic>>[];
+        for (final item in article.media) {
+          final json = item.toJson();
+          final localPath = await _mediaCache?.download(
+            item.url,
+            key: 'article-${article.id}-${item.id}',
+          );
+          if (localPath != null) json['local_path'] = localPath;
+          media.add(json);
+        }
+        cachedMedia[article.id] = media;
+      }
+    }
 
     await _db.transaction(() async {
       await _db.courses.insertOnConflictUpdate(
@@ -156,9 +174,7 @@ class CourseRepository {
               title: Value(article.title),
               body: Value(article.body),
               position: Value(article.position),
-              mediaJson: Value(
-                jsonEncode(article.media.map((m) => m.toJson()).toList()),
-              ),
+              mediaJson: Value(jsonEncode(cachedMedia[article.id] ?? const [])),
             ),
           );
         }

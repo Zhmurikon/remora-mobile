@@ -5,8 +5,10 @@ import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/api_client.dart';
+import '../../core/log.dart';
 import '../../data/db/app_database.dart';
 import '../../data/db/database_provider.dart';
+import '../../data/media_cache.dart';
 import '../../data/repositories/study_repository.dart';
 
 /// Порог для автоотправки: накопилось N ответов — отправляем батч.
@@ -82,9 +84,25 @@ class OutboxService {
           ReviewBatch(sessionId: sessionId, reviews: reviews),
         );
 
-        // Убираем принятые + дубликаты (уже были на сервере)
-        final toRemove = [...result.accepted, ...result.duplicates];
+        // rejected — терминальный ответ сервера (нет доступа, карточка удалена,
+        // ответ старше сброса). Повтор ничего не изменит и раньше зацикливал
+        // while на одном батче без паузы.
+        final toRemove = [
+          ...result.accepted,
+          ...result.duplicates,
+          ...result.rejected,
+        ];
         await _repo.removeReviews(toRemove);
+        if (result.rejected.isNotEmpty) {
+          logRemora(
+            'study',
+            'сервер отклонил ${result.rejected.length} ответов; убраны из outbox',
+          );
+        }
+
+        // Защита от несовместимого ответа API: цикл обязан либо уменьшать
+        // очередь, либо завершаться, иначе приложение зависнет в flush.
+        if (toRemove.isEmpty) break;
 
         // Синхронизируем card_states: серверные интервалы — источник правды.
         if (result.states.isNotEmpty) {
@@ -162,7 +180,10 @@ class OutboxService {
 // ── Провайдеры ──
 
 final studyRepositoryProvider = Provider<StudyRepository>((ref) {
-  return StudyRepository(ref.watch(databaseProvider));
+  return StudyRepository(
+    ref.watch(databaseProvider),
+    ref.watch(mediaCacheProvider),
+  );
 });
 
 final outboxServiceProvider = Provider<OutboxService>((ref) {

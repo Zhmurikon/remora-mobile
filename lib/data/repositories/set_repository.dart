@@ -4,13 +4,15 @@ import 'package:drift/drift.dart';
 
 import '../../data/api_client.dart';
 import '../../data/db/app_database.dart';
+import '../media_cache.dart';
 
 /// Репозиторий наборов: синхронизация API ↔ локальная БД.
 class SetRepository {
-  SetRepository(this._db, this._api);
+  SetRepository(this._db, this._api, [this._mediaCache]);
 
   final AppDatabase _db;
   final RemoraApiClient _api;
+  final MediaCache? _mediaCache;
 
   /// Все скачанные наборы из локальной БД.
   Future<List<SetRecord>> getDownloadedSets() {
@@ -116,6 +118,16 @@ class SetRepository {
   Future<SetDetail> downloadSet(String setId) async {
     final detail = await _api.getSetDetail(setId);
     final now = DateTime.now();
+    final cachedImages = <String, ({String? term, String? definition})>{};
+    for (final card in detail.cards) {
+      cachedImages[card.id] = (
+        term: await _cacheImage(card.termImageUrl, key: 'card-${card.id}-term'),
+        definition: await _cacheImage(
+          card.definitionImageUrl,
+          key: 'card-${card.id}-definition',
+        ),
+      );
+    }
 
     await _db.transaction(() async {
       await _db.sets.insertOnConflictUpdate(
@@ -155,6 +167,7 @@ class SetRepository {
       }
 
       for (final card in detail.cards) {
+        final images = cachedImages[card.id]!;
         await _db.cards.insertOnConflictUpdate(
           CardsCompanion(
             id: Value(card.id),
@@ -172,8 +185,8 @@ class SetRepository {
             wrongDefinitionAnswers: Value(
               jsonEncode(card.wrongDefinitionAnswers),
             ),
-            termImageUrl: Value(card.termImageUrl),
-            definitionImageUrl: Value(card.definitionImageUrl),
+            termImageUrl: Value(images.term),
+            definitionImageUrl: Value(images.definition),
           ),
         );
       }
@@ -189,6 +202,11 @@ class SetRepository {
     });
 
     return detail;
+  }
+
+  Future<String?> _cacheImage(String? url, {required String key}) async {
+    if (url == null || url.isEmpty || _mediaCache == null) return url;
+    return await _mediaCache.download(url, key: key) ?? url;
   }
 
   /// Карточки набора из локальной БД.

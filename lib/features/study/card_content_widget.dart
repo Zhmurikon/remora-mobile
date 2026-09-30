@@ -1,8 +1,11 @@
+import 'dart:io';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_highlight/flutter_highlight.dart';
 import 'package:flutter_highlight/themes/github.dart';
 import 'package:flutter_math_fork/flutter_math.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../app/theme.dart';
 
@@ -42,31 +45,62 @@ class CardContentWidget extends StatelessWidget {
         if (imageUrl != null && imageUrl!.isNotEmpty) ...[
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
-            child: CachedNetworkImage(
-              imageUrl: imageUrl!,
-              fit: BoxFit.contain,
-              maxHeightDiskCache: 512,
-              placeholder: (context, url) => Container(
-                height: 100,
-                alignment: Alignment.center,
-                child: const CircularProgressIndicator(strokeWidth: 2),
-              ),
-              errorWidget: (context, url, error) => Container(
-                height: 60,
-                alignment: Alignment.center,
-                child: Icon(
-                  Icons.broken_image_outlined,
-                  size: 32,
-                  color: theme.colorScheme.outline,
-                ),
-              ),
-            ),
+            child: _buildImage(theme),
           ),
           const SizedBox(height: 16),
         ],
         _buildContent(context, isDark),
       ],
     );
+  }
+
+  Widget _buildImage(ThemeData theme) {
+    final url = imageUrl!;
+    final isLocal = url.startsWith('/');
+    final isSvg =
+        Uri.tryParse(url)?.path.toLowerCase().endsWith('.svg') ?? false;
+    final placeholder = Container(
+      height: 100,
+      alignment: Alignment.center,
+      child: const CircularProgressIndicator(strokeWidth: 2),
+    );
+    final error = Container(
+      height: 60,
+      alignment: Alignment.center,
+      child: Icon(
+        Icons.broken_image_outlined,
+        size: 32,
+        color: theme.colorScheme.outline,
+      ),
+    );
+    if (isLocal) {
+      return isSvg
+          ? SvgPicture.file(
+              File(url),
+              fit: BoxFit.contain,
+              placeholderBuilder: (_) => placeholder,
+              errorBuilder: (_, _, _) => error,
+            )
+          : Image.file(
+              File(url),
+              fit: BoxFit.contain,
+              errorBuilder: (_, _, _) => error,
+            );
+    }
+    return isSvg
+        ? SvgPicture.network(
+            url,
+            fit: BoxFit.contain,
+            placeholderBuilder: (_) => placeholder,
+            errorBuilder: (_, _, _) => error,
+          )
+        : CachedNetworkImage(
+            imageUrl: url,
+            fit: BoxFit.contain,
+            maxHeightDiskCache: 512,
+            placeholder: (_, _) => placeholder,
+            errorWidget: (_, _, _) => error,
+          );
   }
 
   Widget _buildContent(BuildContext context, bool isDark) {
@@ -83,10 +117,7 @@ class CardContentWidget extends StatelessWidget {
   Widget _buildText() {
     return SelectableText(
       value,
-      style: TextStyle(
-        fontSize: fontSize,
-        height: 1.5,
-      ),
+      style: TextStyle(fontSize: fontSize, height: 1.5),
       textAlign: TextAlign.center,
     );
   }
@@ -117,7 +148,8 @@ class CardContentWidget extends StatelessWidget {
 
   Widget _buildLatex(bool isDark) {
     // Определяем display vs inline mode
-    final isDisplay = value.contains(r'\[') ||
+    final isDisplay =
+        value.contains(r'\[') ||
         value.contains(r'$$') ||
         (!value.contains(r'\(') && !value.contains(r'$'));
 
@@ -158,7 +190,10 @@ class CardContentWidget extends StatelessWidget {
   }
 
   static const _darkCodeTheme = <String, TextStyle>{
-    'root': TextStyle(color: Color(0xFFF8F8F2), backgroundColor: Color(0xFF272822)),
+    'root': TextStyle(
+      color: Color(0xFFF8F8F2),
+      backgroundColor: Color(0xFF272822),
+    ),
     'comment': TextStyle(color: Color(0xFF75715E)),
     'keyword': TextStyle(color: Color(0xFFF92672)),
     'string': TextStyle(color: Color(0xFFE6DB74)),

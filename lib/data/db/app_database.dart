@@ -176,7 +176,11 @@ class CourseArticles extends Table {
   ],
 )
 class AppDatabase extends _$AppDatabase {
-  AppDatabase() : super(_openConnection());
+  AppDatabase.forUser(String userId) : super(_openConnection(userId));
+
+  /// Пустая временная БД до определения пользователя. Защищённые экраны
+  /// не должны случайно открыть кэш последнего вошедшего аккаунта.
+  AppDatabase.anonymous() : super(NativeDatabase.memory());
 
   /// In-memory БД для тестов.
   AppDatabase.forTesting(super.e);
@@ -209,10 +213,21 @@ class AppDatabase extends _$AppDatabase {
   );
 }
 
-LazyDatabase _openConnection() {
+LazyDatabase _openConnection(String userId) {
   return LazyDatabase(() async {
     final dir = await getApplicationDocumentsDirectory();
-    final file = File(p.join(dir.path, 'remora.sqlite'));
+    final file = File(p.join(dir.path, databaseFileName(userId)));
+    final legacy = File(p.join(dir.path, 'remora.sqlite'));
+    // До разделения кэша по аккаунтам база была общей. На первом запуске
+    // переносим её текущему владельцу сессии, не оставляя общей копии.
+    if (!await file.exists() && await legacy.exists()) {
+      await legacy.rename(file.path);
+    }
     return NativeDatabase.createInBackground(file);
   });
+}
+
+String databaseFileName(String userId) {
+  final safe = userId.replaceAll(RegExp(r'[^a-zA-Z0-9_-]'), '_');
+  return 'remora-$safe.sqlite';
 }

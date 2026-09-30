@@ -3,12 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/api_client.dart';
 import '../../data/db/app_database.dart';
 import '../../data/db/database_provider.dart';
+import '../../data/media_cache.dart';
 import '../../data/repositories/course_repository.dart';
 
 final courseRepositoryProvider = Provider<CourseRepository>((ref) {
   return CourseRepository(
     ref.watch(databaseProvider),
     ref.watch(apiClientProvider),
+    ref.watch(mediaCacheProvider),
   );
 });
 
