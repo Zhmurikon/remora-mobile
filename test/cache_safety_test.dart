@@ -82,5 +82,11 @@ void main() {
     expect(second, first);
     expect(await File(first!).readAsBytes(), [1, 2, 3, 4]);
     expect(first, contains('media/user-a/article-media-1.png'));
+
+    final orphan = File('${root.path}/media/user-a/orphan.png');
+    await orphan.writeAsBytes([9]);
+    await cache.prune([first], gracePeriod: Duration.zero);
+    expect(await File(first).exists(), isTrue);
+    expect(await orphan.exists(), isFalse);
   });
 }

@@ -125,6 +125,9 @@ class Courses extends Table {
   TextColumn get description => text().withDefault(const Constant(''))();
   TextColumn get authorName => text().withDefault(const Constant(''))();
   BoolColumn get isPublished => boolean().withDefault(const Constant(false))();
+  BoolColumn get isSaved => boolean().withDefault(const Constant(false))();
+  TextColumn get saveId => text().nullable()();
+  BoolColumn get hasUpdates => boolean().withDefault(const Constant(false))();
   DateTimeColumn get updatedAt => dateTime()();
 
   @override
@@ -186,7 +189,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -208,6 +211,11 @@ class AppDatabase extends _$AppDatabase {
         await customStatement(
           'ALTER TABLE pending_learn_settings ADD COLUMN session_size INTEGER',
         );
+      }
+      if (from < 5) {
+        await m.addColumn(courses, courses.isSaved);
+        await m.addColumn(courses, courses.saveId);
+        await m.addColumn(courses, courses.hasUpdates);
       }
     },
   );

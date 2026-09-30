@@ -8,12 +8,16 @@ import 'package:remora_mobile/data/db/app_database.dart';
 import 'package:remora_mobile/data/repositories/course_repository.dart';
 
 class _CourseApiClient extends RemoraApiClient {
-  _CourseApiClient(this.courses) : super(Dio());
+  _CourseApiClient(this.courses, [this.saved = const []]) : super(Dio());
 
   final List<CourseSummaryData> courses;
+  final List<SavedCourseSummaryData> saved;
 
   @override
   Future<List<CourseSummaryData>> getMyCourses() async => courses;
+
+  @override
+  Future<List<SavedCourseSummaryData>> getSavedCourses() async => saved;
 }
 
 /// Офлайн-чтение курсов из локальной БД — DoD M6 «чтение теории офлайн».
@@ -188,4 +192,32 @@ void main() {
     // Метаданные списка не должны стирать уже скачанную теорию.
     expect(await repo.getSections('c1'), hasLength(2));
   });
+
+  test(
+    'syncMyCourses добавляет сохранённый курс и его статус обновления',
+    () async {
+      final acceptedAt = DateTime.utc(2026, 3, 1);
+      final synced = await CourseRepository(
+        db,
+        _CourseApiClient(const [], [
+          SavedCourseSummaryData(
+            id: 'saved-1',
+            slug: 'saved-course',
+            title: 'Сохранённый курс',
+            description: 'Описание',
+            author: CourseAuthorData(username: 'author'),
+            saveId: 'save-1',
+            acceptedAt: acceptedAt,
+            hasUpdates: true,
+          ),
+        ]),
+      ).syncMyCourses();
+
+      expect(synced, hasLength(1));
+      expect(synced.single.isSaved, isTrue);
+      expect(synced.single.saveId, 'save-1');
+      expect(synced.single.hasUpdates, isTrue);
+      expect(synced.single.authorName, 'author');
+    },
+  );
 }

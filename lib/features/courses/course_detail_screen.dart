@@ -20,6 +20,10 @@ class CourseDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(courseViewProvider(courseId));
+    final listState = ref.watch(coursesListProvider);
+    final isDownloading = listState.downloadingCourseIds.contains(courseId);
+    final isDownloaded = listState.downloadedCourseIds.contains(courseId);
+    final isOutdated = listState.outdatedCourseIds.contains(courseId);
     final theme = Theme.of(context);
 
     return Scaffold(
@@ -33,6 +37,35 @@ class CourseDetailScreen extends ConsumerWidget {
                 Icons.cloud_off,
                 color: theme.colorScheme.error,
                 semanticLabel: 'Нет сети',
+              ),
+            ),
+          if (isDownloading)
+            const Padding(
+              padding: EdgeInsets.all(14),
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            )
+          else
+            IconButton(
+              tooltip: isDownloaded && !isOutdated
+                  ? 'Курс доступен офлайн'
+                  : isOutdated
+                  ? 'Обновить офлайн-копию'
+                  : 'Скачать курс для офлайна',
+              onPressed: listState.isOnline && (!isDownloaded || isOutdated)
+                  ? () => ref
+                        .read(coursesListProvider.notifier)
+                        .downloadCourse(courseId)
+                  : null,
+              icon: Icon(
+                isDownloaded && !isOutdated
+                    ? Icons.download_done
+                    : isOutdated
+                    ? Icons.system_update_alt
+                    : Icons.download_outlined,
               ),
             ),
         ],

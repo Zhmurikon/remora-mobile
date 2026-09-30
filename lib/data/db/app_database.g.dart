@@ -3187,6 +3187,45 @@ class $CoursesTable extends Courses
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _isSavedMeta = const VerificationMeta(
+    'isSaved',
+  );
+  @override
+  late final GeneratedColumn<bool> isSaved = GeneratedColumn<bool>(
+    'is_saved',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_saved" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _saveIdMeta = const VerificationMeta('saveId');
+  @override
+  late final GeneratedColumn<String> saveId = GeneratedColumn<String>(
+    'save_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _hasUpdatesMeta = const VerificationMeta(
+    'hasUpdates',
+  );
+  @override
+  late final GeneratedColumn<bool> hasUpdates = GeneratedColumn<bool>(
+    'has_updates',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("has_updates" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _updatedAtMeta = const VerificationMeta(
     'updatedAt',
   );
@@ -3206,6 +3245,9 @@ class $CoursesTable extends Courses
     description,
     authorName,
     isPublished,
+    isSaved,
+    saveId,
+    hasUpdates,
     updatedAt,
   ];
   @override
@@ -3265,6 +3307,24 @@ class $CoursesTable extends Courses
         ),
       );
     }
+    if (data.containsKey('is_saved')) {
+      context.handle(
+        _isSavedMeta,
+        isSaved.isAcceptableOrUnknown(data['is_saved']!, _isSavedMeta),
+      );
+    }
+    if (data.containsKey('save_id')) {
+      context.handle(
+        _saveIdMeta,
+        saveId.isAcceptableOrUnknown(data['save_id']!, _saveIdMeta),
+      );
+    }
+    if (data.containsKey('has_updates')) {
+      context.handle(
+        _hasUpdatesMeta,
+        hasUpdates.isAcceptableOrUnknown(data['has_updates']!, _hasUpdatesMeta),
+      );
+    }
     if (data.containsKey('updated_at')) {
       context.handle(
         _updatedAtMeta,
@@ -3306,6 +3366,18 @@ class $CoursesTable extends Courses
         DriftSqlType.bool,
         data['${effectivePrefix}is_published'],
       )!,
+      isSaved: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_saved'],
+      )!,
+      saveId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}save_id'],
+      ),
+      hasUpdates: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}has_updates'],
+      )!,
       updatedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}updated_at'],
@@ -3326,6 +3398,9 @@ class CourseRecord extends DataClass implements Insertable<CourseRecord> {
   final String description;
   final String authorName;
   final bool isPublished;
+  final bool isSaved;
+  final String? saveId;
+  final bool hasUpdates;
   final DateTime updatedAt;
   const CourseRecord({
     required this.id,
@@ -3334,6 +3409,9 @@ class CourseRecord extends DataClass implements Insertable<CourseRecord> {
     required this.description,
     required this.authorName,
     required this.isPublished,
+    required this.isSaved,
+    this.saveId,
+    required this.hasUpdates,
     required this.updatedAt,
   });
   @override
@@ -3345,6 +3423,11 @@ class CourseRecord extends DataClass implements Insertable<CourseRecord> {
     map['description'] = Variable<String>(description);
     map['author_name'] = Variable<String>(authorName);
     map['is_published'] = Variable<bool>(isPublished);
+    map['is_saved'] = Variable<bool>(isSaved);
+    if (!nullToAbsent || saveId != null) {
+      map['save_id'] = Variable<String>(saveId);
+    }
+    map['has_updates'] = Variable<bool>(hasUpdates);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     return map;
   }
@@ -3357,6 +3440,11 @@ class CourseRecord extends DataClass implements Insertable<CourseRecord> {
       description: Value(description),
       authorName: Value(authorName),
       isPublished: Value(isPublished),
+      isSaved: Value(isSaved),
+      saveId: saveId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(saveId),
+      hasUpdates: Value(hasUpdates),
       updatedAt: Value(updatedAt),
     );
   }
@@ -3373,6 +3461,9 @@ class CourseRecord extends DataClass implements Insertable<CourseRecord> {
       description: serializer.fromJson<String>(json['description']),
       authorName: serializer.fromJson<String>(json['authorName']),
       isPublished: serializer.fromJson<bool>(json['isPublished']),
+      isSaved: serializer.fromJson<bool>(json['isSaved']),
+      saveId: serializer.fromJson<String?>(json['saveId']),
+      hasUpdates: serializer.fromJson<bool>(json['hasUpdates']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
     );
   }
@@ -3386,6 +3477,9 @@ class CourseRecord extends DataClass implements Insertable<CourseRecord> {
       'description': serializer.toJson<String>(description),
       'authorName': serializer.toJson<String>(authorName),
       'isPublished': serializer.toJson<bool>(isPublished),
+      'isSaved': serializer.toJson<bool>(isSaved),
+      'saveId': serializer.toJson<String?>(saveId),
+      'hasUpdates': serializer.toJson<bool>(hasUpdates),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
     };
   }
@@ -3397,6 +3491,9 @@ class CourseRecord extends DataClass implements Insertable<CourseRecord> {
     String? description,
     String? authorName,
     bool? isPublished,
+    bool? isSaved,
+    Value<String?> saveId = const Value.absent(),
+    bool? hasUpdates,
     DateTime? updatedAt,
   }) => CourseRecord(
     id: id ?? this.id,
@@ -3405,6 +3502,9 @@ class CourseRecord extends DataClass implements Insertable<CourseRecord> {
     description: description ?? this.description,
     authorName: authorName ?? this.authorName,
     isPublished: isPublished ?? this.isPublished,
+    isSaved: isSaved ?? this.isSaved,
+    saveId: saveId.present ? saveId.value : this.saveId,
+    hasUpdates: hasUpdates ?? this.hasUpdates,
     updatedAt: updatedAt ?? this.updatedAt,
   );
   CourseRecord copyWithCompanion(CoursesCompanion data) {
@@ -3421,6 +3521,11 @@ class CourseRecord extends DataClass implements Insertable<CourseRecord> {
       isPublished: data.isPublished.present
           ? data.isPublished.value
           : this.isPublished,
+      isSaved: data.isSaved.present ? data.isSaved.value : this.isSaved,
+      saveId: data.saveId.present ? data.saveId.value : this.saveId,
+      hasUpdates: data.hasUpdates.present
+          ? data.hasUpdates.value
+          : this.hasUpdates,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
   }
@@ -3434,6 +3539,9 @@ class CourseRecord extends DataClass implements Insertable<CourseRecord> {
           ..write('description: $description, ')
           ..write('authorName: $authorName, ')
           ..write('isPublished: $isPublished, ')
+          ..write('isSaved: $isSaved, ')
+          ..write('saveId: $saveId, ')
+          ..write('hasUpdates: $hasUpdates, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
         .toString();
@@ -3447,6 +3555,9 @@ class CourseRecord extends DataClass implements Insertable<CourseRecord> {
     description,
     authorName,
     isPublished,
+    isSaved,
+    saveId,
+    hasUpdates,
     updatedAt,
   );
   @override
@@ -3459,6 +3570,9 @@ class CourseRecord extends DataClass implements Insertable<CourseRecord> {
           other.description == this.description &&
           other.authorName == this.authorName &&
           other.isPublished == this.isPublished &&
+          other.isSaved == this.isSaved &&
+          other.saveId == this.saveId &&
+          other.hasUpdates == this.hasUpdates &&
           other.updatedAt == this.updatedAt);
 }
 
@@ -3469,6 +3583,9 @@ class CoursesCompanion extends UpdateCompanion<CourseRecord> {
   final Value<String> description;
   final Value<String> authorName;
   final Value<bool> isPublished;
+  final Value<bool> isSaved;
+  final Value<String?> saveId;
+  final Value<bool> hasUpdates;
   final Value<DateTime> updatedAt;
   final Value<int> rowid;
   const CoursesCompanion({
@@ -3478,6 +3595,9 @@ class CoursesCompanion extends UpdateCompanion<CourseRecord> {
     this.description = const Value.absent(),
     this.authorName = const Value.absent(),
     this.isPublished = const Value.absent(),
+    this.isSaved = const Value.absent(),
+    this.saveId = const Value.absent(),
+    this.hasUpdates = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -3488,6 +3608,9 @@ class CoursesCompanion extends UpdateCompanion<CourseRecord> {
     this.description = const Value.absent(),
     this.authorName = const Value.absent(),
     this.isPublished = const Value.absent(),
+    this.isSaved = const Value.absent(),
+    this.saveId = const Value.absent(),
+    this.hasUpdates = const Value.absent(),
     required DateTime updatedAt,
     this.rowid = const Value.absent(),
   }) : id = Value(id),
@@ -3501,6 +3624,9 @@ class CoursesCompanion extends UpdateCompanion<CourseRecord> {
     Expression<String>? description,
     Expression<String>? authorName,
     Expression<bool>? isPublished,
+    Expression<bool>? isSaved,
+    Expression<String>? saveId,
+    Expression<bool>? hasUpdates,
     Expression<DateTime>? updatedAt,
     Expression<int>? rowid,
   }) {
@@ -3511,6 +3637,9 @@ class CoursesCompanion extends UpdateCompanion<CourseRecord> {
       if (description != null) 'description': description,
       if (authorName != null) 'author_name': authorName,
       if (isPublished != null) 'is_published': isPublished,
+      if (isSaved != null) 'is_saved': isSaved,
+      if (saveId != null) 'save_id': saveId,
+      if (hasUpdates != null) 'has_updates': hasUpdates,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (rowid != null) 'rowid': rowid,
     });
@@ -3523,6 +3652,9 @@ class CoursesCompanion extends UpdateCompanion<CourseRecord> {
     Value<String>? description,
     Value<String>? authorName,
     Value<bool>? isPublished,
+    Value<bool>? isSaved,
+    Value<String?>? saveId,
+    Value<bool>? hasUpdates,
     Value<DateTime>? updatedAt,
     Value<int>? rowid,
   }) {
@@ -3533,6 +3665,9 @@ class CoursesCompanion extends UpdateCompanion<CourseRecord> {
       description: description ?? this.description,
       authorName: authorName ?? this.authorName,
       isPublished: isPublished ?? this.isPublished,
+      isSaved: isSaved ?? this.isSaved,
+      saveId: saveId ?? this.saveId,
+      hasUpdates: hasUpdates ?? this.hasUpdates,
       updatedAt: updatedAt ?? this.updatedAt,
       rowid: rowid ?? this.rowid,
     );
@@ -3559,6 +3694,15 @@ class CoursesCompanion extends UpdateCompanion<CourseRecord> {
     if (isPublished.present) {
       map['is_published'] = Variable<bool>(isPublished.value);
     }
+    if (isSaved.present) {
+      map['is_saved'] = Variable<bool>(isSaved.value);
+    }
+    if (saveId.present) {
+      map['save_id'] = Variable<String>(saveId.value);
+    }
+    if (hasUpdates.present) {
+      map['has_updates'] = Variable<bool>(hasUpdates.value);
+    }
     if (updatedAt.present) {
       map['updated_at'] = Variable<DateTime>(updatedAt.value);
     }
@@ -3577,6 +3721,9 @@ class CoursesCompanion extends UpdateCompanion<CourseRecord> {
           ..write('description: $description, ')
           ..write('authorName: $authorName, ')
           ..write('isPublished: $isPublished, ')
+          ..write('isSaved: $isSaved, ')
+          ..write('saveId: $saveId, ')
+          ..write('hasUpdates: $hasUpdates, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -6923,6 +7070,9 @@ typedef $$CoursesTableCreateCompanionBuilder =
       Value<String> description,
       Value<String> authorName,
       Value<bool> isPublished,
+      Value<bool> isSaved,
+      Value<String?> saveId,
+      Value<bool> hasUpdates,
       required DateTime updatedAt,
       Value<int> rowid,
     });
@@ -6934,6 +7084,9 @@ typedef $$CoursesTableUpdateCompanionBuilder =
       Value<String> description,
       Value<String> authorName,
       Value<bool> isPublished,
+      Value<bool> isSaved,
+      Value<String?> saveId,
+      Value<bool> hasUpdates,
       Value<DateTime> updatedAt,
       Value<int> rowid,
     });
@@ -6997,6 +7150,21 @@ class $$CoursesTableFilterComposer
 
   ColumnFilters<bool> get isPublished => $composableBuilder(
     column: $table.isPublished,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isSaved => $composableBuilder(
+    column: $table.isSaved,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get saveId => $composableBuilder(
+    column: $table.saveId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get hasUpdates => $composableBuilder(
+    column: $table.hasUpdates,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -7070,6 +7238,21 @@ class $$CoursesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get isSaved => $composableBuilder(
+    column: $table.isSaved,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get saveId => $composableBuilder(
+    column: $table.saveId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get hasUpdates => $composableBuilder(
+    column: $table.hasUpdates,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
     column: $table.updatedAt,
     builder: (column) => ColumnOrderings(column),
@@ -7106,6 +7289,17 @@ class $$CoursesTableAnnotationComposer
 
   GeneratedColumn<bool> get isPublished => $composableBuilder(
     column: $table.isPublished,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isSaved =>
+      $composableBuilder(column: $table.isSaved, builder: (column) => column);
+
+  GeneratedColumn<String> get saveId =>
+      $composableBuilder(column: $table.saveId, builder: (column) => column);
+
+  GeneratedColumn<bool> get hasUpdates => $composableBuilder(
+    column: $table.hasUpdates,
     builder: (column) => column,
   );
 
@@ -7172,6 +7366,9 @@ class $$CoursesTableTableManager
                 Value<String> description = const Value.absent(),
                 Value<String> authorName = const Value.absent(),
                 Value<bool> isPublished = const Value.absent(),
+                Value<bool> isSaved = const Value.absent(),
+                Value<String?> saveId = const Value.absent(),
+                Value<bool> hasUpdates = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CoursesCompanion(
@@ -7181,6 +7378,9 @@ class $$CoursesTableTableManager
                 description: description,
                 authorName: authorName,
                 isPublished: isPublished,
+                isSaved: isSaved,
+                saveId: saveId,
+                hasUpdates: hasUpdates,
                 updatedAt: updatedAt,
                 rowid: rowid,
               ),
@@ -7192,6 +7392,9 @@ class $$CoursesTableTableManager
                 Value<String> description = const Value.absent(),
                 Value<String> authorName = const Value.absent(),
                 Value<bool> isPublished = const Value.absent(),
+                Value<bool> isSaved = const Value.absent(),
+                Value<String?> saveId = const Value.absent(),
+                Value<bool> hasUpdates = const Value.absent(),
                 required DateTime updatedAt,
                 Value<int> rowid = const Value.absent(),
               }) => CoursesCompanion.insert(
@@ -7201,6 +7404,9 @@ class $$CoursesTableTableManager
                 description: description,
                 authorName: authorName,
                 isPublished: isPublished,
+                isSaved: isSaved,
+                saveId: saveId,
+                hasUpdates: hasUpdates,
                 updatedAt: updatedAt,
                 rowid: rowid,
               ),

@@ -234,6 +234,14 @@ class RemoraApiClient {
         .toList();
   }
 
+  /// Курсы, сохранённые из публичной библиотеки.
+  Future<List<SavedCourseSummaryData>> getSavedCourses() async {
+    final response = await _dio.get('/api/v1/library/courses');
+    return (response.data as List)
+        .map((e) => SavedCourseSummaryData.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
   /// Полная структура курса: разделы, статьи с телом теории и медиа-ссылками.
   Future<CourseDetailData> getCourseDetail(String courseId) async {
     final response = await _dio.get('/api/v1/courses/$courseId');
@@ -1358,6 +1366,43 @@ class CourseSummaryData {
   final DateTime updatedAt;
   final bool isPublished;
   final List<String> tags;
+}
+
+/// Сохранённый публичный курс. `acceptedAt` — версия, которую пользователь
+/// явно принял в связанную библиотеку.
+class SavedCourseSummaryData {
+  SavedCourseSummaryData({
+    required this.id,
+    required this.slug,
+    required this.title,
+    this.description = '',
+    required this.author,
+    required this.saveId,
+    required this.acceptedAt,
+    required this.hasUpdates,
+  });
+
+  factory SavedCourseSummaryData.fromJson(Map<String, dynamic> json) {
+    return SavedCourseSummaryData(
+      id: json['id'] as String,
+      slug: json['slug'] as String,
+      title: json['title'] as String,
+      description: json['description'] as String? ?? '',
+      author: CourseAuthorData.fromJson(json['author'] as Map<String, dynamic>),
+      saveId: json['save_id'] as String,
+      acceptedAt: DateTime.parse(json['accepted_at'] as String),
+      hasUpdates: json['has_updates'] as bool? ?? false,
+    );
+  }
+
+  final String id;
+  final String slug;
+  final String title;
+  final String description;
+  final CourseAuthorData author;
+  final String saveId;
+  final DateTime acceptedAt;
+  final bool hasUpdates;
 }
 
 /// Автор курса. Зеркало серверного CourseAuthor.

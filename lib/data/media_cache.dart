@@ -40,6 +40,25 @@ class MediaCache {
     }
   }
 
+  /// Удаляет старые файлы, на которые больше нет ссылок в Drift. Свежие
+  /// файлы не трогаем: параллельная загрузка могла ещё не успеть записать путь.
+  Future<void> prune(
+    Iterable<String> referencedPaths, {
+    Duration gracePeriod = const Duration(hours: 1),
+  }) async {
+    final root = _rootDirectory ?? await getApplicationSupportDirectory();
+    final dir = Directory(p.join(root.path, 'media', _safe(_userId)));
+    if (!await dir.exists()) return;
+    final keep = referencedPaths.toSet();
+    final cutoff = DateTime.now().subtract(gracePeriod);
+    await for (final entity in dir.list()) {
+      if (entity is! File || entity.path.endsWith('.part')) continue;
+      if (keep.contains(entity.path)) continue;
+      final modified = await entity.lastModified();
+      if (modified.isBefore(cutoff)) await entity.delete();
+    }
+  }
+
   String _extension(String url) {
     final path = Uri.tryParse(url)?.path.toLowerCase() ?? '';
     for (final extension in const [

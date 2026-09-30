@@ -5,6 +5,7 @@ import 'package:drift/drift.dart';
 import '../../data/api_client.dart';
 import '../../data/db/app_database.dart';
 import '../media_cache.dart';
+import 'set_repository.dart';
 
 /// Репозиторий курсов: синхронизация API ↔ локальная БД.
 ///
@@ -13,11 +14,12 @@ import '../media_cache.dart';
 /// приносит весь курс сразу (разделы, статьи, медиа), поэтому скачивание —
 /// одна транзакция.
 class CourseRepository {
-  CourseRepository(this._db, this._api, [this._mediaCache]);
+  CourseRepository(this._db, this._api, [this._mediaCache, this._sets]);
 
   final AppDatabase _db;
   final RemoraApiClient _api;
   final MediaCache? _mediaCache;
+  final SetRepository? _sets;
 
   /// Скачанные курсы из локальной БД (для экрана списка).
   Future<List<CourseRecord>> getDownloadedCourses() {
@@ -28,8 +30,18 @@ class CourseRepository {
 
   /// Синхронизирует список моих курсов из API в БД (метаданные без структуры).
   Future<List<CourseRecord>> syncMyCourses() async {
-    final summaries = await _api.getMyCourses();
-    final serverIds = summaries.map((course) => course.id).toSet();
+    // Оба ответа должны успешно прийти до удаления локальных записей: иначе
+    // краткий сбой одного endpoint мог бы стереть рабочую офлайн-копию.
+    final results = await Future.wait([
+      _api.getMyCourses(),
+      _api.getSavedCourses(),
+    ]);
+    final summaries = results[0] as List<CourseSummaryData>;
+    final saved = results[1] as List<SavedCourseSummaryData>;
+    final serverIds = {
+      ...summaries.map((course) => course.id),
+      ...saved.map((course) => course.id),
+    };
 
     await _db.transaction(() async {
       await _db.batch((batch) {
@@ -43,6 +55,9 @@ class CourseRepository {
               title: Value(c.title),
               description: Value(c.description),
               isPublished: Value(c.isPublished),
+              isSaved: const Value(false),
+              saveId: const Value(null),
+              hasUpdates: const Value(false),
               updatedAt: Value(c.updatedAt),
             ),
             onConflict: DoUpdate(
@@ -51,7 +66,40 @@ class CourseRepository {
                 title: Value(c.title),
                 description: Value(c.description),
                 isPublished: Value(c.isPublished),
+                isSaved: const Value(false),
+                saveId: const Value(null),
+                hasUpdates: const Value(false),
                 updatedAt: Value(c.updatedAt),
+              ),
+            ),
+          );
+        }
+        for (final c in saved) {
+          batch.insert(
+            _db.courses,
+            CoursesCompanion(
+              id: Value(c.id),
+              slug: Value(c.slug),
+              title: Value(c.title),
+              description: Value(c.description),
+              authorName: Value(c.author.name),
+              isPublished: const Value(true),
+              isSaved: const Value(true),
+              saveId: Value(c.saveId),
+              hasUpdates: Value(c.hasUpdates),
+              updatedAt: Value(c.acceptedAt),
+            ),
+            onConflict: DoUpdate(
+              (_) => CoursesCompanion(
+                slug: Value(c.slug),
+                title: Value(c.title),
+                description: Value(c.description),
+                authorName: Value(c.author.name),
+                isPublished: const Value(true),
+                isSaved: const Value(true),
+                saveId: Value(c.saveId),
+                hasUpdates: Value(c.hasUpdates),
+                updatedAt: Value(c.acceptedAt),
               ),
             ),
           );
@@ -74,7 +122,7 @@ class CourseRepository {
         )..where((section) => section.courseId.isIn(removedIds))).go();
         await (_db.delete(_db.syncMeta)..where(
               (meta) =>
-                  meta.entityType.equals('course') &
+                  meta.entityType.isIn(['course', 'course_bundle']) &
                   meta.entityId.isIn(removedIds),
             ))
             .go();
@@ -99,7 +147,7 @@ class CourseRepository {
   Future<Set<String>> getOutdatedDownloadedCourseIds() async {
     final downloaded = await (_db.select(
       _db.syncMeta,
-    )..where((meta) => meta.entityType.equals('course'))).get();
+    )..where((meta) => meta.entityType.equals('course_bundle'))).get();
     final coursesById = {
       for (final course in await _db.courses.select().get()) course.id: course,
     };
@@ -191,6 +239,36 @@ class CourseRepository {
     );
 
     return detail;
+  }
+
+  /// Полная офлайн-копия: теория, медиа и наборы всех статей.
+  Future<CourseDetailData> downloadCourseForOffline(String courseId) async {
+    final detail = await downloadCourse(courseId);
+    final sets = _sets;
+    if (sets == null) return detail;
+    final setIds = <String>{
+      for (final section in detail.sections)
+        for (final article in section.articles) article.setId,
+    };
+    for (final setId in setIds) {
+      await sets.downloadSet(setId);
+    }
+    await _db.syncMeta.insertOnConflictUpdate(
+      SyncMetaCompanion(
+        entityType: const Value('course_bundle'),
+        entityId: Value(courseId),
+        lastSyncedAt: Value(DateTime.now()),
+        revision: Value(_contentRevision(detail.updatedAt)),
+      ),
+    );
+    return detail;
+  }
+
+  Future<Set<String>> getDownloadedCourseIds() async {
+    final rows = await (_db.select(
+      _db.syncMeta,
+    )..where((meta) => meta.entityType.equals('course_bundle'))).get();
+    return rows.map((row) => row.entityId).toSet();
   }
 
   /// Скачана ли теория курса (хотя бы один раздел) — для фонового автоскачивания:

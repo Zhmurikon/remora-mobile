@@ -48,6 +48,8 @@ class CoursesScreen extends ConsumerWidget {
     WidgetRef ref,
     CoursesListState state,
   ) {
+    final theme = Theme.of(context);
+    final notifier = ref.read(coursesListProvider.notifier);
     final sortMode = ref.watch(listSortProvider('courses'));
     final sortedCourses = sortList(
       state.courses,
@@ -104,20 +106,55 @@ class CoursesScreen extends ConsumerWidget {
           );
         }
         final course = sortedCourses[index - 1];
+        final isDownloading = state.downloadingCourseIds.contains(course.id);
+        final isDownloaded = state.downloadedCourseIds.contains(course.id);
+        final isOutdated = state.outdatedCourseIds.contains(course.id);
         return Card(
           margin: const EdgeInsets.only(bottom: 12),
           child: ListTile(
             leading: const Icon(Icons.menu_book_outlined),
             title: Text(course.title),
-            subtitle: course.description.isEmpty
-                ? null
-                : Text(
-                    course.description,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodySmall,
+            subtitle: Text.rich(
+              TextSpan(
+                text: course.description,
+                children: [
+                  if (course.isSaved) const TextSpan(text: ' · Сохранённый'),
+                  if (course.hasUpdates || isOutdated)
+                    TextSpan(
+                      text: ' · Доступно обновление',
+                      style: TextStyle(color: theme.colorScheme.tertiary),
+                    ),
+                  if (isDownloaded && !isOutdated)
+                    const TextSpan(text: ' · Доступен офлайн'),
+                ],
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.bodySmall,
+            ),
+            trailing: isDownloading
+                ? const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : IconButton(
+                    tooltip: isDownloaded && !isOutdated
+                        ? 'Курс доступен офлайн'
+                        : isOutdated
+                        ? 'Обновить офлайн-копию'
+                        : 'Скачать курс для офлайна',
+                    onPressed: state.isOnline && (!isDownloaded || isOutdated)
+                        ? () => notifier.downloadCourse(course.id)
+                        : null,
+                    icon: Icon(
+                      isDownloaded && !isOutdated
+                          ? Icons.download_done
+                          : isOutdated
+                          ? Icons.system_update_alt
+                          : Icons.download_outlined,
+                    ),
                   ),
-            trailing: const Icon(Icons.chevron_right),
             onTap: () => context.push(
               '/course/${course.id}?title=${Uri.encodeComponent(course.title)}',
             ),

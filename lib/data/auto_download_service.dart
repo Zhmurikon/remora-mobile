@@ -4,6 +4,7 @@ import '../core/log.dart';
 import '../features/courses/courses_provider.dart';
 import '../features/library/library_provider.dart';
 import 'db/app_database.dart';
+import 'offline_cache_maintenance.dart';
 import 'repositories/course_repository.dart';
 import 'repositories/set_repository.dart';
 
@@ -19,10 +20,11 @@ import 'repositories/set_repository.dart';
 /// Тихий и best-effort: одна неудача (сеть пропала на середине) не должна
 /// ронять весь проход — следующий набор или курс всё равно попробуем.
 class AutoDownloadService {
-  AutoDownloadService(this._sets, this._courses);
+  AutoDownloadService(this._sets, this._courses, this._maintenance);
 
   final SetRepository _sets;
   final CourseRepository _courses;
+  final OfflineCacheMaintenance _maintenance;
 
   bool _running = false;
 
@@ -34,6 +36,7 @@ class AutoDownloadService {
     try {
       await _downloadNewSets();
       await _downloadNewCourses();
+      await _maintenance.pruneMedia();
     } catch (e) {
       logRemora('autodownload', 'проход прерван: $e');
     } finally {
@@ -76,17 +79,8 @@ class AutoDownloadService {
       }
 
       try {
-        final detail = await _courses.downloadCourse(id);
+        await _courses.downloadCourseForOffline(id);
         added++;
-        // Наборы карточек, на которые ссылаются статьи курса — без них
-        // встроенный квиз в статье не откроется офлайн.
-        final setIds = <String>{
-          for (final section in detail.sections)
-            for (final article in section.articles) article.setId,
-        };
-        for (final setId in setIds) {
-          await _downloadSetSafely(setId);
-        }
       } catch (_) {
         // Пропускаем курс, следующий проход попробует снова.
       }
@@ -108,5 +102,6 @@ final autoDownloadServiceProvider = Provider<AutoDownloadService>((ref) {
   return AutoDownloadService(
     ref.watch(setRepositoryProvider),
     ref.watch(courseRepositoryProvider),
+    ref.watch(offlineCacheMaintenanceProvider),
   );
 });

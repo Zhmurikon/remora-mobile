@@ -79,7 +79,7 @@ void main() {
     );
     await db.syncMeta.insertOne(
       SyncMetaCompanion.insert(
-        entityType: 'course',
+        entityType: 'course_bundle',
         entityId: 'course-1',
         lastSyncedAt: revision,
       ),
