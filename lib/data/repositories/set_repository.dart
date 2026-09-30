@@ -47,9 +47,14 @@ class SetRepository {
 
   /// Синхронизирует список наборов пользователя из API в БД.
   Future<List<SetRecord>> syncMySets() async {
-    final summaries = await _api.getMySets();
+    final results = await Future.wait([_api.getMySets(), _api.getSavedSets()]);
+    final summaries = results[0] as List<SetSummary>;
+    final saved = results[1] as List<SavedSetSummary>;
     final now = DateTime.now();
-    final serverIds = summaries.map((set) => set.id).toSet();
+    final serverIds = {
+      ...summaries.map((set) => set.id),
+      ...saved.map((set) => set.id),
+    };
 
     await _db.transaction(() async {
       for (final s in summaries) {
@@ -62,9 +67,39 @@ class SetRepository {
             slug: Value(s.slug),
             cardsCount: Value(s.cardsCount),
             folderId: Value(s.folderId),
+            isSaved: const Value(false),
+            saveId: const Value(null),
+            courseTitle: const Value(null),
+            articleTitle: const Value(null),
+            accessVia: const Value(null),
+            hasUpdates: const Value(false),
             createdAt: Value(s.createdAt),
             updatedAt: Value(s.updatedAt),
             // langTerm/langDefinition берутся из SetDetail при скачивании
+          ),
+        );
+      }
+
+      for (final s in saved) {
+        await _db.sets.insertOnConflictUpdate(
+          SetsCompanion(
+            id: Value(s.id),
+            title: Value(s.title),
+            description: Value(s.description),
+            visibility: const Value('saved'),
+            slug: Value(s.id),
+            cardsCount: Value(s.cardsCount),
+            langTerm: Value(s.langTerm),
+            langDefinition: Value(s.langDefinition),
+            folderId: Value(s.folderId),
+            isSaved: const Value(true),
+            saveId: Value(s.saveId),
+            courseTitle: Value(s.courseTitle),
+            articleTitle: Value(s.articleTitle),
+            accessVia: Value(s.accessVia),
+            hasUpdates: Value(s.hasUpdates),
+            createdAt: Value(s.savedAt),
+            updatedAt: Value(s.savedAt),
           ),
         );
       }

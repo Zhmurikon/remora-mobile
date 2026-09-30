@@ -9,12 +9,16 @@ import 'package:remora_mobile/data/repositories/course_repository.dart';
 import 'package:remora_mobile/data/repositories/set_repository.dart';
 
 class _SetsApiClient extends RemoraApiClient {
-  _SetsApiClient(this.summaries) : super(Dio());
+  _SetsApiClient(this.summaries, [this.saved = const []]) : super(Dio());
 
   final List<SetSummary> summaries;
+  final List<SavedSetSummary> saved;
 
   @override
   Future<List<SetSummary>> getMySets() async => summaries;
+
+  @override
+  Future<List<SavedSetSummary>> getSavedSets() async => saved;
 }
 
 void main() {
@@ -131,5 +135,33 @@ void main() {
       ),
       isEmpty,
     );
+  });
+
+  test('синхронизация объединяет авторские и сохранённые наборы', () async {
+    final savedAt = DateTime.utc(2026, 3, 2);
+    final synced = await SetRepository(
+      db,
+      _SetsApiClient(const [], [
+        SavedSetSummary(
+          id: 'saved-set',
+          title: 'Сохранённый набор',
+          description: 'Описание',
+          cardsCount: 3,
+          langTerm: 'en',
+          langDefinition: 'ru',
+          courseTitle: 'Чужой курс',
+          articleTitle: 'Статья',
+          saveId: 'save-1',
+          accessVia: 'course',
+          savedAt: savedAt,
+          hasUpdates: true,
+        ),
+      ]),
+    ).syncMySets();
+
+    expect(synced, hasLength(1));
+    expect(synced.single.isSaved, isTrue);
+    expect(synced.single.courseTitle, 'Чужой курс');
+    expect(synced.single.hasUpdates, isTrue);
   });
 }

@@ -123,6 +123,13 @@ class RemoraApiClient {
         .toList();
   }
 
+  Future<List<SavedSetSummary>> getSavedSets() async {
+    final response = await _dio.get('/api/v1/library/sets');
+    return (response.data as List)
+        .map((e) => SavedSetSummary.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
   Future<SetDetail> getSetDetail(String setId) async {
     final response = await _dio.get('/api/v1/sets/$setId');
     return SetDetail.fromJson(response.data as Map<String, dynamic>);
@@ -522,6 +529,56 @@ class SetSummary {
   final String? folderId;
   final DateTime createdAt;
   final DateTime updatedAt;
+}
+
+class SavedSetSummary {
+  SavedSetSummary({
+    required this.id,
+    required this.title,
+    required this.description,
+    required this.cardsCount,
+    required this.langTerm,
+    required this.langDefinition,
+    required this.courseTitle,
+    required this.articleTitle,
+    required this.saveId,
+    required this.accessVia,
+    required this.savedAt,
+    required this.hasUpdates,
+    this.folderId,
+  });
+
+  factory SavedSetSummary.fromJson(Map<String, dynamic> json) {
+    return SavedSetSummary(
+      id: json['id'] as String,
+      title: json['title'] as String,
+      description: json['description'] as String? ?? '',
+      cardsCount: json['cards_count'] as int,
+      langTerm: json['lang_term'] as String,
+      langDefinition: json['lang_definition'] as String,
+      courseTitle: json['course_title'] as String,
+      articleTitle: json['article_title'] as String,
+      saveId: json['save_id'] as String,
+      accessVia: json['access_via'] as String,
+      savedAt: DateTime.parse(json['saved_at'] as String),
+      hasUpdates: json['has_updates'] as bool,
+      folderId: json['folder_id'] as String?,
+    );
+  }
+
+  final String id;
+  final String title;
+  final String description;
+  final int cardsCount;
+  final String langTerm;
+  final String langDefinition;
+  final String courseTitle;
+  final String articleTitle;
+  final String saveId;
+  final String accessVia;
+  final DateTime savedAt;
+  final bool hasUpdates;
+  final String? folderId;
 }
 
 class SetDetail extends SetSummary {

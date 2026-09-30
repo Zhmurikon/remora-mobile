@@ -19,6 +19,12 @@ class Sets extends Table {
   TextColumn get langTerm => text().withDefault(const Constant('ru'))();
   TextColumn get langDefinition => text().withDefault(const Constant('ru'))();
   TextColumn get folderId => text().nullable()();
+  BoolColumn get isSaved => boolean().withDefault(const Constant(false))();
+  TextColumn get saveId => text().nullable()();
+  TextColumn get courseTitle => text().nullable()();
+  TextColumn get articleTitle => text().nullable()();
+  TextColumn get accessVia => text().nullable()();
+  BoolColumn get hasUpdates => boolean().withDefault(const Constant(false))();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
 
@@ -189,7 +195,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -216,6 +222,14 @@ class AppDatabase extends _$AppDatabase {
         await m.addColumn(courses, courses.isSaved);
         await m.addColumn(courses, courses.saveId);
         await m.addColumn(courses, courses.hasUpdates);
+      }
+      if (from < 6) {
+        await m.addColumn(sets, sets.isSaved);
+        await m.addColumn(sets, sets.saveId);
+        await m.addColumn(sets, sets.courseTitle);
+        await m.addColumn(sets, sets.articleTitle);
+        await m.addColumn(sets, sets.accessVia);
+        await m.addColumn(sets, sets.hasUpdates);
       }
     },
   );

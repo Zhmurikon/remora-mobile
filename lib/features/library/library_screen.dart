@@ -117,9 +117,20 @@ class LibraryScreen extends ConsumerWidget {
               TextSpan(
                 text: '${set.cardsCount} ${_cardWord(set.cardsCount)}',
                 children: [
+                  if (set.isSaved)
+                    TextSpan(
+                      text: set.courseTitle == null
+                          ? ' · Сохранённый набор'
+                          : ' · ${set.courseTitle}',
+                    ),
                   if (hasUpdate)
                     TextSpan(
                       text: ' · Доступно обновление',
+                      style: TextStyle(color: theme.colorScheme.tertiary),
+                    ),
+                  if (set.isSaved && set.hasUpdates)
+                    TextSpan(
+                      text: ' · Оригинал обновлён',
                       style: TextStyle(color: theme.colorScheme.tertiary),
                     ),
                 ],

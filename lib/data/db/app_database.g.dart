@@ -104,6 +104,78 @@ class $SetsTable extends Sets with TableInfo<$SetsTable, SetRecord> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _isSavedMeta = const VerificationMeta(
+    'isSaved',
+  );
+  @override
+  late final GeneratedColumn<bool> isSaved = GeneratedColumn<bool>(
+    'is_saved',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_saved" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _saveIdMeta = const VerificationMeta('saveId');
+  @override
+  late final GeneratedColumn<String> saveId = GeneratedColumn<String>(
+    'save_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _courseTitleMeta = const VerificationMeta(
+    'courseTitle',
+  );
+  @override
+  late final GeneratedColumn<String> courseTitle = GeneratedColumn<String>(
+    'course_title',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _articleTitleMeta = const VerificationMeta(
+    'articleTitle',
+  );
+  @override
+  late final GeneratedColumn<String> articleTitle = GeneratedColumn<String>(
+    'article_title',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _accessViaMeta = const VerificationMeta(
+    'accessVia',
+  );
+  @override
+  late final GeneratedColumn<String> accessVia = GeneratedColumn<String>(
+    'access_via',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _hasUpdatesMeta = const VerificationMeta(
+    'hasUpdates',
+  );
+  @override
+  late final GeneratedColumn<bool> hasUpdates = GeneratedColumn<bool>(
+    'has_updates',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("has_updates" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -137,6 +209,12 @@ class $SetsTable extends Sets with TableInfo<$SetsTable, SetRecord> {
     langTerm,
     langDefinition,
     folderId,
+    isSaved,
+    saveId,
+    courseTitle,
+    articleTitle,
+    accessVia,
+    hasUpdates,
     createdAt,
     updatedAt,
   ];
@@ -219,6 +297,48 @@ class $SetsTable extends Sets with TableInfo<$SetsTable, SetRecord> {
         folderId.isAcceptableOrUnknown(data['folder_id']!, _folderIdMeta),
       );
     }
+    if (data.containsKey('is_saved')) {
+      context.handle(
+        _isSavedMeta,
+        isSaved.isAcceptableOrUnknown(data['is_saved']!, _isSavedMeta),
+      );
+    }
+    if (data.containsKey('save_id')) {
+      context.handle(
+        _saveIdMeta,
+        saveId.isAcceptableOrUnknown(data['save_id']!, _saveIdMeta),
+      );
+    }
+    if (data.containsKey('course_title')) {
+      context.handle(
+        _courseTitleMeta,
+        courseTitle.isAcceptableOrUnknown(
+          data['course_title']!,
+          _courseTitleMeta,
+        ),
+      );
+    }
+    if (data.containsKey('article_title')) {
+      context.handle(
+        _articleTitleMeta,
+        articleTitle.isAcceptableOrUnknown(
+          data['article_title']!,
+          _articleTitleMeta,
+        ),
+      );
+    }
+    if (data.containsKey('access_via')) {
+      context.handle(
+        _accessViaMeta,
+        accessVia.isAcceptableOrUnknown(data['access_via']!, _accessViaMeta),
+      );
+    }
+    if (data.containsKey('has_updates')) {
+      context.handle(
+        _hasUpdatesMeta,
+        hasUpdates.isAcceptableOrUnknown(data['has_updates']!, _hasUpdatesMeta),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -280,6 +400,30 @@ class $SetsTable extends Sets with TableInfo<$SetsTable, SetRecord> {
         DriftSqlType.string,
         data['${effectivePrefix}folder_id'],
       ),
+      isSaved: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_saved'],
+      )!,
+      saveId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}save_id'],
+      ),
+      courseTitle: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}course_title'],
+      ),
+      articleTitle: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}article_title'],
+      ),
+      accessVia: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}access_via'],
+      ),
+      hasUpdates: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}has_updates'],
+      )!,
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -307,6 +451,12 @@ class SetRecord extends DataClass implements Insertable<SetRecord> {
   final String langTerm;
   final String langDefinition;
   final String? folderId;
+  final bool isSaved;
+  final String? saveId;
+  final String? courseTitle;
+  final String? articleTitle;
+  final String? accessVia;
+  final bool hasUpdates;
   final DateTime createdAt;
   final DateTime updatedAt;
   const SetRecord({
@@ -319,6 +469,12 @@ class SetRecord extends DataClass implements Insertable<SetRecord> {
     required this.langTerm,
     required this.langDefinition,
     this.folderId,
+    required this.isSaved,
+    this.saveId,
+    this.courseTitle,
+    this.articleTitle,
+    this.accessVia,
+    required this.hasUpdates,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -336,6 +492,20 @@ class SetRecord extends DataClass implements Insertable<SetRecord> {
     if (!nullToAbsent || folderId != null) {
       map['folder_id'] = Variable<String>(folderId);
     }
+    map['is_saved'] = Variable<bool>(isSaved);
+    if (!nullToAbsent || saveId != null) {
+      map['save_id'] = Variable<String>(saveId);
+    }
+    if (!nullToAbsent || courseTitle != null) {
+      map['course_title'] = Variable<String>(courseTitle);
+    }
+    if (!nullToAbsent || articleTitle != null) {
+      map['article_title'] = Variable<String>(articleTitle);
+    }
+    if (!nullToAbsent || accessVia != null) {
+      map['access_via'] = Variable<String>(accessVia);
+    }
+    map['has_updates'] = Variable<bool>(hasUpdates);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     return map;
@@ -354,6 +524,20 @@ class SetRecord extends DataClass implements Insertable<SetRecord> {
       folderId: folderId == null && nullToAbsent
           ? const Value.absent()
           : Value(folderId),
+      isSaved: Value(isSaved),
+      saveId: saveId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(saveId),
+      courseTitle: courseTitle == null && nullToAbsent
+          ? const Value.absent()
+          : Value(courseTitle),
+      articleTitle: articleTitle == null && nullToAbsent
+          ? const Value.absent()
+          : Value(articleTitle),
+      accessVia: accessVia == null && nullToAbsent
+          ? const Value.absent()
+          : Value(accessVia),
+      hasUpdates: Value(hasUpdates),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
     );
@@ -374,6 +558,12 @@ class SetRecord extends DataClass implements Insertable<SetRecord> {
       langTerm: serializer.fromJson<String>(json['langTerm']),
       langDefinition: serializer.fromJson<String>(json['langDefinition']),
       folderId: serializer.fromJson<String?>(json['folderId']),
+      isSaved: serializer.fromJson<bool>(json['isSaved']),
+      saveId: serializer.fromJson<String?>(json['saveId']),
+      courseTitle: serializer.fromJson<String?>(json['courseTitle']),
+      articleTitle: serializer.fromJson<String?>(json['articleTitle']),
+      accessVia: serializer.fromJson<String?>(json['accessVia']),
+      hasUpdates: serializer.fromJson<bool>(json['hasUpdates']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
     );
@@ -391,6 +581,12 @@ class SetRecord extends DataClass implements Insertable<SetRecord> {
       'langTerm': serializer.toJson<String>(langTerm),
       'langDefinition': serializer.toJson<String>(langDefinition),
       'folderId': serializer.toJson<String?>(folderId),
+      'isSaved': serializer.toJson<bool>(isSaved),
+      'saveId': serializer.toJson<String?>(saveId),
+      'courseTitle': serializer.toJson<String?>(courseTitle),
+      'articleTitle': serializer.toJson<String?>(articleTitle),
+      'accessVia': serializer.toJson<String?>(accessVia),
+      'hasUpdates': serializer.toJson<bool>(hasUpdates),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
     };
@@ -406,6 +602,12 @@ class SetRecord extends DataClass implements Insertable<SetRecord> {
     String? langTerm,
     String? langDefinition,
     Value<String?> folderId = const Value.absent(),
+    bool? isSaved,
+    Value<String?> saveId = const Value.absent(),
+    Value<String?> courseTitle = const Value.absent(),
+    Value<String?> articleTitle = const Value.absent(),
+    Value<String?> accessVia = const Value.absent(),
+    bool? hasUpdates,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) => SetRecord(
@@ -418,6 +620,12 @@ class SetRecord extends DataClass implements Insertable<SetRecord> {
     langTerm: langTerm ?? this.langTerm,
     langDefinition: langDefinition ?? this.langDefinition,
     folderId: folderId.present ? folderId.value : this.folderId,
+    isSaved: isSaved ?? this.isSaved,
+    saveId: saveId.present ? saveId.value : this.saveId,
+    courseTitle: courseTitle.present ? courseTitle.value : this.courseTitle,
+    articleTitle: articleTitle.present ? articleTitle.value : this.articleTitle,
+    accessVia: accessVia.present ? accessVia.value : this.accessVia,
+    hasUpdates: hasUpdates ?? this.hasUpdates,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
   );
@@ -440,6 +648,18 @@ class SetRecord extends DataClass implements Insertable<SetRecord> {
           ? data.langDefinition.value
           : this.langDefinition,
       folderId: data.folderId.present ? data.folderId.value : this.folderId,
+      isSaved: data.isSaved.present ? data.isSaved.value : this.isSaved,
+      saveId: data.saveId.present ? data.saveId.value : this.saveId,
+      courseTitle: data.courseTitle.present
+          ? data.courseTitle.value
+          : this.courseTitle,
+      articleTitle: data.articleTitle.present
+          ? data.articleTitle.value
+          : this.articleTitle,
+      accessVia: data.accessVia.present ? data.accessVia.value : this.accessVia,
+      hasUpdates: data.hasUpdates.present
+          ? data.hasUpdates.value
+          : this.hasUpdates,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
@@ -457,6 +677,12 @@ class SetRecord extends DataClass implements Insertable<SetRecord> {
           ..write('langTerm: $langTerm, ')
           ..write('langDefinition: $langDefinition, ')
           ..write('folderId: $folderId, ')
+          ..write('isSaved: $isSaved, ')
+          ..write('saveId: $saveId, ')
+          ..write('courseTitle: $courseTitle, ')
+          ..write('articleTitle: $articleTitle, ')
+          ..write('accessVia: $accessVia, ')
+          ..write('hasUpdates: $hasUpdates, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -474,6 +700,12 @@ class SetRecord extends DataClass implements Insertable<SetRecord> {
     langTerm,
     langDefinition,
     folderId,
+    isSaved,
+    saveId,
+    courseTitle,
+    articleTitle,
+    accessVia,
+    hasUpdates,
     createdAt,
     updatedAt,
   );
@@ -490,6 +722,12 @@ class SetRecord extends DataClass implements Insertable<SetRecord> {
           other.langTerm == this.langTerm &&
           other.langDefinition == this.langDefinition &&
           other.folderId == this.folderId &&
+          other.isSaved == this.isSaved &&
+          other.saveId == this.saveId &&
+          other.courseTitle == this.courseTitle &&
+          other.articleTitle == this.articleTitle &&
+          other.accessVia == this.accessVia &&
+          other.hasUpdates == this.hasUpdates &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
 }
@@ -504,6 +742,12 @@ class SetsCompanion extends UpdateCompanion<SetRecord> {
   final Value<String> langTerm;
   final Value<String> langDefinition;
   final Value<String?> folderId;
+  final Value<bool> isSaved;
+  final Value<String?> saveId;
+  final Value<String?> courseTitle;
+  final Value<String?> articleTitle;
+  final Value<String?> accessVia;
+  final Value<bool> hasUpdates;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<int> rowid;
@@ -517,6 +761,12 @@ class SetsCompanion extends UpdateCompanion<SetRecord> {
     this.langTerm = const Value.absent(),
     this.langDefinition = const Value.absent(),
     this.folderId = const Value.absent(),
+    this.isSaved = const Value.absent(),
+    this.saveId = const Value.absent(),
+    this.courseTitle = const Value.absent(),
+    this.articleTitle = const Value.absent(),
+    this.accessVia = const Value.absent(),
+    this.hasUpdates = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -531,6 +781,12 @@ class SetsCompanion extends UpdateCompanion<SetRecord> {
     this.langTerm = const Value.absent(),
     this.langDefinition = const Value.absent(),
     this.folderId = const Value.absent(),
+    this.isSaved = const Value.absent(),
+    this.saveId = const Value.absent(),
+    this.courseTitle = const Value.absent(),
+    this.articleTitle = const Value.absent(),
+    this.accessVia = const Value.absent(),
+    this.hasUpdates = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
     this.rowid = const Value.absent(),
@@ -551,6 +807,12 @@ class SetsCompanion extends UpdateCompanion<SetRecord> {
     Expression<String>? langTerm,
     Expression<String>? langDefinition,
     Expression<String>? folderId,
+    Expression<bool>? isSaved,
+    Expression<String>? saveId,
+    Expression<String>? courseTitle,
+    Expression<String>? articleTitle,
+    Expression<String>? accessVia,
+    Expression<bool>? hasUpdates,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<int>? rowid,
@@ -565,6 +827,12 @@ class SetsCompanion extends UpdateCompanion<SetRecord> {
       if (langTerm != null) 'lang_term': langTerm,
       if (langDefinition != null) 'lang_definition': langDefinition,
       if (folderId != null) 'folder_id': folderId,
+      if (isSaved != null) 'is_saved': isSaved,
+      if (saveId != null) 'save_id': saveId,
+      if (courseTitle != null) 'course_title': courseTitle,
+      if (articleTitle != null) 'article_title': articleTitle,
+      if (accessVia != null) 'access_via': accessVia,
+      if (hasUpdates != null) 'has_updates': hasUpdates,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (rowid != null) 'rowid': rowid,
@@ -581,6 +849,12 @@ class SetsCompanion extends UpdateCompanion<SetRecord> {
     Value<String>? langTerm,
     Value<String>? langDefinition,
     Value<String?>? folderId,
+    Value<bool>? isSaved,
+    Value<String?>? saveId,
+    Value<String?>? courseTitle,
+    Value<String?>? articleTitle,
+    Value<String?>? accessVia,
+    Value<bool>? hasUpdates,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
     Value<int>? rowid,
@@ -595,6 +869,12 @@ class SetsCompanion extends UpdateCompanion<SetRecord> {
       langTerm: langTerm ?? this.langTerm,
       langDefinition: langDefinition ?? this.langDefinition,
       folderId: folderId ?? this.folderId,
+      isSaved: isSaved ?? this.isSaved,
+      saveId: saveId ?? this.saveId,
+      courseTitle: courseTitle ?? this.courseTitle,
+      articleTitle: articleTitle ?? this.articleTitle,
+      accessVia: accessVia ?? this.accessVia,
+      hasUpdates: hasUpdates ?? this.hasUpdates,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       rowid: rowid ?? this.rowid,
@@ -631,6 +911,24 @@ class SetsCompanion extends UpdateCompanion<SetRecord> {
     if (folderId.present) {
       map['folder_id'] = Variable<String>(folderId.value);
     }
+    if (isSaved.present) {
+      map['is_saved'] = Variable<bool>(isSaved.value);
+    }
+    if (saveId.present) {
+      map['save_id'] = Variable<String>(saveId.value);
+    }
+    if (courseTitle.present) {
+      map['course_title'] = Variable<String>(courseTitle.value);
+    }
+    if (articleTitle.present) {
+      map['article_title'] = Variable<String>(articleTitle.value);
+    }
+    if (accessVia.present) {
+      map['access_via'] = Variable<String>(accessVia.value);
+    }
+    if (hasUpdates.present) {
+      map['has_updates'] = Variable<bool>(hasUpdates.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -655,6 +953,12 @@ class SetsCompanion extends UpdateCompanion<SetRecord> {
           ..write('langTerm: $langTerm, ')
           ..write('langDefinition: $langDefinition, ')
           ..write('folderId: $folderId, ')
+          ..write('isSaved: $isSaved, ')
+          ..write('saveId: $saveId, ')
+          ..write('courseTitle: $courseTitle, ')
+          ..write('articleTitle: $articleTitle, ')
+          ..write('accessVia: $accessVia, ')
+          ..write('hasUpdates: $hasUpdates, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('rowid: $rowid')
@@ -5147,6 +5451,12 @@ typedef $$SetsTableCreateCompanionBuilder =
       Value<String> langTerm,
       Value<String> langDefinition,
       Value<String?> folderId,
+      Value<bool> isSaved,
+      Value<String?> saveId,
+      Value<String?> courseTitle,
+      Value<String?> articleTitle,
+      Value<String?> accessVia,
+      Value<bool> hasUpdates,
       required DateTime createdAt,
       required DateTime updatedAt,
       Value<int> rowid,
@@ -5162,6 +5472,12 @@ typedef $$SetsTableUpdateCompanionBuilder =
       Value<String> langTerm,
       Value<String> langDefinition,
       Value<String?> folderId,
+      Value<bool> isSaved,
+      Value<String?> saveId,
+      Value<String?> courseTitle,
+      Value<String?> articleTitle,
+      Value<String?> accessVia,
+      Value<bool> hasUpdates,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<int> rowid,
@@ -5241,6 +5557,36 @@ class $$SetsTableFilterComposer extends Composer<_$AppDatabase, $SetsTable> {
 
   ColumnFilters<String> get folderId => $composableBuilder(
     column: $table.folderId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isSaved => $composableBuilder(
+    column: $table.isSaved,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get saveId => $composableBuilder(
+    column: $table.saveId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get courseTitle => $composableBuilder(
+    column: $table.courseTitle,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get articleTitle => $composableBuilder(
+    column: $table.articleTitle,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get accessVia => $composableBuilder(
+    column: $table.accessVia,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get hasUpdates => $composableBuilder(
+    column: $table.hasUpdates,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5333,6 +5679,36 @@ class $$SetsTableOrderingComposer extends Composer<_$AppDatabase, $SetsTable> {
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get isSaved => $composableBuilder(
+    column: $table.isSaved,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get saveId => $composableBuilder(
+    column: $table.saveId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get courseTitle => $composableBuilder(
+    column: $table.courseTitle,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get articleTitle => $composableBuilder(
+    column: $table.articleTitle,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get accessVia => $composableBuilder(
+    column: $table.accessVia,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get hasUpdates => $composableBuilder(
+    column: $table.hasUpdates,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -5387,6 +5763,30 @@ class $$SetsTableAnnotationComposer
 
   GeneratedColumn<String> get folderId =>
       $composableBuilder(column: $table.folderId, builder: (column) => column);
+
+  GeneratedColumn<bool> get isSaved =>
+      $composableBuilder(column: $table.isSaved, builder: (column) => column);
+
+  GeneratedColumn<String> get saveId =>
+      $composableBuilder(column: $table.saveId, builder: (column) => column);
+
+  GeneratedColumn<String> get courseTitle => $composableBuilder(
+    column: $table.courseTitle,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get articleTitle => $composableBuilder(
+    column: $table.articleTitle,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get accessVia =>
+      $composableBuilder(column: $table.accessVia, builder: (column) => column);
+
+  GeneratedColumn<bool> get hasUpdates => $composableBuilder(
+    column: $table.hasUpdates,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -5457,6 +5857,12 @@ class $$SetsTableTableManager
                 Value<String> langTerm = const Value.absent(),
                 Value<String> langDefinition = const Value.absent(),
                 Value<String?> folderId = const Value.absent(),
+                Value<bool> isSaved = const Value.absent(),
+                Value<String?> saveId = const Value.absent(),
+                Value<String?> courseTitle = const Value.absent(),
+                Value<String?> articleTitle = const Value.absent(),
+                Value<String?> accessVia = const Value.absent(),
+                Value<bool> hasUpdates = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -5470,6 +5876,12 @@ class $$SetsTableTableManager
                 langTerm: langTerm,
                 langDefinition: langDefinition,
                 folderId: folderId,
+                isSaved: isSaved,
+                saveId: saveId,
+                courseTitle: courseTitle,
+                articleTitle: articleTitle,
+                accessVia: accessVia,
+                hasUpdates: hasUpdates,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 rowid: rowid,
@@ -5485,6 +5897,12 @@ class $$SetsTableTableManager
                 Value<String> langTerm = const Value.absent(),
                 Value<String> langDefinition = const Value.absent(),
                 Value<String?> folderId = const Value.absent(),
+                Value<bool> isSaved = const Value.absent(),
+                Value<String?> saveId = const Value.absent(),
+                Value<String?> courseTitle = const Value.absent(),
+                Value<String?> articleTitle = const Value.absent(),
+                Value<String?> accessVia = const Value.absent(),
+                Value<bool> hasUpdates = const Value.absent(),
                 required DateTime createdAt,
                 required DateTime updatedAt,
                 Value<int> rowid = const Value.absent(),
@@ -5498,6 +5916,12 @@ class $$SetsTableTableManager
                 langTerm: langTerm,
                 langDefinition: langDefinition,
                 folderId: folderId,
+                isSaved: isSaved,
+                saveId: saveId,
+                courseTitle: courseTitle,
+                articleTitle: articleTitle,
+                accessVia: accessVia,
+                hasUpdates: hasUpdates,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 rowid: rowid,
