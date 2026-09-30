@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../data/preferences.dart';
 
 enum ListSortMode {
+  custom,
   updatedDesc,
   updatedAsc,
   titleAsc,
@@ -15,6 +16,7 @@ enum ListSortMode {
 
 extension ListSortModeLabel on ListSortMode {
   String get label => switch (this) {
+    ListSortMode.custom => 'Свой порядок',
     ListSortMode.updatedDesc => 'Сначала новые',
     ListSortMode.updatedAsc => 'Сначала старые',
     ListSortMode.titleAsc => 'По названию: А—Я',
@@ -50,15 +52,52 @@ final listSortProvider =
       ),
     );
 
+class ListOrderNotifier extends StateNotifier<List<String>> {
+  ListOrderNotifier(this._prefs, this._key)
+    : super(_prefs.getStringList(_key) ?? const []);
+
+  final SharedPreferences _prefs;
+  final String _key;
+
+  Future<void> set(List<String> order) async {
+    state = List.unmodifiable(order);
+    await _prefs.setStringList(_key, order);
+  }
+}
+
+final listOrderProvider =
+    StateNotifierProvider.family<ListOrderNotifier, List<String>, String>(
+      (ref, key) => ListOrderNotifier(
+        ref.watch(sharedPreferencesProvider),
+        'list_order_$key',
+      ),
+    );
+
 List<T> sortList<T>(
   Iterable<T> items,
   ListSortMode mode, {
+  required String Function(T) id,
   required String Function(T) title,
   required DateTime Function(T) updatedAt,
   int Function(T)? size,
+  List<String> customOrder = const [],
 }) {
   final result = [...items];
+  final customPositions = {
+    for (var index = 0; index < customOrder.length; index++)
+      customOrder[index]: index,
+  };
   result.sort((left, right) {
+    if (mode == ListSortMode.custom) {
+      final leftPosition = customPositions[id(left)];
+      final rightPosition = customPositions[id(right)];
+      if (leftPosition == null && rightPosition == null) {
+        return updatedAt(right).compareTo(updatedAt(left));
+      }
+      if (leftPosition == null) return -1;
+      if (rightPosition == null) return 1;
+      return leftPosition.compareTo(rightPosition);
+    }
     if (mode == ListSortMode.titleAsc) {
       return title(left).compareTo(title(right));
     }

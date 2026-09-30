@@ -50,12 +50,15 @@ class LibraryScreen extends ConsumerWidget {
   ) {
     final theme = Theme.of(context);
     final sortMode = ref.watch(listSortProvider('sets'));
+    final customOrder = ref.watch(listOrderProvider('sets'));
     final sortedSets = sortList(
       state.sets,
       sortMode,
+      id: (set) => set.id,
       title: (set) => set.title,
       updatedAt: (set) => set.updatedAt,
       size: (set) => set.cardsCount,
+      customOrder: customOrder,
     );
     if (state.isLoading && state.sets.isEmpty) {
       return const Center(child: CircularProgressIndicator());
@@ -91,81 +94,115 @@ class LibraryScreen extends ConsumerWidget {
       );
     }
 
+    Widget buildSetTile(int index, {required bool reorderable}) {
+      final set = sortedSets[index];
+      final isDownloading = state.downloadingSetIds.contains(set.id);
+      final isDownloaded = state.downloadedSetIds.contains(set.id);
+      final hasUpdate = state.outdatedSetIds.contains(set.id);
+
+      return Card(
+        key: ValueKey(set.id),
+        margin: const EdgeInsets.only(bottom: 12),
+        child: ListTile(
+          leading: reorderable
+              ? ReorderableDragStartListener(
+                  index: index,
+                  child: Semantics(
+                    button: true,
+                    label: 'Изменить место набора «${set.title}»',
+                    child: const SizedBox(
+                      width: 44,
+                      height: 44,
+                      child: Icon(Icons.drag_handle),
+                    ),
+                  ),
+                )
+              : null,
+          title: Text(set.title),
+          subtitle: Text.rich(
+            TextSpan(
+              text: '${set.cardsCount} ${_cardWord(set.cardsCount)}',
+              children: [
+                if (set.isSaved)
+                  TextSpan(
+                    text: set.courseTitle == null
+                        ? ' · Сохранённый набор'
+                        : ' · ${set.courseTitle}',
+                  ),
+                if (hasUpdate)
+                  TextSpan(
+                    text: ' · Доступно обновление',
+                    style: TextStyle(color: theme.colorScheme.tertiary),
+                  ),
+                if (set.isSaved && set.hasUpdates)
+                  TextSpan(
+                    text: ' · Оригинал обновлён',
+                    style: TextStyle(color: theme.colorScheme.tertiary),
+                  ),
+              ],
+            ),
+            style: theme.textTheme.bodySmall,
+          ),
+          trailing: isDownloading
+              ? const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : isDownloaded && !hasUpdate
+              ? const Icon(Icons.download_done, semanticLabel: 'Скачано')
+              : IconButton(
+                  icon: Icon(
+                    hasUpdate
+                        ? Icons.system_update_alt
+                        : Icons.download_outlined,
+                  ),
+                  tooltip: hasUpdate
+                      ? 'Обновить скачанный набор'
+                      : 'Скачать для офлайна',
+                  onPressed: state.isOnline
+                      ? () => notifier.downloadSet(set.id)
+                      : null,
+                ),
+          onTap: () {
+            context.push(
+              '/set/${set.id}/study?title=${Uri.encodeComponent(set.title)}',
+            );
+          },
+        ),
+      );
+    }
+
+    final header = Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Text(
+        '${state.sets.length} ${_setWord(state.sets.length)} · нажмите, чтобы учиться',
+        style: Theme.of(context).textTheme.bodyMedium,
+      ),
+    );
+    if (sortMode == ListSortMode.custom) {
+      return ReorderableListView.builder(
+        padding: const EdgeInsets.all(16),
+        header: header,
+        buildDefaultDragHandles: false,
+        itemCount: sortedSets.length,
+        itemBuilder: (context, index) => buildSetTile(index, reorderable: true),
+        onReorderItem: (oldIndex, newIndex) {
+          final reordered = [...sortedSets];
+          final moved = reordered.removeAt(oldIndex);
+          reordered.insert(newIndex, moved);
+          ref
+              .read(listOrderProvider('sets').notifier)
+              .set(reordered.map((set) => set.id).toList());
+        },
+      );
+    }
+
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: sortedSets.length + 1,
-      itemBuilder: (context, index) {
-        if (index == 0) {
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 14),
-            child: Text(
-              '${state.sets.length} ${_setWord(state.sets.length)} · нажмите, чтобы учиться',
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-          );
-        }
-        final set = sortedSets[index - 1];
-        final isDownloading = state.downloadingSetIds.contains(set.id);
-        final isDownloaded = state.downloadedSetIds.contains(set.id);
-        final hasUpdate = state.outdatedSetIds.contains(set.id);
-
-        return Card(
-          margin: const EdgeInsets.only(bottom: 12),
-          child: ListTile(
-            title: Text(set.title),
-            subtitle: Text.rich(
-              TextSpan(
-                text: '${set.cardsCount} ${_cardWord(set.cardsCount)}',
-                children: [
-                  if (set.isSaved)
-                    TextSpan(
-                      text: set.courseTitle == null
-                          ? ' · Сохранённый набор'
-                          : ' · ${set.courseTitle}',
-                    ),
-                  if (hasUpdate)
-                    TextSpan(
-                      text: ' · Доступно обновление',
-                      style: TextStyle(color: theme.colorScheme.tertiary),
-                    ),
-                  if (set.isSaved && set.hasUpdates)
-                    TextSpan(
-                      text: ' · Оригинал обновлён',
-                      style: TextStyle(color: theme.colorScheme.tertiary),
-                    ),
-                ],
-              ),
-              style: theme.textTheme.bodySmall,
-            ),
-            trailing: isDownloading
-                ? const SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : isDownloaded && !hasUpdate
-                ? const Icon(Icons.download_done, semanticLabel: 'Скачано')
-                : IconButton(
-                    icon: Icon(
-                      hasUpdate
-                          ? Icons.system_update_alt
-                          : Icons.download_outlined,
-                    ),
-                    tooltip: hasUpdate
-                        ? 'Обновить скачанный набор'
-                        : 'Скачать для офлайна',
-                    onPressed: state.isOnline
-                        ? () => notifier.downloadSet(set.id)
-                        : null,
-                  ),
-            onTap: () {
-              context.push(
-                '/set/${set.id}/study?title=${Uri.encodeComponent(set.title)}',
-              );
-            },
-          ),
-        );
-      },
+      itemBuilder: (context, index) =>
+          index == 0 ? header : buildSetTile(index - 1, reorderable: false),
     );
   }
 

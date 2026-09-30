@@ -12,6 +12,7 @@ void main() {
     final newest = sortList(
       items,
       ListSortMode.updatedDesc,
+      id: (item) => item.title,
       title: (item) => item.title,
       updatedAt: (item) => item.updated,
       size: (item) => item.size,
@@ -21,6 +22,7 @@ void main() {
     final alphabet = sortList(
       items,
       ListSortMode.titleAsc,
+      id: (item) => item.title,
       title: (item) => item.title,
       updatedAt: (item) => item.updated,
     );
@@ -29,10 +31,23 @@ void main() {
     final largest = sortList(
       items,
       ListSortMode.sizeDesc,
+      id: (item) => item.title,
       title: (item) => item.title,
       updatedAt: (item) => item.updated,
       size: (item) => item.size,
     );
     expect(largest.map((item) => item.size), [7, 4, 2]);
+  });
+
+  test('в ручном режиме новые элементы оказываются сверху', () {
+    final custom = sortList(
+      items,
+      ListSortMode.custom,
+      id: (item) => item.title,
+      title: (item) => item.title,
+      updatedAt: (item) => item.updated,
+      customOrder: ['Бета', 'Альфа'],
+    );
+    expect(custom.map((item) => item.title), ['Гамма', 'Бета', 'Альфа']);
   });
 }
