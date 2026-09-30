@@ -178,8 +178,12 @@ class CourseViewState {
 
 /// Структура курса: локально сразу, затем скачивание с сервера в фоне.
 class CourseViewNotifier extends StateNotifier<CourseViewState> {
-  CourseViewNotifier(this._repo, this._maintenance, this._courseId)
-    : super(
+  CourseViewNotifier(
+    this._repo,
+    this._maintenance,
+    this._courseId,
+    this._downloadSets,
+  ) : super(
         CourseViewState(
           sections: const [],
           articles: const [],
@@ -193,6 +197,7 @@ class CourseViewNotifier extends StateNotifier<CourseViewState> {
   final CourseRepository _repo;
   final OfflineCacheMaintenance _maintenance;
   final String _courseId;
+  final bool _downloadSets;
 
   Future<void> _init() async {
     await _loadLocal();
@@ -214,9 +219,10 @@ class CourseViewNotifier extends StateNotifier<CourseViewState> {
   /// Скачать курс заново с сервера (структура + теория) и перечитать из БД.
   Future<void> refresh() async {
     try {
-      await _repo.downloadCourseForOffline(_courseId);
-      await _maintenance.pruneMedia();
+      final detail = await _repo.downloadCourse(_courseId);
       await _loadLocal();
+      if (_downloadSets) await _repo.downloadCourseSets(detail);
+      await _maintenance.pruneMedia();
       state = state.copyWith(isOnline: true, error: null);
     } catch (_) {
       // Офлайн: если структуры вообще нет локально — сообщаем, иначе молчим.
@@ -236,5 +242,9 @@ final courseViewProvider = StateNotifierProvider.autoDispose
         ref.watch(courseRepositoryProvider),
         ref.watch(offlineCacheMaintenanceProvider),
         courseId,
+        ref
+            .read(coursesListProvider)
+            .courses
+            .any((course) => course.id == courseId),
       );
     });

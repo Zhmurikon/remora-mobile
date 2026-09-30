@@ -12,6 +12,13 @@ class CatalogScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(catalogProvider);
+    ref.listen(catalogProvider.select((value) => value.error), (_, error) {
+      if (error == null) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error)));
+      ref.read(catalogProvider.notifier).clearError();
+    });
 
     return Scaffold(
       appBar: AppBar(title: const Text('Каталог')),
@@ -79,13 +86,18 @@ class CatalogScreen extends ConsumerWidget {
   }
 }
 
-class _CourseCard extends StatelessWidget {
+class _CourseCard extends ConsumerWidget {
   const _CourseCard({required this.item});
 
   final CourseSearchItem item;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(catalogProvider);
+    final notifier = ref.read(catalogProvider.notifier);
+    final isSaved = state.savedCourseIds.contains(item.id);
+    final isOwned = state.ownedCourseIds.contains(item.id);
+    final isBusy = state.busyCourseIds.contains(item.id);
     return Card(
       margin: EdgeInsets.zero,
       child: InkWell(
@@ -149,11 +161,109 @@ class _CourseCard extends StatelessWidget {
                   for (final tag in item.tags.take(2)) Chip(label: Text(tag)),
                 ],
               ),
+              if (!isOwned) ...[
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: isBusy
+                            ? null
+                            : isSaved
+                            ? () => _confirmRemove(context, notifier)
+                            : () => notifier.saveCourse(item.id),
+                        icon: isBusy
+                            ? const SizedBox.square(
+                                dimension: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : Icon(
+                                isSaved
+                                    ? Icons.bookmark
+                                    : Icons.bookmark_outline,
+                              ),
+                        label: Text(isSaved ? 'Сохранён' : 'Сохранить'),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton.filledTonal(
+                      onPressed: isBusy
+                          ? null
+                          : () => _confirmCopy(context, notifier),
+                      tooltip: 'Создать независимую копию',
+                      icon: const Icon(Icons.content_copy_outlined),
+                    ),
+                  ],
+                ),
+              ] else ...[
+                const SizedBox(height: 12),
+                Text('Ваш курс', style: Theme.of(context).textTheme.labelLarge),
+              ],
             ],
           ),
         ),
       ),
     );
+  }
+
+  Future<void> _confirmRemove(
+    BuildContext context,
+    CatalogNotifier notifier,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Убрать из сохранённых?'),
+        content: const Text(
+          'Курс исчезнет из библиотеки. Уже скачанные данные удалятся при синхронизации.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Отмена'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Убрать'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) await notifier.removeCourse(item.id);
+  }
+
+  Future<void> _confirmCopy(
+    BuildContext context,
+    CatalogNotifier notifier,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Создать копию курса?'),
+        content: const Text(
+          'Появится отдельный приватный курс. Его можно менять независимо от оригинала.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Отмена'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Создать копию'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+    final copied = await notifier.copyCourse(item.id);
+    if (copied != null && context.mounted) {
+      context.push(
+        '/course/${copied.id}?title=${Uri.encodeComponent(copied.title)}',
+      );
+    }
   }
 }
 

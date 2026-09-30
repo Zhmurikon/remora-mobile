@@ -232,7 +232,7 @@ class CourseRepository {
     await _db.syncMeta.insertOnConflictUpdate(
       SyncMetaCompanion(
         entityType: const Value('course'),
-        entityId: Value(courseId),
+        entityId: Value(detail.id),
         lastSyncedAt: Value(DateTime.now()),
         revision: Value(_contentRevision(detail.updatedAt)),
       ),
@@ -244,8 +244,13 @@ class CourseRepository {
   /// Полная офлайн-копия: теория, медиа и наборы всех статей.
   Future<CourseDetailData> downloadCourseForOffline(String courseId) async {
     final detail = await downloadCourse(courseId);
+    await downloadCourseSets(detail);
+    return detail;
+  }
+
+  Future<void> downloadCourseSets(CourseDetailData detail) async {
     final sets = _sets;
-    if (sets == null) return detail;
+    if (sets == null) return;
     final setIds = <String>{
       for (final section in detail.sections)
         for (final article in section.articles) article.setId,
@@ -256,12 +261,11 @@ class CourseRepository {
     await _db.syncMeta.insertOnConflictUpdate(
       SyncMetaCompanion(
         entityType: const Value('course_bundle'),
-        entityId: Value(courseId),
+        entityId: Value(detail.id),
         lastSyncedAt: Value(DateTime.now()),
         revision: Value(_contentRevision(detail.updatedAt)),
       ),
     );
-    return detail;
   }
 
   Future<Set<String>> getDownloadedCourseIds() async {

@@ -308,4 +308,33 @@ void main() {
     expect(result.items.single.cardsCount, 120);
     expect(result.nextCursor, 20);
   });
+
+  group('действия каталога', () {
+    test('разбирает состояние сохранений курса', () {
+      final state = CourseLibraryStateData.fromJson({
+        'course_saved': true,
+        'saved_article_ids': ['article-1'],
+        'saved_set_ids': ['set-1'],
+      });
+
+      expect(state.courseSaved, isTrue);
+      expect(state.savedArticleIds, {'article-1'});
+      expect(state.savedSetIds, {'set-1'});
+    });
+
+    test('разбирает результаты сохранения и копирования', () {
+      final saved = LibrarySaveData.fromJson({
+        'id': 'save-1',
+        'target_id': 'course-1',
+      });
+      final copied = CopiedCourseData.fromJson({
+        'id': 'copy-1',
+        'title': 'Копия курса',
+      });
+
+      expect(saved.id, 'save-1');
+      expect(saved.targetId, 'course-1');
+      expect(copied.id, 'copy-1');
+    });
+  });
 }

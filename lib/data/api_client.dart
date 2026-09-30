@@ -255,6 +255,52 @@ class RemoraApiClient {
     return CourseDetailData.fromJson(response.data as Map<String, dynamic>);
   }
 
+  Future<CourseLibraryStateData> getCourseLibraryState(String slug) async {
+    final response = await _dio.get('/api/v1/library/courses/$slug/state');
+    return CourseLibraryStateData.fromJson(
+      response.data as Map<String, dynamic>,
+    );
+  }
+
+  Future<LibrarySaveData> saveToLibrary({
+    required String targetType,
+    required String targetId,
+  }) async {
+    final response = await _dio.post(
+      '/api/v1/library',
+      data: {'target_type': targetType, 'target_id': targetId},
+    );
+    return LibrarySaveData.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  Future<void> removeFromLibrary(String saveId) async {
+    await _dio.delete('/api/v1/library/$saveId');
+  }
+
+  Future<CopiedCourseData> copyCourse(
+    String courseId, {
+    String? articleId,
+    required String idempotencyKey,
+  }) async {
+    final response = await _dio.post(
+      '/api/v1/courses/$courseId/copy',
+      data: {'article_id': articleId},
+      options: Options(headers: {'Idempotency-Key': idempotencyKey}),
+    );
+    return CopiedCourseData.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  Future<CopiedSetData> copySet(
+    String setId, {
+    required String idempotencyKey,
+  }) async {
+    final response = await _dio.post(
+      '/api/v1/sets/$setId/copy',
+      options: Options(headers: {'Idempotency-Key': idempotencyKey}),
+    );
+    return CopiedSetData.fromJson(response.data as Map<String, dynamic>);
+  }
+
   /// Публичные курсы. Каталог работает только онлайн.
   Future<CourseSearchResult> searchCourses({
     String query = '',
@@ -413,6 +459,70 @@ class CourseSearchItem {
   final int cardsCount;
   final int savesCount;
   final DateTime updatedAt;
+}
+
+class CourseLibraryStateData {
+  const CourseLibraryStateData({
+    required this.courseSaved,
+    required this.savedArticleIds,
+    required this.savedSetIds,
+  });
+
+  factory CourseLibraryStateData.fromJson(Map<String, dynamic> json) {
+    return CourseLibraryStateData(
+      courseSaved: json['course_saved'] as bool,
+      savedArticleIds: (json['saved_article_ids'] as List)
+          .cast<String>()
+          .toSet(),
+      savedSetIds: (json['saved_set_ids'] as List).cast<String>().toSet(),
+    );
+  }
+
+  final bool courseSaved;
+  final Set<String> savedArticleIds;
+  final Set<String> savedSetIds;
+}
+
+class LibrarySaveData {
+  const LibrarySaveData({required this.id, required this.targetId});
+
+  factory LibrarySaveData.fromJson(Map<String, dynamic> json) {
+    return LibrarySaveData(
+      id: json['id'] as String,
+      targetId: json['target_id'] as String,
+    );
+  }
+
+  final String id;
+  final String targetId;
+}
+
+class CopiedCourseData {
+  const CopiedCourseData({required this.id, required this.title});
+
+  factory CopiedCourseData.fromJson(Map<String, dynamic> json) {
+    return CopiedCourseData(
+      id: json['id'] as String,
+      title: json['title'] as String,
+    );
+  }
+
+  final String id;
+  final String title;
+}
+
+class CopiedSetData {
+  const CopiedSetData({required this.id, required this.title});
+
+  factory CopiedSetData.fromJson(Map<String, dynamic> json) {
+    return CopiedSetData(
+      id: json['id'] as String,
+      title: json['title'] as String,
+    );
+  }
+
+  final String id;
+  final String title;
 }
 
 class AuthResponse {
