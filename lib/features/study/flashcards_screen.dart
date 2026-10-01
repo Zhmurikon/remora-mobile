@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -20,54 +18,38 @@ class FlashcardsScreen extends ConsumerStatefulWidget {
   ConsumerState<FlashcardsScreen> createState() => _FlashcardsScreenState();
 }
 
-class _FlashcardsScreenState extends ConsumerState<FlashcardsScreen>
-    with SingleTickerProviderStateMixin {
+class _FlashcardsScreenState extends ConsumerState<FlashcardsScreen> {
+  final _keyboardFocus = FocusNode();
   bool _isFlipped = false;
-  late AnimationController _flipController;
-  late Animation<double> _flipAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _flipController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 300),
-    );
-    _flipAnimation = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(parent: _flipController, curve: Curves.easeInOut),
-    );
-  }
+  bool _submitting = false;
 
   @override
   void dispose() {
-    _flipController.dispose();
+    _keyboardFocus.dispose();
     super.dispose();
   }
 
   void _flip() {
-    if (_isFlipped) {
-      _flipController.reverse();
-    } else {
-      _flipController.forward();
-    }
+    if (_submitting) return;
+    HapticFeedback.selectionClick();
     setState(() => _isFlipped = !_isFlipped);
   }
 
-  void _resetFlip() {
-    _flipController.reset();
-    _isFlipped = false;
-  }
-
   Future<void> _rate(int rating) async {
+    if (_submitting) return;
     final state = ref.read(studySessionProvider);
     final item = state.currentItem;
     if (item == null) return;
 
-    await ref.read(studySessionProvider.notifier).answer(
-          item: item,
-          rating: rating,
-        );
-    _resetFlip();
+    setState(() => _submitting = true);
+    await ref
+        .read(studySessionProvider.notifier)
+        .answer(item: item, rating: rating);
+    if (!mounted) return;
+    setState(() {
+      _isFlipped = false;
+      _submitting = false;
+    });
   }
 
   @override
@@ -76,8 +58,7 @@ class _FlashcardsScreenState extends ConsumerState<FlashcardsScreen>
 
     ref.listen<StudySessionState>(studySessionProvider, (prev, next) {
       if (next.isFinished && !(prev?.isFinished ?? false)) {
-        final setId =
-            GoRouterState.of(context).pathParameters['setId'] ?? '';
+        final setId = GoRouterState.of(context).pathParameters['setId'] ?? '';
         context.go('/set/$setId/study/result');
       }
     });
@@ -88,14 +69,12 @@ class _FlashcardsScreenState extends ConsumerState<FlashcardsScreen>
 
     final item = state.currentItem;
     if (item == null) {
-      return const StudyShell(
-        child: Center(child: Text('Очередь пуста')),
-      );
+      return const StudyShell(child: Center(child: Text('Очередь пуста')));
     }
 
     return StudyShell(
       child: KeyboardListener(
-        focusNode: FocusNode(),
+        focusNode: _keyboardFocus,
         autofocus: true,
         onKeyEvent: (event) {
           if (event is! KeyDownEvent) return;
@@ -113,74 +92,80 @@ class _FlashcardsScreenState extends ConsumerState<FlashcardsScreen>
               if (_isFlipped) _rate(4);
           }
         },
-        child: _buildCard(context, item, state),
-      ),
-    );
-  }
-
-  /// Высота зоны с кнопками самооценки резервируется заранее — так карточка
-  /// не скачет по высоте в момент переворота, когда кнопки появляются.
-  static const double _ratingAreaHeight = 78;
-
-  Widget _buildCard(BuildContext context, QueueItem item, StudySessionState state) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    return GestureDetector(
-      onTap: _flip,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Expanded(
-              child: AnimatedBuilder(
-                animation: _flipAnimation,
-                builder: (context, child) {
-                  final angle = _flipAnimation.value * math.pi;
-                  final isAnswer = angle > math.pi / 2;
-                  final face = _buildCardFace(
-                    context,
-                    item: item,
-                    isAnswer: isAnswer,
-                    isDark: isDark,
-                  );
-                  return Transform(
-                    alignment: Alignment.center,
-                    transform: Matrix4.identity()
-                      ..setEntry(3, 2, 0.0012)
-                      ..rotateY(angle),
-                    child: isAnswer
-                        ? Transform(
-                            alignment: Alignment.center,
-                            // Разворачиваем содержимое обратно, иначе текст
-                            // на второй половине анимации получается зеркальным.
-                            transform: Matrix4.identity()..rotateY(math.pi),
-                            child: face,
-                          )
-                        : face,
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              height: _ratingAreaHeight,
-              child: _isFlipped
-                  ? _buildRatingButtons(context, item, state)
-                  : null,
-            ),
-          ],
+        child: FlashcardStudyView(
+          item: item,
+          isFlipped: _isFlipped,
+          submitting: _submitting,
+          onFlip: _flip,
+          onRate: _rate,
         ),
       ),
     );
   }
+}
 
-  Widget _buildCardFace(
-    BuildContext context, {
-    required QueueItem item,
-    required bool isAnswer,
-    required bool isDark,
-  }) {
+class FlashcardStudyView extends StatelessWidget {
+  const FlashcardStudyView({
+    required this.item,
+    required this.isFlipped,
+    required this.submitting,
+    required this.onFlip,
+    required this.onRate,
+    super.key,
+  });
+
+  final QueueItem item;
+  final bool isFlipped;
+  final bool submitting;
+  final VoidCallback onFlip;
+  final ValueChanged<int> onRate;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(RemoraSpacing.md),
+      child: Column(
+        children: [
+          Expanded(
+            child: AnimatedSwitcher(
+              duration: MediaQuery.disableAnimationsOf(context)
+                  ? Duration.zero
+                  : const Duration(milliseconds: 180),
+              switchInCurve: Curves.easeOutCubic,
+              switchOutCurve: Curves.easeOutCubic,
+              child: _FlashcardSurface(
+                key: ValueKey(isFlipped),
+                item: item,
+                isAnswer: isFlipped,
+                onFlip: onFlip,
+              ),
+            ),
+          ),
+          if (isFlipped) ...[
+            const SizedBox(height: RemoraSpacing.md),
+            _RatingPanel(item: item, submitting: submitting, onRate: onRate),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _FlashcardSurface extends StatelessWidget {
+  const _FlashcardSurface({
+    required this.item,
+    required this.isAnswer,
+    required this.onFlip,
+    super.key,
+  });
+
+  final QueueItem item;
+  final bool isAnswer;
+  final VoidCallback onFlip;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final isTermToDef = item.direction == 'term_to_def';
     final text = isAnswer
         ? (isTermToDef ? item.card.definition : item.card.term)
@@ -189,166 +174,229 @@ class _FlashcardsScreenState extends ConsumerState<FlashcardsScreen>
         ? (isTermToDef ? item.card.definitionImageUrl : item.card.termImageUrl)
         : (isTermToDef ? item.card.termImageUrl : item.card.definitionImageUrl);
 
-    final faceColor = isAnswer
-        ? (isDark ? RemoraColors.darkSurfaceMuted : RemoraColors.lightSurfaceMuted)
-        : (isDark ? RemoraColors.darkSurface : RemoraColors.lightSurface);
-    final borderColor = isDark ? RemoraColors.darkBorder : RemoraColors.lightBorder;
-    final labelColor = isAnswer
-        ? (isDark ? RemoraColors.darkPrimary : RemoraColors.lightPrimary)
-        : (isDark ? RemoraColors.darkFgSubtle : RemoraColors.lightFgSubtle);
-    final subtleColor =
-        isDark ? RemoraColors.darkFgSubtle : RemoraColors.lightFgSubtle;
-
-    return Container(
-      width: double.infinity,
-      height: double.infinity,
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: faceColor,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: borderColor),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.08),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            isAnswer ? 'ОТВЕТ' : 'ВОПРОС',
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: labelColor,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1.1,
-                ),
-          ),
-          if (!isAnswer && item.card.hint != null) ...[
-            const SizedBox(height: 12),
-            Align(
-              alignment: Alignment.center,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: isDark
-                      ? RemoraColors.darkAccentSubtle
-                      : RemoraColors.lightAccentSubtle,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  '💡 ${item.card.hint!}',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: isDark
-                        ? RemoraColors.darkAccent
-                        : RemoraColors.lightAccent,
-                  ),
-                ),
-              ),
-            ),
-          ],
-          Expanded(
-            child: Center(
-              child: SingleChildScrollView(
-                child: CardContentWidget(
-                  value: text,
-                  contentType: item.card.contentType,
-                  codeLanguage: item.card.codeLanguage,
-                  imageUrl: imageUrl,
-                ),
-              ),
-            ),
-          ),
-          if (!isAnswer)
-            Align(
-              alignment: Alignment.center,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.flip, size: 14, color: subtleColor),
-                  const SizedBox(width: 6),
-                  Text(
-                    'Нажмите, чтобы перевернуть',
-                    style: TextStyle(fontSize: 13, color: subtleColor),
-                  ),
-                ],
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRatingButtons(
-      BuildContext context, QueueItem item, StudySessionState state) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    final labels = ['Не помню', 'Трудно', 'Хорошо', 'Легко'];
-    final colors = [
-      isDark ? RemoraColors.darkDanger : RemoraColors.lightDanger,
-      isDark ? RemoraColors.darkWarning : RemoraColors.lightWarning,
-      isDark ? RemoraColors.darkSuccess : RemoraColors.lightSuccess,
-      isDark ? RemoraColors.darkPrimary : RemoraColors.lightPrimary,
-    ];
-
-    return Row(
-      children: List.generate(4, (i) {
-        final rating = i + 1;
-        final preview = item.previews
-            .where((p) => p.rating == rating)
-            .firstOrNull;
-        final intervalLabel = preview != null
-            ? formatIntervalSeconds(preview.intervalSeconds)
-            : '';
-
-        return Expanded(
+    return Semantics(
+      button: !isAnswer,
+      liveRegion: isAnswer,
+      label: isAnswer ? 'Ответ. $text' : 'Вопрос. $text. Показать ответ',
+      onTap: isAnswer ? null : onFlip,
+      child: Material(
+        color: isAnswer
+            ? context.remora.surfaceMuted
+            : theme.colorScheme.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(RemoraRadii.large),
+          side: BorderSide(color: theme.colorScheme.outline),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: isAnswer ? null : onFlip,
           child: Padding(
-            padding: EdgeInsets.only(left: i > 0 ? 8 : 0),
+            padding: const EdgeInsets.all(RemoraSpacing.xl),
             child: Column(
-              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                if (intervalLabel.isNotEmpty)
-                  Text(
-                    intervalLabel,
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: isDark
-                          ? RemoraColors.darkFgSubtle
-                          : RemoraColors.lightFgSubtle,
-                    ),
+                Text(
+                  isAnswer ? 'ОТВЕТ' : 'ВОПРОС',
+                  style: context.remoraType.compactLabel.copyWith(
+                    color: isAnswer
+                        ? theme.colorScheme.primary
+                        : context.remora.textSubtle,
                   ),
-                const SizedBox(height: 4),
-                SizedBox(
-                  height: 48,
-                  child: ElevatedButton(
-                    onPressed: () => _rate(rating),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: colors[i],
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+                ),
+                if (!isAnswer && item.card.hint != null) ...[
+                  const SizedBox(height: RemoraSpacing.md),
+                  _StudyHint(text: item.card.hint!),
+                ],
+                Expanded(
+                  child: Center(
+                    child: SingleChildScrollView(
+                      child: CardContentWidget(
+                        value: text,
+                        contentType: item.card.contentType,
+                        codeLanguage: item.card.codeLanguage,
+                        imageUrl: imageUrl,
                       ),
                     ),
-                    child: Text(
-                      labels[i],
-                      style: const TextStyle(fontSize: 13),
-                      overflow: TextOverflow.ellipsis,
-                    ),
                   ),
                 ),
+                if (!isAnswer)
+                  Center(
+                    child: TextButton.icon(
+                      onPressed: onFlip,
+                      icon: const Icon(Icons.touch_app_rounded),
+                      label: const Text('Показать ответ'),
+                    ),
+                  ),
               ],
             ),
           ),
-        );
-      }),
+        ),
+      ),
     );
   }
+}
 
+class _StudyHint extends StatelessWidget {
+  const _StudyHint({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(
+          Icons.lightbulb_outline_rounded,
+          size: 20,
+          color: theme.colorScheme.tertiary,
+        ),
+        const SizedBox(width: RemoraSpacing.xs),
+        Expanded(child: Text(text, style: theme.textTheme.bodyMedium)),
+      ],
+    );
+  }
+}
+
+class _RatingPanel extends StatelessWidget {
+  const _RatingPanel({
+    required this.item,
+    required this.submitting,
+    required this.onRate,
+  });
+
+  final QueueItem item;
+  final bool submitting;
+  final ValueChanged<int> onRate;
+
+  @override
+  Widget build(BuildContext context) {
+    final textScale = MediaQuery.textScalerOf(context).scale(1);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final stacked = textScale > 1.15 || constraints.maxWidth < 380;
+        final children = List.generate(4, (index) {
+          final rating = index + 1;
+          final preview = item.previews
+              .where((value) => value.rating == rating)
+              .firstOrNull;
+          final interval = preview == null
+              ? null
+              : formatIntervalSeconds(preview.intervalSeconds);
+          return _RatingButton(
+            rating: rating,
+            interval: interval,
+            enabled: !submitting,
+            onPressed: () => onRate(rating),
+          );
+        });
+
+        if (stacked) {
+          return GridView.count(
+            crossAxisCount: 2,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            mainAxisSpacing: RemoraSpacing.xs,
+            crossAxisSpacing: RemoraSpacing.xs,
+            childAspectRatio: 2.5,
+            children: children,
+          );
+        }
+        return Row(
+          children: [
+            for (var index = 0; index < children.length; index++) ...[
+              if (index > 0) const SizedBox(width: RemoraSpacing.xs),
+              Expanded(child: children[index]),
+            ],
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _RatingButton extends StatelessWidget {
+  const _RatingButton({
+    required this.rating,
+    required this.interval,
+    required this.enabled,
+    required this.onPressed,
+  });
+
+  final int rating;
+  final String? interval;
+  final bool enabled;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final labels = ['Не помню', 'Трудно', 'Хорошо', 'Легко'];
+    final colors = [
+      theme.colorScheme.error,
+      context.remora.warning,
+      theme.colorScheme.primary,
+      context.remora.success,
+    ];
+    final label = labels[rating - 1];
+    final color = colors[rating - 1];
+    final semantics = interval == null
+        ? label
+        : '$label, следующая через $interval';
+
+    return Semantics(
+      button: true,
+      enabled: enabled,
+      label: semantics,
+      child: ExcludeSemantics(
+        child: SizedBox(
+          height: 64,
+          child: rating == 3
+              ? FilledButton(
+                  onPressed: enabled ? onPressed : null,
+                  child: _RatingLabel(label: label, interval: interval),
+                )
+              : OutlinedButton(
+                  onPressed: enabled ? onPressed : null,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: color,
+                    side: BorderSide(color: color),
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                  ),
+                  child: _RatingLabel(label: label, interval: interval),
+                ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RatingLabel extends StatelessWidget {
+  const _RatingLabel({required this.label, required this.interval});
+
+  final String label;
+  final String? interval;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontWeight: FontWeight.w700),
+        ),
+        if (interval != null)
+          Text(
+            interval!,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.labelSmall,
+          ),
+      ],
+    );
+  }
 }

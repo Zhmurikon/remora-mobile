@@ -154,6 +154,18 @@ final routerProvider = Provider<GoRouter>((ref) {
         },
       ),
       GoRoute(
+        path: '/set/:setId/quiz',
+        builder: (context, state) {
+          final setId = state.pathParameters['setId']!;
+          final setTitle = state.uri.queryParameters['title'] ?? 'Набор';
+          return TestSetupScreen(
+            setId: setId,
+            setTitle: setTitle,
+            customQuiz: true,
+          );
+        },
+      ),
+      GoRoute(
         path: '/set/:setId/test/:attemptId',
         builder: (context, state) {
           final setId = state.pathParameters['setId']!;

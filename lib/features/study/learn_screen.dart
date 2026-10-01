@@ -66,7 +66,9 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
         !correct || (priorSuccesses + 1) < state.learnSuccessesRequired;
     if (correct) _successCounts[key] = priorSuccesses + 1;
 
-    await ref.read(studySessionProvider.notifier).answer(
+    await ref
+        .read(studySessionProvider.notifier)
+        .answer(
           item: item,
           rating: rating,
           answerCorrect: correct,
@@ -101,20 +103,11 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
       _verdict = correct ? 'correct' : 'incorrect';
       _similarity = best;
     });
-    if (correct) {
-      Future.delayed(const Duration(milliseconds: 450), () {
-        if (mounted) _advance(3, true);
-      });
-    }
   }
 
-  void _pickOption(String option, String expected) {
+  void _pickOption(String option) {
     if (_pickedOption != null) return;
-    final correct = normalizeOption(option) == normalizeOption(expected);
     setState(() => _pickedOption = option);
-    Future.delayed(Duration(milliseconds: correct ? 450 : 1400), () {
-      if (mounted) _advance(correct ? 3 : 1, correct);
-    });
   }
 
   @override
@@ -123,8 +116,7 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
 
     ref.listen<StudySessionState>(studySessionProvider, (prev, next) {
       if (next.isFinished && !(prev?.isFinished ?? false)) {
-        final setId =
-            GoRouterState.of(context).pathParameters['setId'] ?? '';
+        final setId = GoRouterState.of(context).pathParameters['setId'] ?? '';
         context.go('/set/$setId/study/result');
       }
     });
@@ -135,9 +127,7 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
 
     final item = state.currentItem;
     if (item == null) {
-      return const StudyShell(
-        child: Center(child: Text('Очередь пуста')),
-      );
+      return const StudyShell(child: Center(child: Text('Очередь пуста')));
     }
 
     final pool = _answerPool(state, item.direction);
@@ -152,9 +142,7 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
         child: Column(
           children: [
             _buildHeader(context, kind, currentSuccesses, state),
-            Expanded(
-              child: _buildQuestion(context, item, state, kind, pool),
-            ),
+            Expanded(child: _buildQuestion(context, item, state, kind, pool)),
           ],
         ),
       ),
@@ -180,36 +168,46 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
     final preferred = isTermToDef
         ? item.card.wrongDefinitionAnswers
         : item.card.wrongTermAnswers;
-    final options = generateOptions(DistractorOptions(
-      correct: expected,
-      pool: pool,
-      preferred: preferred,
-      alternatives: item.card.altAnswers,
-      seed: item.card.id,
-    ));
+    final options = generateOptions(
+      DistractorOptions(
+        correct: expected,
+        pool: pool,
+        preferred: preferred,
+        alternatives: item.card.altAnswers,
+        seed: item.card.id,
+      ),
+    );
     return options.length == 4;
   }
 
   List<String> _choiceOptions(
-      QueueItem item, StudySessionState state, List<String> pool) {
+    QueueItem item,
+    StudySessionState state,
+    List<String> pool,
+  ) {
     final isTermToDef = item.direction == 'term_to_def';
     final expected = isTermToDef ? item.card.definition : item.card.term;
     final preferred = isTermToDef
         ? item.card.wrongDefinitionAnswers
         : item.card.wrongTermAnswers;
-    return generateOptions(DistractorOptions(
-      correct: expected,
-      pool: pool.where((v) => v != expected).toList(),
-      preferred: preferred,
-      alternatives: item.card.altAnswers,
-      seed: '${item.card.id}:${item.direction}:${state.index}',
-    ));
+    return generateOptions(
+      DistractorOptions(
+        correct: expected,
+        pool: pool.where((v) => v != expected).toList(),
+        preferred: preferred,
+        alternatives: item.card.altAnswers,
+        seed: '${item.card.id}:${item.direction}:${state.index}',
+      ),
+    );
   }
 
   /// Чем крепче карточка, тем строже спрашиваем; тип берём из включённых
   /// в настройках, с запасным вариантом, если предпочитаемый недоступен.
   String _questionKind(
-      QueueItem item, StudySessionState state, bool hasChoice) {
+    QueueItem item,
+    StudySessionState state,
+    bool hasChoice,
+  ) {
     final available = state.learnQuestionTypes
         .where((k) => k != 'choice' || hasChoice)
         .toList();
@@ -247,37 +245,71 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
     StudySessionState state,
   ) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final subtle =
-        isDark ? RemoraColors.darkFgSubtle : RemoraColors.lightFgSubtle;
     final required = state.learnSuccessesRequired;
     final label = required > 1
         ? '${_kindLabel(kind)} · успешно $successes из $required'
         : _kindLabel(kind);
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Text(label, style: TextStyle(fontSize: 13, color: subtle)),
+      padding: const EdgeInsets.only(bottom: RemoraSpacing.sm),
+      child: Text(
+        label,
+        style: theme.textTheme.titleSmall?.copyWith(
+          color: context.remora.textSubtle,
+        ),
+      ),
     );
   }
 
-  Widget _hintChip(BuildContext context, String hint, bool isDark) {
+  Widget _hintChip(BuildContext context, String hint) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: isDark
-              ? RemoraColors.darkAccentSubtle
-              : RemoraColors.lightAccentSubtle,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Text(
-          '💡 $hint',
-          style: TextStyle(
-            fontSize: 13,
-            color: isDark ? RemoraColors.darkAccent : RemoraColors.lightAccent,
+      padding: const EdgeInsets.only(bottom: RemoraSpacing.sm),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.lightbulb_outline_rounded,
+            size: 20,
+            color: Theme.of(context).colorScheme.tertiary,
           ),
+          const SizedBox(width: RemoraSpacing.xs),
+          Expanded(
+            child: Text(hint, style: Theme.of(context).textTheme.bodyMedium),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _questionSurface(
+    BuildContext context, {
+    required String label,
+    required Widget child,
+    bool answer = false,
+  }) {
+    final theme = Theme.of(context);
+    return Material(
+      color: answer ? context.remora.surfaceMuted : theme.colorScheme.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(RemoraRadii.large),
+        side: BorderSide(color: theme.colorScheme.outline),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(RemoraSpacing.xl),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              label,
+              style: context.remoraType.compactLabel.copyWith(
+                color: answer
+                    ? theme.colorScheme.primary
+                    : context.remora.textSubtle,
+              ),
+            ),
+            const SizedBox(height: RemoraSpacing.lg),
+            child,
+          ],
         ),
       ),
     );
@@ -314,25 +346,35 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
     final isTermToDef = item.direction == 'term_to_def';
     final questionText = isTermToDef ? item.card.term : item.card.definition;
     final expected = isTermToDef ? item.card.definition : item.card.term;
-    final questionImage =
-        isTermToDef ? item.card.termImageUrl : item.card.definitionImageUrl;
+    final questionImage = isTermToDef
+        ? item.card.termImageUrl
+        : item.card.definitionImageUrl;
     final options = _choiceOptions(item, state, pool);
     final border = isDark ? RemoraColors.darkBorder : RemoraColors.lightBorder;
-    final success =
-        isDark ? RemoraColors.darkSuccess : RemoraColors.lightSuccess;
+    final success = isDark
+        ? RemoraColors.darkSuccess
+        : RemoraColors.lightSuccess;
     final danger = isDark ? RemoraColors.darkDanger : RemoraColors.lightDanger;
-    final subtle =
-        isDark ? RemoraColors.darkFgSubtle : RemoraColors.lightFgSubtle;
+    final subtle = isDark
+        ? RemoraColors.darkFgSubtle
+        : RemoraColors.lightFgSubtle;
+    final pickedCorrect =
+        _pickedOption != null &&
+        normalizeOption(_pickedOption!) == normalizeOption(expected);
 
     return SingleChildScrollView(
       child: Column(
         children: [
-          if (item.card.hint != null) _hintChip(context, item.card.hint!, isDark),
-          CardContentWidget(
-            value: questionText,
-            contentType: item.card.contentType,
-            codeLanguage: item.card.codeLanguage,
-            imageUrl: questionImage,
+          if (item.card.hint != null) _hintChip(context, item.card.hint!),
+          _questionSurface(
+            context,
+            label: 'ВОПРОС',
+            child: CardContentWidget(
+              value: questionText,
+              contentType: item.card.contentType,
+              codeLanguage: item.card.codeLanguage,
+              imageUrl: questionImage,
+            ),
           ),
           const SizedBox(height: 24),
           for (var i = 0; i < options.length; i++) ...[
@@ -347,6 +389,17 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
               subtle: subtle,
             ),
             if (i < options.length - 1) const SizedBox(height: 8),
+          ],
+          if (_pickedOption != null) ...[
+            const SizedBox(height: RemoraSpacing.md),
+            SizedBox(
+              width: double.infinity,
+              height: RemoraSizes.minTouchTarget,
+              child: FilledButton(
+                onPressed: () => _advance(pickedCorrect ? 3 : 1, pickedCorrect),
+                child: const Text('Дальше'),
+              ),
+            ),
           ],
         ],
       ),
@@ -364,7 +417,8 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
     required Color subtle,
   }) {
     final picked = _pickedOption;
-    final isCorrectOption = normalizeOption(option) == normalizeOption(expected);
+    final isCorrectOption =
+        normalizeOption(option) == normalizeOption(expected);
 
     var borderColor = border;
     Color? fillColor;
@@ -388,7 +442,7 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
         borderRadius: BorderRadius.circular(12),
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
-          onTap: picked == null ? () => _pickOption(option, expected) : null,
+          onTap: picked == null ? () => _pickOption(option) : null,
           child: Container(
             constraints: const BoxConstraints(minHeight: 48),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -398,7 +452,10 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
             ),
             child: Row(
               children: [
-                Text('${index + 1}', style: TextStyle(color: subtle, fontSize: 13)),
+                Text(
+                  '${index + 1}',
+                  style: TextStyle(color: subtle, fontSize: 13),
+                ),
                 const SizedBox(width: 12),
                 Expanded(child: Text(option)),
               ],
@@ -416,14 +473,15 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
     QueueItem item,
     StudySessionState state,
   ) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final isTermToDef = item.direction == 'term_to_def';
     final questionText = isTermToDef ? item.card.term : item.card.definition;
     final answerText = isTermToDef ? item.card.definition : item.card.term;
-    final questionImage =
-        isTermToDef ? item.card.termImageUrl : item.card.definitionImageUrl;
-    final answerImage =
-        isTermToDef ? item.card.definitionImageUrl : item.card.termImageUrl;
+    final questionImage = isTermToDef
+        ? item.card.termImageUrl
+        : item.card.definitionImageUrl;
+    final answerImage = isTermToDef
+        ? item.card.definitionImageUrl
+        : item.card.termImageUrl;
 
     return Column(
       children: [
@@ -432,28 +490,26 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                if (item.card.hint != null)
-                  _hintChip(context, item.card.hint!, isDark),
-                CardContentWidget(
-                  value: questionText,
-                  contentType: item.card.contentType,
-                  codeLanguage: item.card.codeLanguage,
-                  imageUrl: questionImage,
-                ),
-                const SizedBox(height: 24),
-                if (_showAnswer) ...[
-                  const Divider(height: 32),
-                  CardContentWidget(
-                    value: answerText,
+                if (item.card.hint != null) _hintChip(context, item.card.hint!),
+                _questionSurface(
+                  context,
+                  label: _showAnswer ? 'ОТВЕТ' : 'ВОПРОС',
+                  answer: _showAnswer,
+                  child: CardContentWidget(
+                    value: _showAnswer ? answerText : questionText,
                     contentType: item.card.contentType,
                     codeLanguage: item.card.codeLanguage,
-                    imageUrl: answerImage,
+                    imageUrl: _showAnswer ? answerImage : questionImage,
                   ),
-                ] else
-                  OutlinedButton(
+                ),
+                if (!_showAnswer) ...[
+                  const SizedBox(height: RemoraSpacing.md),
+                  FilledButton.tonalIcon(
                     onPressed: () => setState(() => _showAnswer = true),
-                    child: const Text('Показать ответ'),
+                    icon: const Icon(Icons.touch_app_rounded),
+                    label: const Text('Показать ответ'),
                   ),
+                ],
               ],
             ),
           ),
@@ -480,10 +536,12 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
     return Row(
       children: List.generate(4, (i) {
         final rating = i + 1;
-        final preview =
-            item.previews.where((p) => p.rating == rating).firstOrNull;
-        final intervalLabel =
-            preview != null ? formatIntervalSeconds(preview.intervalSeconds) : '';
+        final preview = item.previews
+            .where((p) => p.rating == rating)
+            .firstOrNull;
+        final intervalLabel = preview != null
+            ? formatIntervalSeconds(preview.intervalSeconds)
+            : '';
 
         return Expanded(
           child: Padding(
@@ -535,12 +593,12 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
     QueueItem item,
     StudySessionState state,
   ) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final isTermToDef = item.direction == 'term_to_def';
     final questionText = isTermToDef ? item.card.term : item.card.definition;
     final expected = isTermToDef ? item.card.definition : item.card.term;
-    final questionImage =
-        isTermToDef ? item.card.termImageUrl : item.card.definitionImageUrl;
+    final questionImage = isTermToDef
+        ? item.card.termImageUrl
+        : item.card.definitionImageUrl;
 
     return Column(
       children: [
@@ -548,13 +606,16 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
           child: SingleChildScrollView(
             child: Column(
               children: [
-                if (item.card.hint != null)
-                  _hintChip(context, item.card.hint!, isDark),
-                CardContentWidget(
-                  value: questionText,
-                  contentType: item.card.contentType,
-                  codeLanguage: item.card.codeLanguage,
-                  imageUrl: questionImage,
+                if (item.card.hint != null) _hintChip(context, item.card.hint!),
+                _questionSurface(
+                  context,
+                  label: 'ВОПРОС',
+                  child: CardContentWidget(
+                    value: questionText,
+                    contentType: item.card.contentType,
+                    codeLanguage: item.card.codeLanguage,
+                    imageUrl: questionImage,
+                  ),
                 ),
                 const SizedBox(height: 24),
                 TextField(
@@ -573,7 +634,8 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
                   textInputAction: TextInputAction.done,
                 ),
                 const SizedBox(height: 12),
-                if (_verdict != null) _buildTypingResult(context, expected, state),
+                if (_verdict != null)
+                  _buildTypingResult(context, expected, state),
                 if (_verdict == null) ...[
                   Row(
                     children: [
@@ -595,7 +657,7 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
             ),
           ),
         ),
-        if (_verdict == 'self_check' || _verdict == 'incorrect') ...[
+        if (_verdict != null) ...[
           const SizedBox(height: 16),
           _buildTypingPostButtons(context),
         ],
@@ -609,8 +671,9 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
     StudySessionState state,
   ) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final subtle =
-        isDark ? RemoraColors.darkFgSubtle : RemoraColors.lightFgSubtle;
+    final subtle = isDark
+        ? RemoraColors.darkFgSubtle
+        : RemoraColors.lightFgSubtle;
 
     if (_verdict == 'self_check') {
       return Container(
@@ -624,7 +687,10 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Правильный ответ', style: TextStyle(fontSize: 12, color: subtle)),
+            Text(
+              'Правильный ответ',
+              style: TextStyle(fontSize: 12, color: subtle),
+            ),
             const SizedBox(height: 4),
             Text(expected, style: const TextStyle(fontWeight: FontWeight.w600)),
           ],
@@ -652,11 +718,17 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
           if (_similarity != null)
             Text(
               'Совпадение: $_similarity% · нужно ${state.learnMatchPercent}%',
-              style: TextStyle(fontSize: 12, color: color.withValues(alpha: 0.8)),
+              style: TextStyle(
+                fontSize: 12,
+                color: color.withValues(alpha: 0.8),
+              ),
             ),
           if (!correct) ...[
             const SizedBox(height: 8),
-            Text('Ответ: $expected', style: const TextStyle(fontWeight: FontWeight.w500)),
+            Text(
+              'Ответ: $expected',
+              style: const TextStyle(fontWeight: FontWeight.w500),
+            ),
           ],
         ],
       ),
@@ -684,11 +756,12 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
       );
     }
 
+    final correct = _verdict == 'correct';
     return SizedBox(
       width: double.infinity,
       height: 48,
       child: FilledButton(
-        onPressed: () => _advance(1, false),
+        onPressed: () => _advance(correct ? 3 : 1, correct),
         child: const Text('Дальше'),
       ),
     );
