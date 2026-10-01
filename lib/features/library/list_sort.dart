@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -27,20 +28,22 @@ extension ListSortModeLabel on ListSortMode {
 }
 
 class ListSortNotifier extends StateNotifier<ListSortMode> {
-  ListSortNotifier(this._prefs, this._key)
+  ListSortNotifier([this._prefs, this._key])
     : super(
         ListSortMode.values.firstWhere(
-          (mode) => mode.name == _prefs.getString(_key),
-          orElse: () => ListSortMode.updatedDesc,
+          (mode) => mode.name == _prefs?.getString(_key ?? ''),
+          orElse: () => ListSortMode.custom,
         ),
       );
 
-  final SharedPreferences _prefs;
-  final String _key;
+  final SharedPreferences? _prefs;
+  final String? _key;
 
   Future<void> set(ListSortMode mode) async {
     state = mode;
-    await _prefs.setString(_key, mode.name);
+    if (_prefs != null && _key != null) {
+      await _prefs.setString(_key, mode.name);
+    }
   }
 }
 
@@ -72,6 +75,52 @@ final listOrderProvider =
         'list_order_$key',
       ),
     );
+
+class ReorderableCard extends StatelessWidget {
+  const ReorderableCard({
+    super.key,
+    required this.index,
+    required this.label,
+    required this.child,
+    this.onMoveEarlier,
+    this.onMoveLater,
+  });
+
+  final int index;
+  final String label;
+  final Widget child;
+  final VoidCallback? onMoveEarlier;
+  final VoidCallback? onMoveLater;
+
+  @override
+  Widget build(BuildContext context) {
+    final actions = <CustomSemanticsAction, VoidCallback>{};
+    if (onMoveEarlier != null) {
+      actions[const CustomSemanticsAction(label: 'Переместить выше')] =
+          onMoveEarlier!;
+    }
+    if (onMoveLater != null) {
+      actions[const CustomSemanticsAction(label: 'Переместить ниже')] =
+          onMoveLater!;
+    }
+    return Semantics(
+      label: label,
+      hint: 'Удерживайте карточку, чтобы изменить её место',
+      customSemanticsActions: actions,
+      child: ReorderableDelayedDragStartListener(index: index, child: child),
+    );
+  }
+}
+
+List<T> reorderListItem<T>(List<T> items, int oldIndex, int newIndex) {
+  if (oldIndex == newIndex || oldIndex < 0 || oldIndex >= items.length) {
+    return [...items];
+  }
+  final result = [...items];
+  final moved = result.removeAt(oldIndex);
+  result.insert(newIndex.clamp(0, result.length), moved);
+  return result;
+}
 
 List<T> sortList<T>(
   Iterable<T> items,
