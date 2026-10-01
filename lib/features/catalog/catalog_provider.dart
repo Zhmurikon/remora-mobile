@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../data/api_client.dart';
+import '../../data/network_errors.dart';
 import '../courses/courses_provider.dart';
 
 class CatalogState {
@@ -16,6 +17,9 @@ class CatalogState {
     this.ownedCourseIds = const {},
     this.saveIds = const {},
     this.busyCourseIds = const {},
+    this.nextCursor,
+    this.isLoadingMore = false,
+    this.loadError,
     this.error,
   });
 
@@ -27,6 +31,9 @@ class CatalogState {
   final Set<String> ownedCourseIds;
   final Map<String, String> saveIds;
   final Set<String> busyCourseIds;
+  final int? nextCursor;
+  final bool isLoadingMore;
+  final String? loadError;
   final String? error;
 
   CatalogState copyWith({
@@ -38,6 +45,11 @@ class CatalogState {
     Set<String>? ownedCourseIds,
     Map<String, String>? saveIds,
     Set<String>? busyCourseIds,
+    int? nextCursor,
+    bool clearNextCursor = false,
+    bool? isLoadingMore,
+    String? loadError,
+    bool clearLoadError = false,
     String? error,
     bool clearError = false,
   }) => CatalogState(
@@ -49,6 +61,9 @@ class CatalogState {
     ownedCourseIds: ownedCourseIds ?? this.ownedCourseIds,
     saveIds: saveIds ?? this.saveIds,
     busyCourseIds: busyCourseIds ?? this.busyCourseIds,
+    nextCursor: clearNextCursor ? null : nextCursor ?? this.nextCursor,
+    isLoadingMore: isLoadingMore ?? this.isLoadingMore,
+    loadError: clearLoadError ? null : loadError ?? this.loadError,
     error: clearError ? null : error ?? this.error,
   );
 }
@@ -62,6 +77,7 @@ class CatalogNotifier extends StateNotifier<CatalogState> {
   final Ref _ref;
   final _copyKeys = <String, String>{};
   Timer? _debounce;
+  var _requestGeneration = 0;
 
   void setQuery(String value) {
     _debounce?.cancel();
@@ -70,25 +86,74 @@ class CatalogNotifier extends StateNotifier<CatalogState> {
   }
 
   Future<void> search() async {
-    state = state.copyWith(isLoading: true, isOffline: false, clearError: true);
+    final generation = ++_requestGeneration;
+    final query = state.query;
+    state = state.copyWith(
+      isLoading: true,
+      isLoadingMore: false,
+      isOffline: false,
+      clearLoadError: true,
+      clearError: true,
+    );
     try {
       final results = await Future.wait([
-        _api.searchCourses(query: state.query),
+        _api.searchCourses(query: query),
         _api.getMyCourses(),
         _api.getSavedCourses(),
       ]);
+      if (generation != _requestGeneration || query != state.query) return;
       final result = results[0] as CourseSearchResult;
       final owned = results[1] as List<CourseSummaryData>;
       final saved = results[2] as List<SavedCourseSummaryData>;
       state = state.copyWith(
         items: result.items,
         isLoading: false,
+        nextCursor: result.nextCursor,
+        clearNextCursor: result.nextCursor == null,
         savedCourseIds: saved.map((course) => course.id).toSet(),
         ownedCourseIds: owned.map((course) => course.id).toSet(),
         saveIds: {for (final course in saved) course.id: course.saveId},
       );
+    } catch (error) {
+      if (generation != _requestGeneration || query != state.query) return;
+      final offline = isNetworkFailure(error);
+      state = state.copyWith(
+        isLoading: false,
+        isOffline: offline,
+        loadError: offline
+            ? null
+            : 'Не удалось загрузить каталог. Попробуйте ещё раз.',
+        clearLoadError: offline,
+        clearNextCursor: true,
+      );
+    }
+  }
+
+  Future<void> loadMore() async {
+    final cursor = state.nextCursor;
+    if (cursor == null || state.isLoading || state.isLoadingMore) return;
+    final generation = _requestGeneration;
+    final query = state.query;
+    state = state.copyWith(isLoadingMore: true, clearError: true);
+    try {
+      final result = await _api.searchCourses(query: query, cursor: cursor);
+      if (generation != _requestGeneration || query != state.query) return;
+      final knownIds = state.items.map((item) => item.id).toSet();
+      state = state.copyWith(
+        items: [
+          ...state.items,
+          ...result.items.where((item) => knownIds.add(item.id)),
+        ],
+        nextCursor: result.nextCursor,
+        clearNextCursor: result.nextCursor == null,
+        isLoadingMore: false,
+      );
     } catch (_) {
-      state = state.copyWith(isLoading: false, isOffline: true);
+      if (generation != _requestGeneration || query != state.query) return;
+      state = state.copyWith(
+        isLoadingMore: false,
+        error: 'Не удалось загрузить следующие курсы.',
+      );
     }
   }
 
