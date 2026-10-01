@@ -27,8 +27,9 @@ void main() async {
 /// Провайдер текущей темы: system / light / dark.
 enum AppThemeMode { system, light, dark }
 
-final themeModeProvider =
-    StateProvider<AppThemeMode>((ref) => AppThemeMode.system);
+final themeModeProvider = StateProvider<AppThemeMode>(
+  (ref) => AppThemeMode.system,
+);
 
 class RemoraApp extends ConsumerWidget {
   const RemoraApp({super.key});
@@ -53,7 +54,8 @@ class RemoraApp extends ConsumerWidget {
     // Вход выполнен (в т.ч. восстановлен из хранилища при запуске) —
     // фоном подтягиваем всё новое для офлайна, если тумблер включён.
     ref.listen(authProvider, (prev, next) {
-      final justAuthenticated = next.status == AuthStatus.authenticated &&
+      final justAuthenticated =
+          next.status == AuthStatus.authenticated &&
           prev?.status != AuthStatus.authenticated;
       if (justAuthenticated && ref.read(autoDownloadEnabledProvider)) {
         unawaited(ref.read(autoDownloadServiceProvider).run());
@@ -65,6 +67,8 @@ class RemoraApp extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       theme: remoraLightTheme(),
       darkTheme: remoraDarkTheme(),
+      themeAnimationDuration: const Duration(milliseconds: 180),
+      themeAnimationCurve: Curves.easeOutCubic,
       themeMode: switch (mode) {
         AppThemeMode.system => ThemeMode.system,
         AppThemeMode.light => ThemeMode.light,
