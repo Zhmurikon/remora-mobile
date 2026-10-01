@@ -11,6 +11,9 @@ class AppShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final settingsLabel = MediaQuery.textScalerOf(context).scale(14) > 16
+        ? 'Ещё'
+        : 'Настройки';
     return Scaffold(
       body: navigationShell,
       bottomNavigationBar: DecoratedBox(
@@ -34,31 +37,31 @@ class AppShell extends StatelessWidget {
                 initialLocation: index == navigationShell.currentIndex,
               );
             },
-            destinations: const [
-              NavigationDestination(
+            destinations: [
+              const NavigationDestination(
                 icon: Icon(Icons.home_outlined),
                 selectedIcon: Icon(Icons.home_rounded),
                 label: 'Главная',
               ),
-              NavigationDestination(
+              const NavigationDestination(
                 icon: Icon(Icons.menu_book_outlined),
                 selectedIcon: Icon(Icons.menu_book_rounded),
                 label: 'Курсы',
               ),
-              NavigationDestination(
+              const NavigationDestination(
                 icon: Icon(Icons.style_outlined),
                 selectedIcon: Icon(Icons.style_rounded),
                 label: 'Наборы',
               ),
-              NavigationDestination(
+              const NavigationDestination(
                 icon: Icon(Icons.search_outlined),
                 selectedIcon: Icon(Icons.search_rounded),
                 label: 'Каталог',
               ),
               NavigationDestination(
-                icon: Icon(Icons.settings_outlined),
-                selectedIcon: Icon(Icons.settings_rounded),
-                label: 'Ещё',
+                icon: const Icon(Icons.settings_outlined),
+                selectedIcon: const Icon(Icons.settings_rounded),
+                label: settingsLabel,
                 tooltip: 'Настройки',
               ),
             ],

@@ -66,6 +66,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/
+    - assets/illustrations/
   fonts:
     - family: NotoSans
       fonts:

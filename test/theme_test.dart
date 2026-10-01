@@ -121,7 +121,7 @@ void main() {
                   ),
                   NavigationDestination(
                     icon: Icon(Icons.settings),
-                    label: 'Настройки',
+                    label: 'Ещё',
                   ),
                 ],
               ),
@@ -131,7 +131,7 @@ void main() {
       );
 
       expect(tester.takeException(), isNull);
-      expect(find.text('Настройки'), findsOneWidget);
+      expect(find.text('Ещё'), findsOneWidget);
     });
   });
 }
