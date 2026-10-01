@@ -81,7 +81,9 @@ void main() {
     );
 
     expect(find.text('Каталог'), findsOneWidget);
-    expect(find.byType(SearchBar), findsOneWidget);
+    expect(find.byType(TextField), findsOneWidget);
+    final search = tester.widget<TextField>(find.byType(TextField));
+    expect(search.textAlignVertical, TextAlignVertical.center);
     expect(find.text('Популярные курсы'), findsOneWidget);
     expect(find.text('Python для анализа данных'), findsOneWidget);
     expect(

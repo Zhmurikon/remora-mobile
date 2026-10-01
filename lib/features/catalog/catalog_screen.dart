@@ -157,23 +157,51 @@ class CatalogView extends StatelessWidget {
                   RemoraSpacing.lg,
                 ),
                 sliver: SliverToBoxAdapter(
-                  child: SearchBar(
-                    controller: searchController,
-                    hintText: 'Поиск курсов',
-                    leading: const Icon(Icons.search_rounded),
-                    trailing: [
-                      if (state.query.isNotEmpty)
-                        IconButton(
-                          onPressed: () {
-                            searchController.clear();
-                            onQueryChanged('');
-                          },
-                          tooltip: 'Очистить поиск',
-                          icon: const Icon(Icons.close_rounded),
+                  child: SizedBox(
+                    height: 56,
+                    child: TextField(
+                      controller: searchController,
+                      textAlignVertical: TextAlignVertical.center,
+                      textInputAction: TextInputAction.search,
+                      decoration: InputDecoration(
+                        hintText: 'Поиск курсов',
+                        filled: true,
+                        fillColor: context.remora.surfaceMuted,
+                        contentPadding: EdgeInsets.zero,
+                        prefixIcon: const Icon(Icons.search_rounded),
+                        prefixIconConstraints: const BoxConstraints(
+                          minWidth: 56,
+                          minHeight: 56,
                         ),
-                    ],
-                    onChanged: onQueryChanged,
-                    onSubmitted: (_) => onSearch(),
+                        suffixIcon: state.query.isEmpty
+                            ? null
+                            : IconButton(
+                                onPressed: () {
+                                  searchController.clear();
+                                  onQueryChanged('');
+                                },
+                                tooltip: 'Очистить поиск',
+                                icon: const Icon(Icons.close_rounded),
+                              ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(28),
+                          borderSide: BorderSide.none,
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(28),
+                          borderSide: BorderSide.none,
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(28),
+                          borderSide: BorderSide(
+                            color: Theme.of(context).colorScheme.primary,
+                            width: 2,
+                          ),
+                        ),
+                      ),
+                      onChanged: onQueryChanged,
+                      onSubmitted: (_) => onSearch(),
+                    ),
                   ),
                 ),
               ),
