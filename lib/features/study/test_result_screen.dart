@@ -98,7 +98,7 @@ class _TestResultScreenState extends ConsumerState<TestResultScreen> {
       );
     }
 
-    final scorePercent = (result.score * 100).round();
+    final scorePercent = result.score.clamp(0, 100).round();
     final scoreColor = scorePercent >= 80
         ? (isDark ? RemoraColors.darkSuccess : RemoraColors.lightSuccess)
         : scorePercent >= 50

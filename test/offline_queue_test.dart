@@ -99,7 +99,7 @@ void main() {
     expect(q!.items.length, 10);
   });
 
-  test('просроченная карточка входит, будущая — нет', () async {
+  test('карточки офлайн показывают и просроченные, и будущие', () async {
     await seedSet('s1', cardCount: 0);
     await insertCard('s1', 'c-past', 0);
     await insertCard('s1', 'c-future', 1);
@@ -127,7 +127,7 @@ void main() {
     final ids = q!.items.map((it) => it.card.id).toList();
 
     expect(ids, contains('c-past'));
-    expect(ids, isNot(contains('c-future')));
+    expect(ids, contains('c-future'));
     expect(q.dueTotal, 1);
     expect(q.newTotal, 0);
   });
@@ -173,7 +173,7 @@ void main() {
     expect(after.lastReviewedAt, isNotNull);
   });
 
-  test('отвеченная офлайн карточка уходит из следующей очереди', () async {
+  test('отвеченная офлайн карточка остаётся доступна для просмотра', () async {
     await seedSet('s1', cardCount: 1);
     await repo.applyLocalReview(
       cardId: 's1-c0',
@@ -184,9 +184,8 @@ void main() {
 
     final q = await repo.buildOfflineQueue('s1', mode: 'flashcards');
 
-    // Набор скачан (не null), но due-карточек не осталось.
     expect(q, isNotNull);
-    expect(q!.items, isEmpty);
+    expect(q!.items.single.card.id, 's1-c0');
   });
 
   test('cacheQueueCards делает набор доступным офлайн', () async {

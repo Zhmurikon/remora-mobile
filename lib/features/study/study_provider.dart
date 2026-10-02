@@ -156,7 +156,14 @@ class StudySessionNotifier extends StateNotifier<StudySessionState> {
     );
 
     try {
-      final queue = await _api.getStudyQueue(setId: setId, mode: mode.name);
+      // «Карточки» — свободный просмотр всего набора, поэтому дневные квоты
+      // планировщика не должны оставлять этот режим с пустой очередью.
+      final scope = mode == StudyMode.flashcards ? 'all' : 'due';
+      final queue = await _api.getStudyQueue(
+        setId: setId,
+        mode: mode.name,
+        scope: scope,
+      );
 
       _outbox.sessionId = null;
 
@@ -170,6 +177,9 @@ class StudySessionNotifier extends StateNotifier<StudySessionState> {
       }
 
       _applyQueue(queue, isOnline: true);
+      if (queue.items.isEmpty) {
+        state = state.copyWith(error: _emptyQueueMessage(mode));
+      }
       logRemora('study', 'онлайн-очередь: ${queue.items.length} карт.');
       unawaited(_refreshPendingCount());
     } catch (e) {
@@ -201,6 +211,14 @@ class StudySessionNotifier extends StateNotifier<StudySessionState> {
         );
       }
     }
+  }
+
+  String _emptyQueueMessage(StudyMode mode) {
+    if (mode == StudyMode.write) {
+      return 'На сегодня всё повторено. Откройте «Карточки», '
+          'чтобы повторить весь набор.';
+    }
+    return 'В этом наборе нет доступных карточек.';
   }
 
   /// Применить очередь (онлайн или офлайн) к состоянию сессии.

@@ -103,10 +103,10 @@ class StudyRepository {
   // ── Офлайн-очередь ──
   //
   // Когда сети нет, очередь строится локально из Drift + Dart-порт FSRS.
-  // Порядок и scope зеркалят серверный `StudyService.get_queue` (scope=due —
-  // значение по умолчанию клиента). Онлайн-порядок сервер всё равно тасует
-  // (`shuffle=True`), поэтому точное совпадение порядка не требуется —
-  // важны состав очереди, состояния и интервалы на кнопках.
+  // Порядок зеркалит серверный `StudyService.get_queue`: «Карточки» показывают
+  // весь набор, а остальные режимы начинают с очереди к повторению. Онлайн-
+  // порядок сервер всё равно тасует (`shuffle=True`), поэтому точное совпадение
+  // порядка не требуется — важны состав, состояния и интервалы на кнопках.
 
   static const _settingsEntity = 'study_settings';
 
@@ -157,7 +157,7 @@ class StudyRepository {
           fresh.add(_OfflineEntry(card, dir, fsrs));
         } else if (!fsrs.dueAt.isAfter(now)) {
           due.add(_OfflineEntry(card, dir, fsrs));
-        } else if (mode == 'learn') {
+        } else if (mode == 'learn' || mode == 'flashcards') {
           practice.add(_OfflineEntry(card, dir, fsrs));
         }
       }
