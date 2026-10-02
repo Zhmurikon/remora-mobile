@@ -31,7 +31,7 @@ class OutboxService {
   /// Текущий session_id для батчей. Null — без привязки к сессии.
   String? sessionId;
 
-  bool _flushing = false;
+  Future<void>? _flushFuture;
 
   /// Записать ответ и попробовать отправить.
   Future<void> enqueue(ReviewOutboxCompanion entry) async {
@@ -46,15 +46,16 @@ class OutboxService {
   /// на сервер.
   ///
   /// Single-flight: параллельные вызовы делят одно выполнение.
-  Future<void> flush() async {
-    if (_flushing) return;
-    _flushing = true;
+  Future<void> flush() {
+    return _flushFuture ??= _runFlush();
+  }
 
+  Future<void> _runFlush() async {
     try {
       await _flushReviews();
       await _flushLearnSettings();
     } finally {
-      _flushing = false;
+      _flushFuture = null;
     }
   }
 

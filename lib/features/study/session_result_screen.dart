@@ -227,14 +227,15 @@ class _SessionResultScreenState extends ConsumerState<SessionResultScreen> {
   }
 
   Widget _buildStatsCard(BuildContext context, SetStats stats, bool isDark) {
-    final masteryPercent = stats.masteryPercent.round();
+    final progressPercent = stats.studiedPercent.round();
 
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            // Прогресс-бар освоения
+            // Первый проход — уже видимый прогресс, а закрепление остаётся
+            // отдельной строгой метрикой долгосрочного запоминания.
             Row(
               children: [
                 Expanded(
@@ -242,14 +243,14 @@ class _SessionResultScreenState extends ConsumerState<SessionResultScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Освоение',
+                        'Прогресс',
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                       const SizedBox(height: 4),
                       ClipRRect(
                         borderRadius: BorderRadius.circular(4),
                         child: LinearProgressIndicator(
-                          value: stats.masteryPercent / 100,
+                          value: stats.studiedPercent / 100,
                           minHeight: 8,
                           backgroundColor: isDark
                               ? RemoraColors.darkSurfaceMuted
@@ -266,7 +267,7 @@ class _SessionResultScreenState extends ConsumerState<SessionResultScreen> {
                 ),
                 const SizedBox(width: 16),
                 Text(
-                  '$masteryPercent%',
+                  '$progressPercent%',
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
@@ -276,6 +277,15 @@ class _SessionResultScreenState extends ConsumerState<SessionResultScreen> {
                   ),
                 ),
               ],
+            ),
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                '${stats.studiedCount} из ${stats.cardsTotal} карточек изучались · '
+                '${stats.masteredCount} закреплено',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
             ),
             const SizedBox(height: 16),
             // Распределение состояний

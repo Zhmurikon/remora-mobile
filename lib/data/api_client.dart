@@ -1218,6 +1218,12 @@ class SetStats {
   final StateDistribution distribution;
   final List<ProblemCard> problemCards;
   final List<ForecastDay> forecast;
+
+  int get studiedCount => masteredCount + learningCount;
+
+  double get studiedPercent => cardsTotal == 0
+      ? 0
+      : (studiedCount / cardsTotal * 100).clamp(0, 100).toDouble();
 }
 
 class StateDistribution {

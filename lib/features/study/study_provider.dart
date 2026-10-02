@@ -9,6 +9,7 @@ import '../../data/api_client.dart';
 import '../../data/db/app_database.dart';
 import '../../data/repositories/outbox_service.dart';
 import '../../data/repositories/study_repository.dart';
+import '../dashboard/dashboard_provider.dart';
 
 const _uuid = Uuid();
 
@@ -61,8 +62,7 @@ class StudySessionState {
 
   double get progress => total > 0 ? answered / total : 0;
 
-  QueueItem? get currentItem =>
-      index < items.length ? items[index] : null;
+  QueueItem? get currentItem => index < items.length ? items[index] : null;
 
   StudySessionState copyWith({
     StudyMode? mode,
@@ -115,22 +115,29 @@ class StudySessionState {
 /// Загружает очередь из API, управляет продвижением по карточкам,
 /// записывает ответы в outbox (Drift → сервер), отслеживает прогресс.
 class StudySessionNotifier extends StateNotifier<StudySessionState> {
-  StudySessionNotifier(this._api, this._outbox, this._study)
-      : super(StudySessionState(
-          mode: StudyMode.flashcards,
-          items: [],
-          index: 0,
-          total: 0,
-          answered: 0,
-          correct: 0,
-          pending: 0,
-          isOnline: true,
-          isLoading: true,
-        ));
+  StudySessionNotifier(
+    this._api,
+    this._outbox,
+    this._study, [
+    this._onProgressSynced,
+  ]) : super(
+         StudySessionState(
+           mode: StudyMode.flashcards,
+           items: [],
+           index: 0,
+           total: 0,
+           answered: 0,
+           correct: 0,
+           pending: 0,
+           isOnline: true,
+           isLoading: true,
+         ),
+       );
 
   final RemoraApiClient _api;
   final OutboxService _outbox;
   final StudyRepository _study;
+  final void Function()? _onProgressSynced;
 
   /// Загрузить очередь и начать сессию.
   ///
@@ -149,10 +156,7 @@ class StudySessionNotifier extends StateNotifier<StudySessionState> {
     );
 
     try {
-      final queue = await _api.getStudyQueue(
-        setId: setId,
-        mode: mode.name,
-      );
+      final queue = await _api.getStudyQueue(setId: setId, mode: mode.name);
 
       _outbox.sessionId = null;
 
@@ -189,8 +193,12 @@ class StudySessionNotifier extends StateNotifier<StudySessionState> {
               ? 'Набор не скачан для офлайна. Откройте его один раз при сети.'
               : 'На сегодня карточек нет. Продолжите, когда появится сеть.',
         );
-        logRemora('study',
-            local == null ? 'офлайн: набор не скачан' : 'офлайн: на сегодня пусто');
+        logRemora(
+          'study',
+          local == null
+              ? 'офлайн: набор не скачан'
+              : 'офлайн: на сегодня пусто',
+        );
       }
     }
   }
@@ -225,26 +233,30 @@ class StudySessionNotifier extends StateNotifier<StudySessionState> {
     final clientReviewId = _uuid.v4();
 
     // Записываем в outbox (Drift — мгновенно, не теряется при обрыве)
-    await _outbox.enqueue(ReviewOutboxCompanion(
-      clientReviewId: Value(clientReviewId),
-      cardId: Value(item.card.id),
-      direction: Value(item.direction),
-      mode: Value(state.mode.name),
-      rating: Value(rating),
-      answerCorrect: Value(answerCorrect),
-      durationMs: Value(durationMs),
-      reviewedAt: Value(now),
-    ));
+    await _outbox.enqueue(
+      ReviewOutboxCompanion(
+        clientReviewId: Value(clientReviewId),
+        cardId: Value(item.card.id),
+        direction: Value(item.direction),
+        mode: Value(state.mode.name),
+        rating: Value(rating),
+        answerCorrect: Value(answerCorrect),
+        durationMs: Value(durationMs),
+        reviewedAt: Value(now),
+      ),
+    );
 
     // Продвигаем локальное состояние FSRS — для следующих офлайн-сессий.
     // Не блокируем UI: онлайн сервер всё равно перезапишет due/stability
     // через outbox, а локальный шаг learning сохранится.
-    unawaited(_study.applyLocalReview(
-      cardId: item.card.id,
-      direction: item.direction,
-      rating: rating,
-      reviewedAt: now,
-    ));
+    unawaited(
+      _study.applyLocalReview(
+        cardId: item.card.id,
+        direction: item.direction,
+        rating: rating,
+        reviewedAt: now,
+      ),
+    );
 
     final isCorrect = answerCorrect ?? (rating >= 3);
 
@@ -266,12 +278,18 @@ class StudySessionNotifier extends StateNotifier<StudySessionState> {
       );
     }
 
-    // Проверяем, не закончилась ли очередь
+    // Экран результатов читает серверную статистику сразу после завершения.
+    // Поэтому последний ответ должен дождаться текущего flush, включая уже
+    // запущенную автоотправку, иначе прогресс и XP на экране будут устаревшими.
     if (state.index >= state.items.length) {
-      state = state.copyWith(isFinished: true);
+      await _outbox.flush();
+      final pending = await _outbox.pendingCount();
+      if (!mounted) return;
+      state = state.copyWith(pending: pending, isFinished: true);
+      if (pending == 0) _onProgressSynced?.call();
+    } else {
+      unawaited(_refreshPendingCount());
     }
-
-    unawaited(_refreshPendingCount());
   }
 
   /// Пропустить карточку без записи ответа.
@@ -294,8 +312,10 @@ class StudySessionNotifier extends StateNotifier<StudySessionState> {
   /// Завершить сессию: отправить все ответы.
   Future<void> finish() async {
     await _outbox.flush();
-    await _refreshPendingCount();
-    state = state.copyWith(isFinished: true);
+    final pending = await _outbox.pendingCount();
+    if (!mounted) return;
+    state = state.copyWith(pending: pending, isFinished: true);
+    if (pending == 0) _onProgressSynced?.call();
   }
 
   Future<void> _refreshPendingCount() async {
@@ -309,9 +329,10 @@ class StudySessionNotifier extends StateNotifier<StudySessionState> {
 /// Провайдер сессии — создаётся при старте обучения.
 final studySessionProvider =
     StateNotifierProvider<StudySessionNotifier, StudySessionState>((ref) {
-  return StudySessionNotifier(
-    ref.watch(apiClientProvider),
-    ref.watch(outboxServiceProvider),
-    ref.watch(studyRepositoryProvider),
-  );
-});
+      return StudySessionNotifier(
+        ref.watch(apiClientProvider),
+        ref.watch(outboxServiceProvider),
+        ref.watch(studyRepositoryProvider),
+        () => ref.invalidate(dashboardProvider),
+      );
+    });

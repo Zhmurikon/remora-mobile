@@ -284,6 +284,26 @@ void main() {
     });
   });
 
+  test('прогресс набора учитывает карточки в изучении', () {
+    final stats = SetStats.fromJson({
+      'set_id': 'set-1',
+      'cards_total': 16,
+      'mastered_count': 0,
+      'learning_count': 10,
+      'not_started_count': 6,
+      'mastery_percent': 0,
+      'due_now': 0,
+      'last_studied_at': '2026-10-02T00:00:00Z',
+      'distribution': {'new': 6, 'learning': 10, 'review': 0, 'relearning': 0},
+      'problem_cards': [],
+      'forecast': [],
+    });
+
+    expect(stats.masteryPercent, 0);
+    expect(stats.studiedCount, 10);
+    expect(stats.studiedPercent, 62.5);
+  });
+
   test('CourseSearchResult разбирает публичный каталог', () {
     final result = CourseSearchResult.fromJson({
       'items': [

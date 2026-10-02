@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:dio/dio.dart';
@@ -23,6 +24,27 @@ class _RejectedApi extends RemoraApiClient {
       accepted: const [],
       duplicates: const [],
       rejected: batch.reviews.map((item) => item.clientReviewId).toList(),
+      states: const [],
+    );
+  }
+}
+
+class _DelayedAcceptedApi extends RemoraApiClient {
+  _DelayedAcceptedApi() : super(Dio());
+
+  final release = Completer<void>();
+  final started = Completer<void>();
+  var calls = 0;
+
+  @override
+  Future<ReviewBatchResult> submitReviews(ReviewBatch batch) async {
+    calls++;
+    if (!started.isCompleted) started.complete();
+    await release.future;
+    return ReviewBatchResult(
+      accepted: batch.reviews.map((item) => item.clientReviewId).toList(),
+      duplicates: const [],
+      rejected: const [],
       states: const [],
     );
   }
@@ -55,6 +77,38 @@ void main() {
     await service.flush();
 
     expect(api.calls, 1);
+    expect(await repository.pendingCount(), 0);
+  });
+
+  test('повторный flush ждёт уже запущенную отправку', () async {
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+    final repository = StudyRepository(db);
+    final api = _DelayedAcceptedApi();
+    final service = OutboxService(repository, api);
+    await repository.enqueueReview(
+      ReviewOutboxCompanion(
+        clientReviewId: const Value('review-1'),
+        cardId: const Value('card-1'),
+        direction: const Value('term_to_def'),
+        mode: const Value('learn'),
+        rating: const Value(3),
+        reviewedAt: Value(DateTime.utc(2026, 1, 1)),
+      ),
+    );
+
+    final first = service.flush();
+    await api.started.future;
+    var secondCompleted = false;
+    final second = service.flush().whenComplete(() => secondCompleted = true);
+    await Future<void>.delayed(Duration.zero);
+
+    expect(secondCompleted, isFalse);
+    expect(api.calls, 1);
+
+    api.release.complete();
+    await Future.wait([first, second]);
+    expect(secondCompleted, isTrue);
     expect(await repository.pendingCount(), 0);
   });
 
