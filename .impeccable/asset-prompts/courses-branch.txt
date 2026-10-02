@@ -1,0 +1,8 @@
+Use case: stylized-concept
+Asset type: transparent decorative corner illustration for the Remora mobile Courses screen
+Input image: approved Courses light/dark comp; use only the faint botanical branch in the top-right header as reference, not the phones or UI.
+Primary request: create one elegant isolated branch with several slender leaves, matching the approved comp's quiet editorial botanical character.
+Style/medium: refined soft botanical illustration, subtle paper-and-ink texture, graceful thin stem, natural leaf contours.
+Composition: horizontal-to-diagonal corner sprig flowing from the upper right toward the center; entire branch visible with transparent margin.
+Color palette: muted sage, desaturated forest green, and a tiny warm ochre bud; intended to render at low opacity on both warm ivory and near-black green.
+Constraints: genuinely transparent background; no phone, no UI, no books, no text, no logo, no watermark; no bounding box; readable at roughly 120x80 dp.

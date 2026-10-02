@@ -1,0 +1,9 @@
+Use case: stylized-concept
+Asset type: transparent mobile UI course-cover illustration for Remora
+Input image: the approved mobile screen comp is the visual reference; reproduce only the small Python book-and-leaves image inside the Continue learning card, not the phone UI.
+Primary request: create a compact isolated stack of two slightly rotated deep-green course books, the front cover showing a clean recognizable two-tone Python snake emblem, with a few elegant olive/jade leaves tucked behind.
+Style/medium: premium soft 3D/editorial illustration, tactile paper and cloth texture, subtle depth, polished at small mobile size.
+Composition/framing: compact landscape cutout, whole book stack and leaves visible, generous transparent margin, optimized for a 90x70 dp slot.
+Color palette: deep forest green, jade, warm cream, muted golden yellow, restrained olive; must work on warm ivory and near-black green backgrounds.
+Lighting/mood: soft diffuse studio light, subtle contained shadows.
+Constraints: genuinely transparent background; no UI, no phone, no text, no watermark; no bounding box; no background rectangle; no generic code brackets; readable at small size.

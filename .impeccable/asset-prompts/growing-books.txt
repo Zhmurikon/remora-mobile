@@ -1,0 +1,9 @@
+Use case: stylized-concept
+Asset type: transparent mobile UI hero illustration for Remora
+Input image: the approved mobile screen comp is the visual reference; reproduce only the books-and-growing-plant illustration seen beside the greeting, not the phone UI.
+Primary request: create a polished isolated stack of three learning books with a cream notebook on top and a slender green plant sprouting upward, matching the approved reference's proportions, restrained perspective, soft tactile depth and refined editorial character.
+Style/medium: premium soft 3D/editorial illustration, slightly painterly but crisp at small mobile size; layered paper and cloth cover textures.
+Composition/framing: compact near-square cutout, entire object visible with generous transparent margin; three-quarter view, plant rising from the top book.
+Color palette: deep forest green, muted jade, warm cream paper, tiny ochre accents; must work on warm ivory and near-black green backgrounds.
+Lighting/mood: soft diffuse studio light, subtle contact shadows contained within the cutout.
+Constraints: genuinely transparent background; no UI, no phone, no text, no logo, no watermark; no bounding box; no white rectangle; readable at about 126 dp.

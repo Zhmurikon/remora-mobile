@@ -1,0 +1,6 @@
+Use case: precise-object-edit
+Asset type: transparent mobile UI hero illustration for Remora
+Input image: edit target; preserve the book stack and sprouting plant exactly.
+Primary request: add only the approved comp's quiet decorative field around the existing object: a sparse rectangular grid of tiny warm ochre dots behind the upper-right plant and two or three thin hand-drawn ochre strokes beneath and to the lower-left of the books.
+Composition: keep the entire existing books-and-plant object centered and unchanged, with generous transparent margin; dots and strokes remain subtle and secondary.
+Constraints: preserve exact books, leaves, colors, textures, lighting, perspective, scale and transparency; genuinely transparent background; no text, no UI, no phone, no watermark, no new objects; change only by adding the dotted field and ochre strokes.
