@@ -400,6 +400,15 @@ class _CourseRow extends StatelessWidget {
                                 ],
                               ),
                             ],
+                            if (course.isSaved && course.hasUpdates) ...[
+                              const SizedBox(height: RemoraSpacing.xxs),
+                              Text(
+                                'У автора есть непринятое обновление',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: context.remora.warning,
+                                ),
+                              ),
+                            ],
                           ],
                         ),
                       ),
@@ -421,7 +430,7 @@ class _CourseRow extends StatelessWidget {
             isOnline: isOnline,
             isDownloading: isDownloading,
             isDownloaded: isDownloaded,
-            isOutdated: isOutdated || course.hasUpdates,
+            isOutdated: isOutdated,
             onDownload: onDownload,
           ),
         ),

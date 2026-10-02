@@ -68,6 +68,18 @@ void main() {
     expect(downloaded, course.id);
   });
 
+  testWidgets(
+    'обновление оригинала не помечает актуальную офлайн-копию устаревшей',
+    (tester) async {
+      final course = _course(isSaved: true, hasUpdates: true);
+      await _pumpCourses(tester, courses: [course], downloadedIds: {course.id});
+
+      expect(find.text('Доступен офлайн'), findsOneWidget);
+      expect(find.text('Обновить офлайн-копию'), findsNothing);
+      expect(find.text('У автора есть непринятое обновление'), findsOneWidget);
+    },
+  );
+
   testWidgets('строка курса и pull-to-refresh вызывают колбэки', (
     tester,
   ) async {

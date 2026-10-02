@@ -220,4 +220,51 @@ void main() {
       expect(synced.single.authorName, 'author');
     },
   );
+
+  test(
+    'syncMyCourses не затирает ревизию скачанного сохранённого курса',
+    () async {
+      final downloadedAt = DateTime.utc(2026, 3, 10);
+      await db.courses.insertOne(
+        CoursesCompanion.insert(
+          id: 'saved-1',
+          slug: 'saved-course',
+          title: 'Сохранённый курс',
+          updatedAt: downloadedAt,
+          isSaved: const Value(true),
+          saveId: const Value('save-1'),
+        ),
+      );
+      await db.syncMeta.insertOne(
+        SyncMetaCompanion.insert(
+          entityType: 'course_bundle',
+          entityId: 'saved-1',
+          lastSyncedAt: downloadedAt,
+          revision: Value(
+            (downloadedAt.millisecondsSinceEpoch ~/
+                    Duration.millisecondsPerSecond)
+                .toString(),
+          ),
+        ),
+      );
+
+      await CourseRepository(
+        db,
+        _CourseApiClient(const [], [
+          SavedCourseSummaryData(
+            id: 'saved-1',
+            slug: 'saved-course',
+            title: 'Сохранённый курс',
+            author: CourseAuthorData(username: 'author'),
+            saveId: 'save-1',
+            acceptedAt: DateTime.utc(2026, 2, 1),
+            hasUpdates: true,
+          ),
+        ]),
+      ).syncMyCourses();
+
+      expect((await repo.getCourse('saved-1'))!.updatedAt, downloadedAt);
+      expect(await repo.getOutdatedDownloadedCourseIds(), isEmpty);
+    },
+  );
 }

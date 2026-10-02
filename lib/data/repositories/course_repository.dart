@@ -99,7 +99,6 @@ class CourseRepository {
                 isSaved: const Value(true),
                 saveId: Value(c.saveId),
                 hasUpdates: Value(c.hasUpdates),
-                updatedAt: Value(c.acceptedAt),
               ),
             ),
           );
