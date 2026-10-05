@@ -54,6 +54,7 @@ dependencies:
 
   # UUID для client_review_id
   uuid: ^4.5.1
+  share_plus: ^12.0.2
 
 dev_dependencies:
   flutter_test:

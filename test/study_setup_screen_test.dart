@@ -45,7 +45,7 @@ void main() {
     );
   }
 
-  testWidgets('показывает четыре основных режима и свой квиз', (tester) async {
+  testWidgets('показывает режимы, битву и свой квиз', (tester) async {
     var openedQuiz = false;
     await tester.pumpWidget(
       app(
@@ -66,8 +66,15 @@ void main() {
     expect(find.text('Учить'), findsOneWidget);
     expect(find.text('Писать'), findsOneWidget);
     expect(find.text('Тест'), findsOneWidget);
+    expect(find.text('Битва'), findsOneWidget);
     expect(find.text('Свой квиз'), findsOneWidget);
-    await tester.tap(find.text('Свой квиз'));
+    final customQuiz = find.text('Свой квиз').last;
+    await tester.scrollUntilVisible(
+      customQuiz,
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(customQuiz);
     expect(openedQuiz, isTrue);
     expect(tester.takeException(), isNull);
   });

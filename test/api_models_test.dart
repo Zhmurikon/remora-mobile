@@ -10,6 +10,97 @@ import 'package:remora_mobile/data/api_client.dart';
 /// в `CardStateOut` есть `card_id`/`direction` (нужны outbox для upsert
 /// локальных состояний), а поля `step` сервер не отдаёт.
 void main() {
+  group('модели битвы', () {
+    final roomJson = {
+      'id': 'battle-1',
+      'set_id': 'set-1',
+      'set_title': 'Статистика',
+      'status': 'active',
+      'question_count': 4,
+      'questions': [
+        {
+          'id': 'question-1',
+          'card_id': 'card-1',
+          'direction': 'term_to_def',
+          'prompt': r'Найдите $Q_1$',
+          'content_type': 'mixed',
+          'code_language': null,
+          'prompt_image_url': 'https://cdn.example/q1.png',
+          'options': ['Первый квартиль', 'Медиана'],
+        },
+      ],
+      'participants': [
+        {
+          'user_id': 'user-1',
+          'username': 'student',
+          'display_name': 'Ученик',
+          'ready': true,
+          'answered_count': 1,
+          'correct_count': null,
+          'duration_ms': null,
+          'is_current': true,
+        },
+      ],
+      'starts_at': '2026-10-05T10:00:00Z',
+      'winner_id': null,
+      'is_draw': false,
+    };
+
+    test('разбирает комнату без правильного ответа во время матча', () {
+      final room = BattleRoom.fromJson(roomJson);
+
+      expect(room.status, 'active');
+      expect(room.questions.single.prompt, r'Найдите $Q_1$');
+      expect(room.questions.single.contentType, 'mixed');
+      expect(
+        room.questions.single.promptImageUrl,
+        'https://cdn.example/q1.png',
+      );
+      expect(room.questions.single.options, ['Первый квартиль', 'Медиана']);
+      expect(room.participants.single.correctCount, isNull);
+      expect(room.questions.single.toString(), isNot(contains('expected')));
+    });
+
+    test('сохраняет client_answer_id для безопасного повтора запроса', () {
+      final answer = BattleAnswerIn(
+        clientAnswerId: 'answer-1',
+        questionId: 'question-1',
+        value: 'Медиана',
+      );
+
+      expect(answer.toJson(), {
+        'client_answer_id': 'answer-1',
+        'question_id': 'question-1',
+        'value': 'Медиана',
+      });
+    });
+
+    test('разбирает идемпотентный ответ и итоговый разбор', () {
+      final answer = BattleAnswerOut.fromJson({
+        'accepted': true,
+        'duplicate': true,
+        'room': roomJson,
+      });
+      final result = BattleResult.fromJson({
+        ...roomJson,
+        'status': 'finished',
+        'review': [
+          {
+            'question_id': 'question-1',
+            'given': 'Медиана',
+            'expected': 'Первый квартиль',
+            'correct': false,
+          },
+        ],
+      });
+
+      expect(answer.accepted, isTrue);
+      expect(answer.duplicate, isTrue);
+      expect(result.review.single.expected, 'Первый квартиль');
+      expect(result.review.single.correct, isFalse);
+    });
+  });
+
   group('CardStateData.fromJson', () {
     test('разбирает card_id и direction — их ждёт синхронизация outbox', () {
       final state = CardStateData.fromJson({

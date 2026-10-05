@@ -30,4 +30,20 @@ void main() {
   test('без сохранённой сессии splash ведёт на вход', () {
     expect(authRedirect(AuthStatus.unauthenticated, '/splash'), '/auth/login');
   });
+
+  test('ссылка на битву возвращает к приглашению после входа', () {
+    const invite = '/battle/battle-1?invite=signed-token';
+    expect(
+      authRedirect(AuthStatus.unauthenticated, invite),
+      '/auth/login?next=%2Fbattle%2Fbattle-1%3Finvite%3Dsigned-token',
+    );
+    expect(authRedirect(AuthStatus.authenticated, invite), isNull);
+    expect(
+      authRedirect(
+        AuthStatus.authenticated,
+        '/auth/login?next=%2Fbattle%2Fbattle-1%3Finvite%3Dsigned-token',
+      ),
+      invite,
+    );
+  });
 }

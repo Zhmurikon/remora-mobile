@@ -91,6 +91,9 @@ class _StudySetupScreenState extends ConsumerState<StudySetupScreen> {
         onLearn: () => _start(StudyMode.learn),
         onWrite: () => _start(StudyMode.write),
         onTest: _startStandardTest,
+        onBattle: () => context.push(
+          '/set/${widget.setId}/battle?title=${Uri.encodeComponent(widget.setTitle)}',
+        ),
         onCustomQuiz: () => context.push(
           '/set/${widget.setId}/quiz'
           '?title=${Uri.encodeComponent(widget.setTitle)}',
@@ -108,6 +111,7 @@ class StudyModeView extends StatelessWidget {
     required this.onLearn,
     required this.onWrite,
     required this.onTest,
+    this.onBattle = _noop,
     required this.onCustomQuiz,
     super.key,
   });
@@ -118,6 +122,7 @@ class StudyModeView extends StatelessWidget {
   final VoidCallback onLearn;
   final VoidCallback onWrite;
   final VoidCallback onTest;
+  final VoidCallback onBattle;
   final VoidCallback onCustomQuiz;
 
   @override
@@ -155,6 +160,14 @@ class StudyModeView extends StatelessWidget {
         description: 'Быстрая проверка в готовом формате',
         tone: _ModeTone.accent,
         onTap: onTest,
+      ),
+      _ModeEntry(
+        id: 'battle',
+        icon: Icons.sports_kabaddi_rounded,
+        title: 'Битва',
+        description: 'Соревнуйтесь с другом на одном наборе',
+        tone: _ModeTone.primary,
+        onTap: onBattle,
       ),
     ];
     final textScale = MediaQuery.textScalerOf(context).scale(1);
@@ -224,6 +237,8 @@ class StudyModeView extends StatelessWidget {
 }
 
 enum _ModeTone { primary, ochre, success, accent }
+
+void _noop() {}
 
 class _ModeEntry {
   const _ModeEntry({

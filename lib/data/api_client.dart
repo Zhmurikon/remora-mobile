@@ -231,6 +231,62 @@ class RemoraApiClient {
     return TestAttemptOut.fromJson(response.data as Map<String, dynamic>);
   }
 
+  // --- Битвы ---
+  Future<BattleCreateOut> createBattle(BattleCreate input) async {
+    final response = await _dio.post('/api/v1/battles', data: input.toJson());
+    return BattleCreateOut.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  Future<BattleRoom> joinBattle(String inviteToken) async {
+    final response = await _dio.post(
+      '/api/v1/battles/join',
+      data: {'invite_token': inviteToken},
+    );
+    return BattleRoom.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  Future<BattleRoom> getBattle(String battleId) async {
+    final response = await _dio.get('/api/v1/battles/$battleId');
+    return BattleRoom.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  Future<BattleRoom> readyForBattle(String battleId) async {
+    final response = await _dio.post('/api/v1/battles/$battleId/ready');
+    return BattleRoom.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  Future<BattleRoom> leaveBattle(String battleId) async {
+    final response = await _dio.post('/api/v1/battles/$battleId/leave');
+    return BattleRoom.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  Future<BattleAnswerOut> answerBattle(
+    String battleId,
+    BattleAnswerIn answer,
+  ) async {
+    final response = await _dio.post(
+      '/api/v1/battles/$battleId/answers',
+      data: answer.toJson(),
+    );
+    return BattleAnswerOut.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  Future<BattleResult> getBattleResult(String battleId) async {
+    final response = await _dio.get('/api/v1/battles/$battleId/result');
+    return BattleResult.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  Future<BattleCreateOut> rematchBattle(
+    String battleId,
+    String requestKey,
+  ) async {
+    final response = await _dio.post(
+      '/api/v1/battles/$battleId/rematch',
+      data: {'request_key': requestKey},
+    );
+    return BattleCreateOut.fromJson(response.data as Map<String, dynamic>);
+  }
+
   // --- Курсы (чтение теории) ---
 
   /// Мои курсы (без структуры) — список для экрана курсов.
@@ -1530,6 +1586,131 @@ class TestResult {
   final DateTime finishedAt;
   final List<TestQuestionReview> review;
   final List<String> wrongCardIds;
+}
+
+class BattleCreate {
+  BattleCreate({
+    required this.setId,
+    required this.requestKey,
+    this.questionCount = 10,
+    this.direction = 'term_to_def',
+  });
+  final String setId, requestKey, direction;
+  final int questionCount;
+  Map<String, dynamic> toJson() => {
+    'set_id': setId,
+    'request_key': requestKey,
+    'question_count': questionCount,
+    'direction': direction,
+  };
+}
+
+class BattleAnswerIn {
+  BattleAnswerIn({
+    required this.clientAnswerId,
+    required this.questionId,
+    required this.value,
+  });
+  final String clientAnswerId, questionId, value;
+  Map<String, dynamic> toJson() => {
+    'client_answer_id': clientAnswerId,
+    'question_id': questionId,
+    'value': value,
+  };
+}
+
+class BattleQuestion {
+  BattleQuestion.fromJson(Map<String, dynamic> json)
+    : id = json['id'] as String,
+      cardId = json['card_id'] as String,
+      direction = json['direction'] as String,
+      prompt = json['prompt'] as String,
+      contentType = json['content_type'] as String,
+      codeLanguage = json['code_language'] as String?,
+      promptImageUrl = json['prompt_image_url'] as String?,
+      options = (json['options'] as List).cast<String>();
+  final String id, cardId, direction, prompt, contentType;
+  final String? codeLanguage, promptImageUrl;
+  final List<String> options;
+}
+
+class BattleParticipant {
+  BattleParticipant.fromJson(Map<String, dynamic> json)
+    : userId = json['user_id'] as String,
+      username = json['username'] as String,
+      displayName = json['display_name'] as String?,
+      ready = json['ready'] as bool,
+      answeredCount = json['answered_count'] as int,
+      correctCount = json['correct_count'] as int?,
+      durationMs = json['duration_ms'] as int?,
+      isCurrent = json['is_current'] as bool;
+  final String userId, username;
+  final String? displayName;
+  final bool ready, isCurrent;
+  final int answeredCount;
+  final int? correctCount, durationMs;
+}
+
+class BattleRoom {
+  BattleRoom.fromJson(Map<String, dynamic> json)
+    : id = json['id'] as String,
+      setId = json['set_id'] as String,
+      setTitle = json['set_title'] as String,
+      status = json['status'] as String,
+      questionCount = json['question_count'] as int,
+      questions = (json['questions'] as List)
+          .map((e) => BattleQuestion.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      participants = (json['participants'] as List)
+          .map((e) => BattleParticipant.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      startsAt = json['starts_at'] == null
+          ? null
+          : DateTime.parse(json['starts_at'] as String),
+      winnerId = json['winner_id'] as String?,
+      isDraw = json['is_draw'] as bool;
+  final String id, setId, setTitle, status;
+  final int questionCount;
+  final List<BattleQuestion> questions;
+  final List<BattleParticipant> participants;
+  final DateTime? startsAt;
+  final String? winnerId;
+  final bool isDraw;
+}
+
+class BattleCreateOut extends BattleRoom {
+  BattleCreateOut.fromJson(super.json)
+    : inviteToken = json['invite_token'] as String,
+      super.fromJson();
+  final String inviteToken;
+}
+
+class BattleAnswerOut {
+  BattleAnswerOut.fromJson(Map<String, dynamic> json)
+    : accepted = json['accepted'] as bool,
+      duplicate = json['duplicate'] as bool,
+      room = BattleRoom.fromJson(json['room'] as Map<String, dynamic>);
+  final bool accepted, duplicate;
+  final BattleRoom room;
+}
+
+class BattleReview {
+  BattleReview.fromJson(Map<String, dynamic> json)
+    : questionId = json['question_id'] as String,
+      given = json['given'] as String,
+      expected = json['expected'] as String,
+      correct = json['correct'] as bool;
+  final String questionId, given, expected;
+  final bool correct;
+}
+
+class BattleResult extends BattleRoom {
+  BattleResult.fromJson(super.json)
+    : review = (json['review'] as List)
+          .map((e) => BattleReview.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      super.fromJson();
+  final List<BattleReview> review;
 }
 
 // --- Курсы (чтение теории) ---

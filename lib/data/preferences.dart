@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 const _autoDownloadKey = 'auto_download_enabled';
+const _activeBattleKey = 'active_battle_id';
 
 /// Настройки приложения, переживающие перезапуск (`SharedPreferences`).
 ///
@@ -19,12 +20,23 @@ class AppPreferences {
 
   Future<void> setAutoDownloadEnabled(bool value) =>
       _prefs.setBool(_autoDownloadKey, value);
+
+  /// Вопросы и ответы хранятся сервером, поэтому для восстановления матча
+  /// приложению нужен только маршрут незавершённой битвы.
+  String? get activeBattleId => _prefs.getString(_activeBattleKey);
+
+  Future<void> setActiveBattleId(String battleId) =>
+      _prefs.setString(_activeBattleKey, battleId);
+
+  Future<void> clearActiveBattleId() => _prefs.remove(_activeBattleKey);
 }
 
 /// Инициализируется в `main()` до `runApp` — `SharedPreferences.getInstance()`
 /// асинхронный, а провайдеру нужно синхронное значение.
 final sharedPreferencesProvider = Provider<SharedPreferences>((ref) {
-  throw UnimplementedError('sharedPreferencesProvider переопределяется в main()');
+  throw UnimplementedError(
+    'sharedPreferencesProvider переопределяется в main()',
+  );
 });
 
 final appPreferencesProvider = Provider<AppPreferences>((ref) {
@@ -45,5 +57,5 @@ class AutoDownloadSettingNotifier extends StateNotifier<bool> {
 
 final autoDownloadEnabledProvider =
     StateNotifierProvider<AutoDownloadSettingNotifier, bool>((ref) {
-  return AutoDownloadSettingNotifier(ref.watch(appPreferencesProvider));
-});
+      return AutoDownloadSettingNotifier(ref.watch(appPreferencesProvider));
+    });

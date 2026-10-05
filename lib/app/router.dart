@@ -21,6 +21,7 @@ import '../features/study/test_result_screen.dart';
 import '../features/study/test_setup_screen.dart';
 import '../features/study/test_taking_screen.dart';
 import '../features/study/write_screen.dart';
+import '../features/study/battle_screen.dart';
 import 'app_shell.dart';
 import 'home_screen.dart';
 
@@ -30,7 +31,7 @@ final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: '/',
     redirect: (context, state) {
-      return authRedirect(authState.status, state.matchedLocation);
+      return authRedirect(authState.status, state.uri.toString());
     },
     routes: [
       GoRoute(
@@ -154,6 +155,20 @@ final routerProvider = Provider<GoRouter>((ref) {
         },
       ),
       GoRoute(
+        path: '/set/:setId/battle',
+        builder: (context, state) => BattleSetupScreen(
+          setId: state.pathParameters['setId']!,
+          setTitle: state.uri.queryParameters['title'] ?? 'Набор',
+        ),
+      ),
+      GoRoute(
+        path: '/battle/:battleId',
+        builder: (context, state) => BattleScreen(
+          battleId: state.pathParameters['battleId']!,
+          inviteToken: state.uri.queryParameters['invite'],
+        ),
+      ),
+      GoRoute(
         path: '/set/:setId/quiz',
         builder: (context, state) {
           final setId = state.pathParameters['setId']!;
@@ -199,10 +214,18 @@ String? authRedirect(AuthStatus status, String location) {
   // Пока Keystore читается и refresh-токен ротируется, защищённые экраны
   // нельзя строить: их параллельный 401 запустит второй refresh тем же
   // одноразовым токеном и сервер отзовёт всю сессию.
-  if (isUnknown) return isSplash ? null : '/splash';
-  if (isSplash) return isAuth ? '/' : '/auth/login';
-  if (!isAuth && !isAuthRoute) return '/auth/login';
-  if (isAuth && isAuthRoute) return '/';
+  if (isUnknown) {
+    return isSplash ? null : '/splash';
+  }
+  if (isSplash) {
+    return isAuth ? '/' : '/auth/login';
+  }
+  if (!isAuth && !isAuthRoute) {
+    return '/auth/login?next=${Uri.encodeComponent(location)}';
+  }
+  if (isAuth && isAuthRoute) {
+    return Uri.tryParse(location)?.queryParameters['next'] ?? '/';
+  }
   return null;
 }
 
