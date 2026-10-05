@@ -11,6 +11,13 @@ import '../../data/preferences.dart';
 import 'battle_answer_retry.dart';
 import 'card_content_widget.dart';
 
+Uri battleInviteUrl(String battleId, String inviteToken) {
+  return Uri.parse(baseUrl).replace(
+    path: '/app/battles/$battleId',
+    queryParameters: {'invite': inviteToken},
+  );
+}
+
 class BattleSetupScreen extends ConsumerStatefulWidget {
   const BattleSetupScreen({
     super.key,
@@ -287,7 +294,9 @@ class _BattleScreenState extends ConsumerState<BattleScreen>
             (p) => ListTile(
               title: Text(p.displayName ?? p.username),
               subtitle: Text(
-                '${p.ready ? 'Готов' : 'Ожидает'} · ${p.answeredCount}/${room.questionCount}',
+                '${p.isConnected ? 'В сети' : 'Нет связи'} · '
+                '${p.ready ? 'Готов' : 'Ожидает'} · '
+                '${p.answeredCount}/${room.questionCount}',
               ),
               trailing: p.isCurrent ? const Text('Вы') : null,
             ),
@@ -299,7 +308,8 @@ class _BattleScreenState extends ConsumerState<BattleScreen>
                 onPressed: () => SharePlus.instance.share(
                   ShareParams(
                     text:
-                        'Сыграем в Remora: ${Uri.base.replace(path: '/battle/${room.id}', queryParameters: {'invite': widget.inviteToken})}',
+                        'Сыграем в Remora: '
+                        '${battleInviteUrl(room.id, widget.inviteToken!)}',
                   ),
                 ),
                 icon: const Icon(Icons.share),
@@ -412,10 +422,21 @@ class _BattleResult extends ConsumerWidget {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  '${mine?.correctCount ?? 0} из ${room.questionCount} верно',
+                  'Результаты',
+                  style: Theme.of(context).textTheme.titleLarge,
                 ),
-                Text(
-                  'Время: ${((mine?.durationMs ?? 0) / 1000).toStringAsFixed(1)} с',
+                const SizedBox(height: 8),
+                ...room.participants.map(
+                  (participant) => ListTile(
+                    title: Text(
+                      '${participant.displayName ?? participant.username}'
+                      '${participant.isCurrent ? ' · вы' : ''}',
+                    ),
+                    subtitle: Text(
+                      '${participant.correctCount ?? 0} из ${room.questionCount} верно · '
+                      '${((participant.durationMs ?? 0) / 1000).toStringAsFixed(1)} с',
+                    ),
+                  ),
                 ),
                 if (snapshot.hasData) ...[
                   const SizedBox(height: 16),
@@ -433,13 +454,23 @@ class _BattleResult extends ConsumerWidget {
                 const SizedBox(height: 24),
                 FilledButton(
                   onPressed: () async {
-                    final rematch = await ref
-                        .read(apiClientProvider)
-                        .rematchBattle(room.id, const Uuid().v4());
-                    if (context.mounted) {
-                      context.go(
-                        '/battle/${rematch.id}?invite=${Uri.encodeComponent(rematch.inviteToken)}',
-                      );
+                    try {
+                      final rematch = await ref
+                          .read(apiClientProvider)
+                          .rematchBattle(room.id, const Uuid().v4());
+                      if (context.mounted) {
+                        context.go(
+                          '/battle/${rematch.id}?invite=${Uri.encodeComponent(rematch.inviteToken)}',
+                        );
+                      }
+                    } catch (_) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Не удалось создать реванш'),
+                          ),
+                        );
+                      }
                     }
                   },
                   child: const Text('Реванш'),

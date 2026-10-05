@@ -38,6 +38,7 @@ void main() {
           'answered_count': 1,
           'correct_count': null,
           'duration_ms': null,
+          'is_connected': true,
           'is_current': true,
         },
       ],
@@ -58,6 +59,7 @@ void main() {
       );
       expect(room.questions.single.options, ['Первый квартиль', 'Медиана']);
       expect(room.participants.single.correctCount, isNull);
+      expect(room.participants.single.isConnected, isTrue);
       expect(room.questions.single.toString(), isNot(contains('expected')));
     });
 

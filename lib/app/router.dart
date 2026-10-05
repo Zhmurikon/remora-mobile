@@ -169,6 +169,13 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
+        path: '/app/battles/:battleId',
+        builder: (context, state) => BattleScreen(
+          battleId: state.pathParameters['battleId']!,
+          inviteToken: state.uri.queryParameters['invite'],
+        ),
+      ),
+      GoRoute(
         path: '/set/:setId/quiz',
         builder: (context, state) {
           final setId = state.pathParameters['setId']!;

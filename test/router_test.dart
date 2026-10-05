@@ -46,4 +46,12 @@ void main() {
       invite,
     );
   });
+
+  test('внешняя ссылка-приглашение остаётся защищённым маршрутом', () {
+    const invite = '/app/battles/battle-1?invite=signed-token';
+    expect(
+      authRedirect(AuthStatus.unauthenticated, invite),
+      '/auth/login?next=%2Fapp%2Fbattles%2Fbattle-1%3Finvite%3Dsigned-token',
+    );
+  });
 }

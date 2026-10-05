@@ -1643,10 +1643,11 @@ class BattleParticipant {
       answeredCount = json['answered_count'] as int,
       correctCount = json['correct_count'] as int?,
       durationMs = json['duration_ms'] as int?,
+      isConnected = json['is_connected'] as bool? ?? false,
       isCurrent = json['is_current'] as bool;
   final String userId, username;
   final String? displayName;
-  final bool ready, isCurrent;
+  final bool ready, isConnected, isCurrent;
   final int answeredCount;
   final int? correctCount, durationMs;
 }
