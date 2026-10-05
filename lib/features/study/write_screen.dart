@@ -303,9 +303,15 @@ class _WriteScreenState extends ConsumerState<WriteScreen> {
                   ),
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  'Ответ: $_expectedAnswer',
-                  style: const TextStyle(fontWeight: FontWeight.w500),
+                const Text('Ответ:'),
+                CardContentWidget(
+                  value: _expectedAnswer ?? '',
+                  contentType: item.card.contentType,
+                  codeLanguage: item.card.codeLanguage,
+                  imageUrl: item.direction == 'term_to_def'
+                      ? item.card.definitionImageUrl
+                      : item.card.termImageUrl,
+                  fontSize: 16,
                 ),
               ],
             ),
@@ -361,9 +367,15 @@ class _WriteScreenState extends ConsumerState<WriteScreen> {
                 ),
               ),
               const SizedBox(height: 4),
-              Text(
-                'Ответ: $_expectedAnswer',
-                style: const TextStyle(fontWeight: FontWeight.w500),
+              const Text('Ответ:'),
+              CardContentWidget(
+                value: _expectedAnswer ?? '',
+                contentType: item.card.contentType,
+                codeLanguage: item.card.codeLanguage,
+                imageUrl: item.direction == 'term_to_def'
+                    ? item.card.definitionImageUrl
+                    : item.card.termImageUrl,
+                fontSize: 16,
               ),
             ],
           ),

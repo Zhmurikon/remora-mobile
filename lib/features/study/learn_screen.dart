@@ -383,6 +383,8 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
               index: i,
               option: options[i],
               expected: expected,
+              contentType: item.card.contentType,
+              codeLanguage: item.card.codeLanguage,
               border: border,
               success: success,
               danger: danger,
@@ -411,6 +413,8 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
     required int index,
     required String option,
     required String expected,
+    required String contentType,
+    required String? codeLanguage,
     required Color border,
     required Color success,
     required Color danger,
@@ -457,7 +461,14 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
                   style: TextStyle(color: subtle, fontSize: 13),
                 ),
                 const SizedBox(width: 12),
-                Expanded(child: Text(option)),
+                Expanded(
+                  child: CardContentWidget(
+                    value: option,
+                    contentType: contentType,
+                    codeLanguage: codeLanguage,
+                    fontSize: 16,
+                  ),
+                ),
               ],
             ),
           ),
@@ -635,7 +646,7 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
                 ),
                 const SizedBox(height: 12),
                 if (_verdict != null)
-                  _buildTypingResult(context, expected, state),
+                  _buildTypingResult(context, expected, item, state),
                 if (_verdict == null) ...[
                   Row(
                     children: [
@@ -668,6 +679,7 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
   Widget _buildTypingResult(
     BuildContext context,
     String expected,
+    QueueItem item,
     StudySessionState state,
   ) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -692,7 +704,15 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
               style: TextStyle(fontSize: 12, color: subtle),
             ),
             const SizedBox(height: 4),
-            Text(expected, style: const TextStyle(fontWeight: FontWeight.w600)),
+            CardContentWidget(
+              value: expected,
+              contentType: item.card.contentType,
+              codeLanguage: item.card.codeLanguage,
+              imageUrl: item.direction == 'term_to_def'
+                  ? item.card.definitionImageUrl
+                  : item.card.termImageUrl,
+              fontSize: 16,
+            ),
           ],
         ),
       );
@@ -725,9 +745,15 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
             ),
           if (!correct) ...[
             const SizedBox(height: 8),
-            Text(
-              'Ответ: $expected',
-              style: const TextStyle(fontWeight: FontWeight.w500),
+            const Text('Ответ:'),
+            CardContentWidget(
+              value: expected,
+              contentType: item.card.contentType,
+              codeLanguage: item.card.codeLanguage,
+              imageUrl: item.direction == 'term_to_def'
+                  ? item.card.definitionImageUrl
+                  : item.card.termImageUrl,
+              fontSize: 16,
             ),
           ],
         ],

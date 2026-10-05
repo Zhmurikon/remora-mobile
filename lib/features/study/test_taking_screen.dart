@@ -308,13 +308,11 @@ class _TestTakingScreenState extends ConsumerState<TestTakingScreen> {
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: Text(
-                        option,
-                        style: TextStyle(
-                          fontWeight: isSelected
-                              ? FontWeight.w600
-                              : FontWeight.normal,
-                        ),
+                      child: CardContentWidget(
+                        value: option,
+                        contentType: question.contentType,
+                        codeLanguage: question.codeLanguage,
+                        fontSize: 16,
                       ),
                     ),
                   ],
@@ -342,10 +340,11 @@ class _TestTakingScreenState extends ConsumerState<TestTakingScreen> {
           Card(
             child: Padding(
               padding: const EdgeInsets.all(16),
-              child: Text(
-                question.statement!,
-                style: theme.textTheme.bodyLarge,
-                textAlign: TextAlign.center,
+              child: CardContentWidget(
+                value: question.statement!,
+                contentType: question.contentType,
+                codeLanguage: question.codeLanguage,
+                fontSize: 16,
               ),
             ),
           ),
@@ -466,11 +465,11 @@ class _TestTakingScreenState extends ConsumerState<TestTakingScreen> {
                         : RemoraColors.lightSurfaceMuted,
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Text(
-                    left,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w500,
-                    ),
+                  child: CardContentWidget(
+                    value: left,
+                    contentType: question.contentType,
+                    codeLanguage: question.codeLanguage,
+                    fontSize: 14,
                   ),
                 ),
               ),
@@ -493,7 +492,14 @@ class _TestTakingScreenState extends ConsumerState<TestTakingScreen> {
                       .map(
                         (r) => DropdownMenuItem(
                           value: r,
-                          child: Text(r.isEmpty ? '—' : r),
+                          child: r.isEmpty
+                              ? const Text('—')
+                              : CardContentWidget(
+                                  value: r,
+                                  contentType: question.contentType,
+                                  codeLanguage: question.codeLanguage,
+                                  fontSize: 13,
+                                ),
                         ),
                       )
                       .toList(),

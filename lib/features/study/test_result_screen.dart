@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../app/theme.dart';
 import '../../data/api_client.dart';
+import 'card_content_widget.dart';
 
 /// Экран результатов теста с разбором каждого вопроса.
 class TestResultScreen extends ConsumerStatefulWidget {
@@ -272,10 +273,26 @@ class _TestResultScreenState extends ConsumerState<TestResultScreen> {
               ),
               const SizedBox(height: 12),
               // Вопрос
-              Text(
-                review.question.prompt,
-                style: Theme.of(context).textTheme.bodyMedium,
+              CardContentWidget(
+                value: review.question.prompt,
+                contentType: review.question.contentType,
+                codeLanguage: review.question.codeLanguage,
+                imageUrl: review.question.promptImageUrl,
+                fontSize: 16,
               ),
+              if (review.question.statement != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  'Утверждение:',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                CardContentWidget(
+                  value: review.question.statement!,
+                  contentType: review.question.contentType,
+                  codeLanguage: review.question.codeLanguage,
+                  fontSize: 15,
+                ),
+              ],
               const SizedBox(height: 8),
               // Ответ пользователя
               if (review.given != null && review.given!.isNotEmpty) ...[
@@ -287,12 +304,11 @@ class _TestResultScreenState extends ConsumerState<TestResultScreen> {
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                     Expanded(
-                      child: Text(
-                        review.given!,
-                        style: TextStyle(
-                          color: color,
-                          fontWeight: FontWeight.w500,
-                        ),
+                      child: CardContentWidget(
+                        value: review.given!,
+                        contentType: review.question.contentType,
+                        codeLanguage: review.question.codeLanguage,
+                        fontSize: 15,
                       ),
                     ),
                   ],
@@ -307,14 +323,13 @@ class _TestResultScreenState extends ConsumerState<TestResultScreen> {
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                     Expanded(
-                      child: Text(
-                        review.givenValues
+                      child: CardContentWidget(
+                        value: review.givenValues
                             .where((v) => v.isNotEmpty)
                             .join(', '),
-                        style: TextStyle(
-                          color: color,
-                          fontWeight: FontWeight.w500,
-                        ),
+                        contentType: review.question.contentType,
+                        codeLanguage: review.question.codeLanguage,
+                        fontSize: 15,
                       ),
                     ),
                   ],
@@ -331,14 +346,11 @@ class _TestResultScreenState extends ConsumerState<TestResultScreen> {
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                     Expanded(
-                      child: Text(
-                        review.expected,
-                        style: TextStyle(
-                          color: isDark
-                              ? RemoraColors.darkSuccess
-                              : RemoraColors.lightSuccess,
-                          fontWeight: FontWeight.w500,
-                        ),
+                      child: CardContentWidget(
+                        value: review.expected,
+                        contentType: review.question.contentType,
+                        codeLanguage: review.question.codeLanguage,
+                        fontSize: 15,
                       ),
                     ),
                   ],
