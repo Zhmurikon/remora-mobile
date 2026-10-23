@@ -7,7 +7,7 @@ void main() {
 
     expect(
       invite.toString(),
-      'https://remora.com.ru/app/battles/battle-1?invite=signed-token',
+      'https://zapominalnya.ru/app/battles/battle-1?invite=signed-token',
     );
   });
 }

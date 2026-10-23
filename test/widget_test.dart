@@ -10,7 +10,9 @@ import 'package:remora_mobile/data/preferences.dart';
 import 'package:remora_mobile/main.dart';
 
 void main() {
-  testWidgets('RemoraApp запускается без ошибок', (tester) async {
+  testWidgets('приложение «Запоминальня» запускается без ошибок', (
+    tester,
+  ) async {
     final testDb = AppDatabase.forTesting(NativeDatabase.memory());
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();

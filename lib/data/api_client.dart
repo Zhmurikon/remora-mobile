@@ -6,9 +6,9 @@ import '../features/auth/auth_provider.dart';
 import 'circuit_breaker_interceptor.dart';
 import 'logging_interceptor.dart';
 
-/// Канонический адрес Remora. Локально его можно временно заменить на
+/// Канонический адрес «Запоминальни». Локально его можно временно заменить на
 /// http://10.0.2.2:8000 для Android-эмулятора.
-const baseUrl = 'https://remora.com.ru';
+const baseUrl = 'https://zapominalnya.ru';
 
 /// Настроенный Dio с auth-интерсептором.
 final dioProvider = Provider<Dio>((ref) {

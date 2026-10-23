@@ -520,7 +520,7 @@ class RemoraBottomAction extends StatelessWidget {
 
 enum KnowledgeMotifType { books, cards, connections }
 
-/// Лёгкий геометрический мотив; декоративен и не подменяет знак Remora.
+/// Лёгкий геометрический мотив; декоративен и не подменяет знак «Запоминальни».
 class KnowledgeMotif extends StatelessWidget {
   const KnowledgeMotif({required this.type, super.key, this.size = 96});
 

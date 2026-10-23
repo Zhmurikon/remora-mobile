@@ -11,12 +11,12 @@ class RemoraLogo extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Semantics(
-      label: 'Remora',
+      label: 'Запоминальня',
       image: true,
       child: SvgPicture.asset(
         isDark
-            ? 'assets/remora-logo-horizontal-inverse.svg'
-            : 'assets/remora-logo-horizontal.svg',
+            ? 'assets/zapominalnya-logo-horizontal-inverse.svg'
+            : 'assets/zapominalnya-logo-horizontal.svg',
         width: width,
         excludeFromSemantics: true,
       ),
@@ -32,7 +32,7 @@ class RemoraMark extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Semantics(
-      label: 'Remora',
+      label: 'Запоминальня',
       image: true,
       child: SvgPicture.asset(
         'assets/remora-mark.svg',
