@@ -11,7 +11,7 @@ class RemoraLogo extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Semantics(
-      label: 'Remora',
+      label: 'Запоминальня',
       image: true,
       child: SvgPicture.asset(
         isDark
@@ -32,7 +32,7 @@ class RemoraMark extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Semantics(
-      label: 'Remora',
+      label: 'Запоминальня',
       image: true,
       child: SvgPicture.asset(
         'assets/remora-mark.svg',

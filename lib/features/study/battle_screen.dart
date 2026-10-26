@@ -308,7 +308,7 @@ class _BattleScreenState extends ConsumerState<BattleScreen>
                 onPressed: () => SharePlus.instance.share(
                   ShareParams(
                     text:
-                        'Сыграем в Remora: '
+                        'Сыграем в «Запоминальне»: '
                         '${battleInviteUrl(room.id, widget.inviteToken!)}',
                   ),
                 ),

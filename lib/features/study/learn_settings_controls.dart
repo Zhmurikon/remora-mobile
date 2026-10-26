@@ -146,7 +146,7 @@ class LearnSettingsControls extends StatelessWidget {
               Text('Упражнения', style: theme.textTheme.titleSmall),
               const SizedBox(height: 4),
               Text(
-                'Remora подбирает подходящий тип из включённых по тому, '
+                '«Запоминальня» подбирает подходящий тип из включённых по тому, '
                 'насколько хорошо знакома карточка.',
                 style: theme.textTheme.bodySmall?.copyWith(color: subtle),
               ),

@@ -63,7 +63,7 @@ class RemoraApp extends ConsumerWidget {
     });
 
     return MaterialApp.router(
-      title: 'Remora',
+      title: 'Запоминальня',
       debugShowCheckedModeBanner: false,
       theme: remoraLightTheme(),
       darkTheme: remoraDarkTheme(),

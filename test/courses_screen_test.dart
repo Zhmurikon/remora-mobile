@@ -158,7 +158,7 @@ CourseRecord _course({
     slug: 'python-data',
     title: title,
     description: description,
-    authorName: 'Remora',
+    authorName: 'Запоминальня',
     isPublished: true,
     isSaved: isSaved,
     hasUpdates: hasUpdates,

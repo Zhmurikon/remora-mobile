@@ -1,6 +1,7 @@
-# Remora Mobile
+# Мобильная «Запоминальня»
 
-Мобильный клиент [Remora](https://github.com/Zhmurikon/remora) — платформы для заучивания через карточки.
+Мобильный клиент «Запоминальни» — платформы для заучивания через карточки. Исходный код
+подключён к [основному репозиторию](https://github.com/Zhmurikon/remora) как сабмодуль.
 
 **Стек:** Flutter (Dart), Android-first, offline-first.
 
