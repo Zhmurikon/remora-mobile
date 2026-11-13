@@ -207,7 +207,7 @@ void main() {
       final config = TestConfig.fromJson({});
 
       expect(config.questionCount, 20);
-      expect(config.kinds, ['choice', 'true_false', 'typing']);
+      expect(config.kinds, ['choice', 'true_false']);
       expect(config.direction, 'term_to_def');
       expect(config.source, 'all');
       expect(config.writeToSchedule, true);

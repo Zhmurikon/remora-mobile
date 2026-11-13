@@ -352,7 +352,7 @@ class StudyRepository {
             (j['learn_question_types'] as List?)
                 ?.map((e) => e.toString())
                 .toList() ??
-            const ['choice', 'typing', 'recall'],
+            const ['choice', 'recall'],
         learnSuccessesRequired: j['learn_successes_required'] as int? ?? 1,
         learnSessionSize: j['learn_session_size'] as int? ?? 10,
         learnTypingCheck: j['learn_typing_check'] as String? ?? 'automatic',
@@ -533,7 +533,7 @@ class _StudySettings {
 
   const _StudySettings.defaults()
     : answerStrictness = 'moderate',
-      learnQuestionTypes = const ['choice', 'typing', 'recall'],
+      learnQuestionTypes = const ['choice', 'recall'],
       learnSuccessesRequired = 1,
       learnSessionSize = 10,
       learnTypingCheck = 'automatic',

@@ -33,7 +33,7 @@ class StudySessionState {
     this.langTerm = 'ru',
     this.langDefinition = 'ru',
     this.answerStrictness = 'moderate',
-    this.learnQuestionTypes = const ['choice', 'typing', 'recall'],
+    this.learnQuestionTypes = const ['choice', 'recall'],
     this.learnSuccessesRequired = 1,
     this.learnTypingCheck = 'automatic',
     this.learnMatchPercent = 90,

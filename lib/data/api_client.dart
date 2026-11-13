@@ -884,7 +884,7 @@ class StudyQueue {
     required this.langTerm,
     required this.langDefinition,
     required this.answerStrictness,
-    this.learnQuestionTypes = const ['choice', 'typing', 'recall'],
+    this.learnQuestionTypes = const ['choice', 'recall'],
     this.learnSuccessesRequired = 1,
     this.learnSessionSize = 10,
     this.learnTypingCheck = 'automatic',
@@ -909,7 +909,7 @@ class StudyQueue {
           (json['learn_question_types'] as List?)
               ?.map((e) => e as String)
               .toList() ??
-          ['choice', 'typing', 'recall'],
+          ['choice', 'recall'],
       learnSuccessesRequired: json['learn_successes_required'] as int? ?? 1,
       learnSessionSize: json['learn_session_size'] as int? ?? 10,
       learnTypingCheck: json['learn_typing_check'] as String? ?? 'automatic',
@@ -1353,7 +1353,7 @@ class ForecastDay {
 class TestConfig {
   TestConfig({
     this.questionCount = 20,
-    this.kinds = const ['choice', 'true_false', 'typing'],
+    this.kinds = const ['choice', 'true_false'],
     this.direction = 'term_to_def',
     this.source = 'all',
     this.writeToSchedule = true,
@@ -1364,7 +1364,7 @@ class TestConfig {
       questionCount: json['question_count'] as int? ?? 20,
       kinds:
           (json['kinds'] as List?)?.map((e) => e as String).toList() ??
-          const ['choice', 'true_false', 'typing'],
+          const ['choice', 'true_false'],
       direction: json['direction'] as String? ?? 'term_to_def',
       source: json['source'] as String? ?? 'all',
       writeToSchedule: json['write_to_schedule'] as bool? ?? true,

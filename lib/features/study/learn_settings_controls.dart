@@ -40,7 +40,7 @@ class LearnPreferences {
 }
 
 const defaultLearnPreferences = LearnPreferences(
-  questionTypes: ['choice', 'typing', 'recall'],
+  questionTypes: ['choice', 'recall'],
   successesRequired: 1,
   sessionSize: 10,
   typingCheck: 'automatic',
@@ -68,7 +68,7 @@ const _presets = [
   _Preset(
     'Тщательно',
     LearnPreferences(
-      questionTypes: ['choice', 'typing', 'recall'],
+      questionTypes: ['choice', 'recall'],
       successesRequired: 3,
       sessionSize: 10,
       typingCheck: 'automatic',
@@ -129,8 +129,8 @@ class LearnSettingsControls extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          '«Быстро» — одно узнавание, «Обычно» — адаптивный режим, '
-          '«Тщательно» — три успешных ответа.',
+          'Рекомендуем «Обычно»: выбор ответа и самооценка. '
+          'Написание ответа можно включить отдельно.',
           style: theme.textTheme.bodySmall?.copyWith(color: subtle),
         ),
         const SizedBox(height: 20),

@@ -163,14 +163,14 @@ class OutboxService {
   }
 
   List<String> _decodeQuestionTypes(String? raw) {
-    if (raw == null) return const ['choice', 'typing', 'recall'];
+    if (raw == null) return const ['choice', 'recall'];
     try {
       final decoded = jsonDecode(raw);
       return decoded is List
           ? decoded.map((e) => e.toString()).toList()
           : const [];
     } catch (_) {
-      return const ['choice', 'typing', 'recall'];
+      return const ['choice', 'recall'];
     }
   }
 

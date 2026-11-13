@@ -195,7 +195,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -230,6 +230,23 @@ class AppDatabase extends _$AppDatabase {
         await m.addColumn(sets, sets.articleTitle);
         await m.addColumn(sets, sets.accessVia);
         await m.addColumn(sets, sets.hasUpdates);
+      }
+      if (from < 7) {
+        // Офлайн-кэш и ещё не отправленные настройки не должны вернуть письмо после миграции сервера.
+        await customStatement('''UPDATE pending_learn_settings
+          SET question_types = coalesce(
+            (SELECT nullif(json_group_array(value), '[]') FROM json_each(question_types) WHERE value <> 'typing'),
+            '["choice","recall"]')
+          WHERE json_valid(question_types) AND EXISTS (
+            SELECT 1 FROM json_each(question_types) WHERE value = 'typing')''');
+        await customStatement(
+          r'''UPDATE sync_meta
+          SET revision = json_set(revision, '$.learn_question_types', json(coalesce(
+            (SELECT nullif(json_group_array(value), '[]') FROM json_each(revision, '$.learn_question_types')
+             WHERE value <> 'typing'), '["choice","recall"]')))
+          WHERE entity_type = 'study_settings' AND json_valid(revision) AND EXISTS (
+            SELECT 1 FROM json_each(revision, '$.learn_question_types') WHERE value = 'typing')''',
+        );
       }
     },
   );

@@ -181,7 +181,8 @@ class QuizSetupView extends StatelessWidget {
                       const SizedBox(height: RemoraSpacing.xl),
                       _ConfigSection(
                         title: 'Форматы вопросов',
-                        description: 'Можно включить несколько форматов.',
+                        description:
+                            'Рекомендуем выбор ответа и «Верно / неверно». Ввод ответа можно включить отдельно.',
                         child: Wrap(
                           spacing: RemoraSpacing.xs,
                           runSpacing: RemoraSpacing.xs,
