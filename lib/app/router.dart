@@ -22,16 +22,25 @@ import '../features/study/test_setup_screen.dart';
 import '../features/study/test_taking_screen.dart';
 import '../features/study/write_screen.dart';
 import '../features/study/battle_screen.dart';
+import '../features/workspace/assistant_screen.dart';
+import '../features/workspace/billing_screen.dart';
+import '../features/workspace/classes_screen.dart';
+import '../features/workspace/collection_screens.dart';
+import '../features/workspace/workspace.dart';
 import 'app_shell.dart';
 import 'home_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(authProvider);
-
-  return GoRouter(
+  final status = ValueNotifier(ref.read(authProvider).status);
+  ref.listen(
+    authProvider.select((state) => state.status),
+    (_, next) => status.value = next,
+  );
+  final router = GoRouter(
+    refreshListenable: status,
     initialLocation: '/',
     redirect: (context, state) {
-      return authRedirect(authState.status, state.uri.toString());
+      return authRedirect(status.value, state.uri.toString());
     },
     routes: [
       GoRoute(
@@ -83,6 +92,32 @@ final routerProvider = Provider<GoRouter>((ref) {
             ],
           ),
         ],
+      ),
+      GoRoute(path: '/workspace', builder: (_, _) => const WorkspaceMenu()),
+      GoRoute(path: '/assistant', builder: (_, _) => const AssistantScreen()),
+      GoRoute(
+        path: '/achievements',
+        builder: (_, _) => const AchievementsScreen(),
+      ),
+      GoRoute(path: '/app/billing', redirect: (_, _) => '/billing'),
+      GoRoute(
+        path: '/app/classes/join',
+        builder: (_, state) =>
+            ClassesScreen(inviteCode: state.uri.queryParameters['code']),
+      ),
+      GoRoute(path: '/billing', builder: (_, _) => const BillingScreen()),
+      GoRoute(path: '/classes', builder: (_, _) => const ClassesScreen()),
+      GoRoute(
+        path: '/classes/:id',
+        builder: (_, state) => ClassScreen(state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/saved-articles',
+        builder: (_, _) => const SavedArticlesScreen(),
+      ),
+      GoRoute(
+        path: '/saved-articles/:id',
+        builder: (_, state) => SavedArticleScreen(state.pathParameters['id']!),
       ),
       // ── Курсы (чтение теории) ──
       GoRoute(
@@ -210,28 +245,49 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
     ],
   );
+  ref.onDispose(() {
+    router.dispose();
+    status.dispose();
+  });
+  return router;
 });
 
 String? authRedirect(AuthStatus status, String location) {
   final isAuth = status == AuthStatus.authenticated;
   final isAuthRoute = location.startsWith('/auth');
   final isUnknown = status == AuthStatus.unknown;
-  final isSplash = location == '/splash';
+  final uri = Uri.parse(location);
+  final isSplash = uri.path == '/splash';
+  final target = uri.queryParameters['next'];
+  final next =
+      target != null &&
+          target.startsWith('/') &&
+          !target.startsWith('//') &&
+          !target.startsWith('/auth') &&
+          !target.startsWith('/splash')
+      ? target
+      : '/';
 
   // Пока Keystore читается и refresh-токен ротируется, защищённые экраны
   // нельзя строить: их параллельный 401 запустит второй refresh тем же
   // одноразовым токеном и сервер отзовёт всю сессию.
   if (isUnknown) {
-    return isSplash ? null : '/splash';
+    if (isSplash) return null;
+    return location == '/'
+        ? '/splash'
+        : '/splash?next=${Uri.encodeComponent(location)}';
   }
   if (isSplash) {
-    return isAuth ? '/' : '/auth/login';
+    if (isAuth) return next;
+    return next == '/'
+        ? '/auth/login'
+        : '/auth/login?next=${Uri.encodeComponent(next)}';
   }
   if (!isAuth && !isAuthRoute) {
     return '/auth/login?next=${Uri.encodeComponent(location)}';
   }
   if (isAuth && isAuthRoute) {
-    return Uri.tryParse(location)?.queryParameters['next'] ?? '/';
+    return next;
   }
   return null;
 }

@@ -84,6 +84,12 @@ class DashboardView extends StatelessWidget {
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.only(bottom: RemoraSpacing.xxl),
           children: [
+            ListTile(
+              title: const Text('Разделы кабинета'),
+              leading: const Icon(Icons.apps),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.push('/workspace'),
+            ),
             _DashboardHeader(name: name, now: currentTime),
             if (dashboard.isOffline)
               const Padding(

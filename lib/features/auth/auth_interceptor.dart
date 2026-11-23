@@ -38,8 +38,13 @@ class AuthInterceptor extends Interceptor {
     // Refresh-токен одноразовый: повторная попытка обновить сессию тем же
     // токеном воспринимается сервером как его кража и отзывает всю семью.
     // Поэтому 401 самого refresh-запроса нельзя пропускать через refresh-flow.
-    final isRefreshRequest = err.requestOptions.path.endsWith('/auth/refresh');
-    if (err.response?.statusCode != 401 || isRefreshRequest) {
+    final sessionEndpoint = const {
+      '/api/v1/auth/login',
+      '/api/v1/auth/register',
+      '/api/v1/auth/refresh',
+      '/api/v1/auth/logout',
+    }.contains(err.requestOptions.path);
+    if (err.response?.statusCode != 401 || sessionEndpoint) {
       handler.next(err);
       return;
     }
@@ -49,7 +54,7 @@ class AuthInterceptor extends Interceptor {
       // Уже идёт refresh — ждём результат
       final newToken = await completer.future;
       if (newToken != null) {
-        handler.resolve(await _retryRequest(err.requestOptions, newToken));
+        await _retryRequest(err.requestOptions, newToken, handler);
       } else {
         handler.next(err);
       }
@@ -85,7 +90,7 @@ class AuthInterceptor extends Interceptor {
 
       _refreshCompleter!.complete(newAccess);
       _refreshCompleter = null;
-      handler.resolve(await _retryRequest(err.requestOptions, newAccess));
+      await _retryRequest(err.requestOptions, newAccess, handler);
     } catch (e) {
       _refreshCompleter?.complete(null);
       _refreshCompleter = null;
@@ -98,12 +103,20 @@ class AuthInterceptor extends Interceptor {
     }
   }
 
-  Future<Response<dynamic>> _retryRequest(
+  Future<void> _retryRequest(
     RequestOptions options,
     String newToken,
-  ) {
+    ErrorInterceptorHandler handler,
+  ) async {
     options.headers['Authorization'] = 'Bearer $newToken';
     final dio = Dio(BaseOptions(baseUrl: options.baseUrl));
-    return dio.fetch(options);
+    try {
+      handler.resolve(await dio.fetch<dynamic>(options));
+    } on DioException catch (error) {
+      // Отказ конкретного действия после успешного refresh не отзывает сеанс.
+      handler.reject(error);
+    } finally {
+      dio.close();
+    }
   }
 }

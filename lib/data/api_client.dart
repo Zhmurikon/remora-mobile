@@ -8,7 +8,10 @@ import 'logging_interceptor.dart';
 
 /// Канонический адрес «Запоминальни». Локально его можно временно заменить на
 /// http://10.0.2.2:8000 для Android-эмулятора.
-const baseUrl = 'https://zapominalnya.ru';
+const baseUrl = String.fromEnvironment(
+  'REMORA_API_URL',
+  defaultValue: 'https://zapominalnya.ru',
+);
 
 /// Настроенный Dio с auth-интерсептором.
 final dioProvider = Provider<Dio>((ref) {
@@ -324,7 +327,11 @@ class RemoraApiClient {
   }) async {
     final response = await _dio.post(
       '/api/v1/library',
-      data: {'target_type': targetType, 'target_id': targetId},
+      data: {
+        'target_type': targetType,
+        'target_id': targetId,
+        if (targetType == 'article') 'text_only': true,
+      },
     );
     return LibrarySaveData.fromJson(response.data as Map<String, dynamic>);
   }
@@ -347,7 +354,7 @@ class RemoraApiClient {
   }) async {
     final response = await _dio.post(
       '/api/v1/courses/$courseId/copy',
-      data: {'article_id': articleId},
+      data: {'article_id': articleId, if (articleId != null) 'text_only': true},
       options: Options(headers: {'Idempotency-Key': idempotencyKey}),
     );
     return CopiedCourseData.fromJson(response.data as Map<String, dynamic>);

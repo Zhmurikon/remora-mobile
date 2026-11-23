@@ -1,4 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET" />
     <application
         android:label="Запоминальня"
         android:name="${applicationName}"
@@ -32,6 +33,13 @@
                     android:scheme="https"
                     android:host="zapominalnya.ru"
                     android:pathPrefix="/app/battles" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="https" android:host="zapominalnya.ru" android:path="/app/billing"/>
+                <data android:scheme="https" android:host="zapominalnya.ru" android:path="/app/classes/join"/>
             </intent-filter>
             <!-- Старый домен остаётся входом для уже отправленных приглашений. -->
             <intent-filter>

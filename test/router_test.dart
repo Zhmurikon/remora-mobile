@@ -6,8 +6,14 @@ import 'package:remora_mobile/features/auth/auth_provider.dart';
 void main() {
   test('до восстановления сессии защищённый экран не открывается', () {
     expect(authRedirect(AuthStatus.unknown, '/'), '/splash');
-    expect(authRedirect(AuthStatus.unknown, '/courses'), '/splash');
-    expect(authRedirect(AuthStatus.unknown, '/catalog'), '/splash');
+    expect(
+      authRedirect(AuthStatus.unknown, '/courses'),
+      '/splash?next=%2Fcourses',
+    );
+    expect(
+      authRedirect(AuthStatus.unknown, '/catalog'),
+      '/splash?next=%2Fcatalog',
+    );
     expect(authRedirect(AuthStatus.unknown, '/splash'), isNull);
   });
 
@@ -18,6 +24,10 @@ void main() {
       '/sets',
       '/catalog',
       '/settings',
+      '/assistant',
+      '/classes',
+      '/achievements',
+      '/billing',
     ]) {
       expect(authRedirect(AuthStatus.authenticated, location), isNull);
     }
@@ -45,6 +55,14 @@ void main() {
       ),
       invite,
     );
+  });
+
+  test('холодный запуск сохраняет приглашение до восстановления входа', () {
+    const invite = '/app/battles/one?invite=abc';
+    final splash = authRedirect(AuthStatus.unknown, invite)!;
+    expect(authRedirect(AuthStatus.authenticated, splash), invite);
+    final login = authRedirect(AuthStatus.unauthenticated, splash)!;
+    expect(authRedirect(AuthStatus.authenticated, login), invite);
   });
 
   test('внешняя ссылка-приглашение остаётся защищённым маршрутом', () {

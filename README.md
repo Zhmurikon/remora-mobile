@@ -4,7 +4,7 @@
 
 **Стек:** Flutter (Dart), Android-first, offline-first.
 
-**Статус:** M0 — каркас. Этапы — [`docs/12-mobile.md`](https://github.com/Zhmurikon/remora/blob/main/docs/12-mobile.md).
+В версии 0.2.0 на главной доступно меню «Разделы кабинета». Оно открывает ИИ-помощник, классы, достижения, подписку и сохранённые статьи. Оплату подтверждает ЮKassa. Скачанные наборы и режимы офлайн-обучения доступны через прежние вкладки. Этапы разработки — [`docs/12-mobile.md`](https://github.com/Zhmurikon/remora/blob/main/docs/12-mobile.md).
 
 ## Разработка
 
@@ -12,8 +12,10 @@
 flutter pub get
 flutter run           # на подключённом устройстве или эмуляторе
 flutter test          # тесты
-flutter build apk     # debug APK
+flutter build apk --release
 ```
+
+Для проверки с локальным Docker Compose выполните `adb reverse tcp:3000 tcp:3000`, `adb reverse tcp:9100 tcp:9100` и `flutter run --dart-define=REMORA_API_URL=http://127.0.0.1:3000`. Обычная сборка использует `https://zapominalnya.ru`.
 
 ## Структура
 
@@ -22,8 +24,8 @@ lib/
 ├── app/         точка входа, тема, роутинг
 ├── core/        Dart-порт ядра: answers, fsrs, distractors, format
 ├── data/        Drift-схема, репозитории, API-клиент, secure storage
-├── features/    auth, library, study, courses, settings
-└── shared/      рендер контента, общие виджеты
+├── features/    учебные экраны, авторизация и разделы кабинета
+└── widgets/      рендер контента, общие виджеты
 ```
 
 ## Требования

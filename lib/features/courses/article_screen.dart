@@ -123,7 +123,7 @@ class _ArticleScreenState extends ConsumerState<ArticleScreen> {
               itemBuilder: (_) => const [
                 PopupMenuItem(
                   value: 'article',
-                  child: Text('Создать копию статьи'),
+                  child: Text('Скопировать текст статьи'),
                 ),
                 PopupMenuItem(
                   value: 'set',
@@ -171,8 +171,8 @@ class _ArticleScreenState extends ConsumerState<ArticleScreen> {
                   ),
                   label: Text(
                     actions.isSaved('article', article.id)
-                        ? 'Статья сохранена'
-                        : 'Сохранить статью',
+                        ? 'Текст сохранён'
+                        : 'Сохранить текст',
                   ),
                 ),
                 OutlinedButton.icon(
@@ -242,7 +242,7 @@ class _ArticleScreenState extends ConsumerState<ArticleScreen> {
   }
 
   Future<void> _handleCopy(String type, CourseArticleRow article) async {
-    final label = type == 'article' ? 'статьи с карточками' : 'набора';
+    final label = type == 'article' ? 'текста статьи' : 'набора';
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(

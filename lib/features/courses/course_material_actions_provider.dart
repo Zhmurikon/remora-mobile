@@ -77,7 +77,7 @@ class MaterialActionsNotifier extends StateNotifier<MaterialActionsState> {
       }
       state = state.copyWith(saveIds: saves, clearError: true);
       await _ref.read(libraryProvider.notifier).refresh();
-      if (saveId == null && setId != null) {
+      if (saveId == null && type == 'set' && setId != null) {
         await _ref.read(setRepositoryProvider).downloadSet(setId);
         await _ref.read(libraryProvider.notifier).refresh();
       }
