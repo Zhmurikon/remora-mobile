@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../app/brand_logo.dart';
 import '../../app/theme.dart';
 import '../../data/api_client.dart';
 import '../../widgets/remora_components.dart';
@@ -69,7 +70,7 @@ class DashboardView extends StatelessWidget {
     final currentTime = now ?? DateTime.now();
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Главная'),
+        title: const ZapominalnyaLogo(),
         actions: [
           IconButton(
             onPressed: onRefresh,

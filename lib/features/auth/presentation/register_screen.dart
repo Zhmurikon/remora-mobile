@@ -63,7 +63,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const Center(child: RemoraLogo(width: 160)),
+                    const Center(child: ZapominalnyaLogo()),
                     const SizedBox(height: 24),
                     Text(
                       'Регистрация',

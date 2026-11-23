@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'app/brand_logo.dart';
 import 'app/router.dart';
 import 'app/theme.dart';
 import 'data/auto_download_service.dart';
@@ -63,7 +64,7 @@ class RemoraApp extends ConsumerWidget {
     });
 
     return MaterialApp.router(
-      title: 'Запоминальня',
+      title: appDisplayName,
       debugShowCheckedModeBanner: false,
       theme: remoraLightTheme(),
       darkTheme: remoraDarkTheme(),

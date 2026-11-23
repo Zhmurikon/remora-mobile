@@ -52,7 +52,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const Center(child: RemoraLogo()),
+                    const Center(child: ZapominalnyaLogo()),
                     const SizedBox(height: 16),
                     Text(
                       'Войдите в аккаунт',

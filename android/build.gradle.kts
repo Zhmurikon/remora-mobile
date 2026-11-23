@@ -1,3 +1,6 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.dsl.KotlinAndroidProjectExtension
+
 allprojects {
     repositories {
         google()
@@ -15,6 +18,16 @@ subprojects {
     val newSubprojectBuildDir: Directory = newBuildDir.dir(project.name)
     project.layout.buildDirectory.value(newSubprojectBuildDir)
 }
+// file_picker с AGP 9 ожидает встроенный Kotlin, а этот Flutter-проект пока использует KGP.
+project(":file_picker") {
+    plugins.withId("com.android.library") {
+        pluginManager.apply("org.jetbrains.kotlin.android")
+        extensions.configure<KotlinAndroidProjectExtension> {
+            compilerOptions.jvmTarget.set(JvmTarget.JVM_17)
+        }
+    }
+}
+
 subprojects {
     project.evaluationDependsOn(":app")
 }

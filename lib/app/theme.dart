@@ -7,6 +7,11 @@ import 'package:flutter/services.dart';
 /// значения напрямую. Публичные имена сохранены для постепенного переноса
 /// существующих экранов без смешивания двух палитр.
 abstract final class RemoraColors {
+  // Бумага и чернила шапки «Запоминальни».
+  static const lightBrandText = Color(0xFF172229);
+  static const darkBrandText = Color(0xFFEBF0EF);
+  static const darkBrandInk = Color(0xFFB6C7FF);
+
   // Светлая тема: бумага, хвойные чернила, нефрит и тёплые пометки.
   static const lightBg = Color(0xFFF8F4EA);
   static const lightSurface = Color(0xFFFFFCF6);

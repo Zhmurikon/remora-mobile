@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="LaunchTheme" parent="BaseLaunchTheme">
+        <item name="android:windowSplashScreenBackground">@color/launch_paper</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/launch_mark</item>
+    </style>
+</resources>
