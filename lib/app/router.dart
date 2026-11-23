@@ -29,6 +29,7 @@ import '../features/workspace/collection_screens.dart';
 import '../features/workspace/workspace.dart';
 import 'app_shell.dart';
 import 'home_screen.dart';
+import 'theme.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final status = ValueNotifier(ref.read(authProvider).status);
@@ -45,11 +46,13 @@ final routerProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(
         path: '/splash',
-        builder: (context, state) => const _AuthSplash(),
+        builder: (context, state) => const PaperTheme(child: _AuthSplash()),
       ),
       StatefulShellRoute.indexedStack(
-        builder: (context, state, navigationShell) =>
-            AppShell(navigationShell: navigationShell),
+        builder: (context, state, navigationShell) => PaperTheme(
+          enabled: navigationShell.currentIndex == 0,
+          child: AppShell(navigationShell: navigationShell),
+        ),
         branches: [
           StatefulShellBranch(
             routes: [
@@ -138,11 +141,11 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/auth/login',
-        builder: (context, state) => const LoginScreen(),
+        builder: (context, state) => const PaperTheme(child: LoginScreen()),
       ),
       GoRoute(
         path: '/auth/register',
-        builder: (context, state) => const RegisterScreen(),
+        builder: (context, state) => const PaperTheme(child: RegisterScreen()),
       ),
       // ── Обучение ──
       GoRoute(

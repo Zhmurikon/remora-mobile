@@ -68,9 +68,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     Text(
                       'Регистрация',
                       textAlign: TextAlign.center,
-                      style: theme.textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: theme.textTheme.headlineSmall,
                     ),
                     const SizedBox(height: 8),
                     Text(
@@ -87,7 +85,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       autofillHints: const [AutofillHints.email],
                       decoration: const InputDecoration(
                         labelText: 'Email',
-                        border: OutlineInputBorder(),
                         prefixIcon: Icon(Icons.email_outlined),
                       ),
                       validator: (v) => v == null || !v.contains('@')
@@ -100,7 +97,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       autofillHints: const [AutofillHints.username],
                       decoration: const InputDecoration(
                         labelText: 'Имя пользователя',
-                        border: OutlineInputBorder(),
                         prefixIcon: Icon(Icons.person_outlined),
                       ),
                       validator: (v) => v == null || v.length < 3
@@ -114,7 +110,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       autofillHints: const [AutofillHints.newPassword],
                       decoration: const InputDecoration(
                         labelText: 'Пароль',
-                        border: OutlineInputBorder(),
                         prefixIcon: Icon(Icons.lock_outlined),
                       ),
                       validator: (v) => v == null || v.length < 8
@@ -127,19 +122,18 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       obscureText: true,
                       decoration: const InputDecoration(
                         labelText: 'Повторите пароль',
-                        border: OutlineInputBorder(),
                         prefixIcon: Icon(Icons.lock_outlined),
                       ),
                       validator: (v) => v != _passwordController.text
                           ? 'Пароли не совпадают'
                           : null,
                     ),
-                    if (state.error != null) ...[
+                    if (state.error != null || state.notice != null) ...[
                       const SizedBox(height: 16),
                       Text(
-                        state.error!,
+                        state.error ?? state.notice!,
                         style: TextStyle(
-                          color: state.status == AuthStatus.authenticated
+                          color: state.error == null
                               ? theme.colorScheme.primary
                               : theme.colorScheme.error,
                         ),

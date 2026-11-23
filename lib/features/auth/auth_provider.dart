@@ -16,6 +16,7 @@ class AuthState {
     this.accessToken,
     this.user,
     this.error,
+    this.notice,
     this.isLoading = false,
   });
 
@@ -23,6 +24,7 @@ class AuthState {
   final String? accessToken;
   final UserProfile? user;
   final String? error;
+  final String? notice;
   final bool isLoading;
 
   AuthState copyWith({
@@ -30,6 +32,7 @@ class AuthState {
     String? accessToken,
     UserProfile? user,
     String? error,
+    String? notice,
     bool? isLoading,
   }) {
     return AuthState(
@@ -37,6 +40,7 @@ class AuthState {
       accessToken: accessToken ?? this.accessToken,
       user: user ?? this.user,
       error: error,
+      notice: notice,
       isLoading: isLoading ?? this.isLoading,
     );
   }
@@ -79,14 +83,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
-      await _api.register(
-        email: email,
-        password: password,
-        username: username,
-      );
+      await _api.register(email: email, password: password, username: username);
       state = state.copyWith(
         isLoading: false,
-        error: 'Проверьте почту и подтвердите email, затем войдите.',
+        notice: 'Проверьте почту и подтвердите email, затем войдите.',
       );
     } catch (e) {
       state = state.copyWith(isLoading: false, error: _extractError(e));
@@ -128,7 +128,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
     );
   }
 
-  Future<void> _tryRefresh(String refreshToken, {UserProfile? cachedUser}) async {
+  Future<void> _tryRefresh(
+    String refreshToken, {
+    UserProfile? cachedUser,
+  }) async {
     try {
       final result = await _api.refresh(refreshToken: refreshToken);
       if (result.refreshToken != null) {

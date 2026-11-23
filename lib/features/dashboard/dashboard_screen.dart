@@ -378,9 +378,7 @@ class _XpBadge extends StatelessWidget {
       child: Icon(
         Icons.star_rounded,
         size: 19,
-        color: theme.brightness == Brightness.dark
-            ? RemoraColors.darkBg
-            : Colors.white,
+        color: theme.colorScheme.onTertiary,
       ),
     );
   }

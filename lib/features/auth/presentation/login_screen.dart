@@ -57,9 +57,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     Text(
                       'Войдите в аккаунт',
                       textAlign: TextAlign.center,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
+                      style: theme.textTheme.headlineSmall,
                     ),
                     const SizedBox(height: 32),
                     TextFormField(
@@ -68,7 +66,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       autofillHints: const [AutofillHints.email],
                       decoration: const InputDecoration(
                         labelText: 'Email',
-                        border: OutlineInputBorder(),
                         prefixIcon: Icon(Icons.email_outlined),
                       ),
                       validator: (v) => v == null || !v.contains('@')
@@ -82,7 +79,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       autofillHints: const [AutofillHints.password],
                       decoration: const InputDecoration(
                         labelText: 'Пароль',
-                        border: OutlineInputBorder(),
                         prefixIcon: Icon(Icons.lock_outlined),
                       ),
                       validator: (v) =>

@@ -128,12 +128,17 @@ Future<void> _pumpDashboard(
   addTearDown(tester.view.resetDevicePixelRatio);
 
   await tester.pumpWidget(
-    MediaQuery(
-      data: MediaQueryData(textScaler: TextScaler.linear(textScale)),
-      child: MaterialApp(
-        theme: remoraLightTheme(),
-        darkTheme: remoraDarkTheme(),
-        home: DashboardView(
+    MaterialApp(
+      theme: remoraLightTheme(),
+      darkTheme: remoraDarkTheme(),
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(
+          context,
+        ).copyWith(textScaler: TextScaler.linear(textScale)),
+        child: child!,
+      ),
+      home: PaperTheme(
+        child: DashboardView(
           name: name,
           dashboard: dashboard,
           setTitle: setTitle,

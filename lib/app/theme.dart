@@ -259,30 +259,87 @@ ThemeData remoraLightTheme() => _buildTheme(Brightness.light);
 
 ThemeData remoraDarkTheme() => _buildTheme(Brightness.dark);
 
-ThemeData _buildTheme(Brightness brightness) {
+/// Палитра «На полях лекции» из packages/ui/src/styles/tokens.css.
+class PaperTheme extends StatelessWidget {
+  const PaperTheme({required this.child, this.enabled = true, super.key});
+
+  final Widget child;
+  final bool enabled;
+
+  static final _light = _buildTheme(
+    Brightness.light,
+    paper: const ColorScheme.light(
+      primary: Color(0xFF284BB2),
+      onPrimary: Colors.white,
+      primaryContainer: Color(0xFFE9EFFF),
+      surfaceContainerLowest: Color(0xFFFBFBF9),
+      surface: Colors.white,
+      surfaceContainer: Color(0xFFF3F5FA),
+      surfaceContainerHigh: Color(0xFFE9EFFF),
+      onSurface: RemoraColors.lightBrandText,
+      onSurfaceVariant: Color(0xFF56627A),
+      outline: Color(0xFFD9DFEC),
+      outlineVariant: Color(0xFF748099),
+    ),
+  );
+  static final _dark = _buildTheme(
+    Brightness.dark,
+    paper: const ColorScheme.dark(
+      primary: Color(0xFFAAC1FF),
+      onPrimary: Color(0xFF172442),
+      primaryContainer: Color(0xFF253452),
+      surfaceContainerLowest: Color(0xFF14191C),
+      surface: Color(0xFF191F23),
+      surfaceContainer: Color(0xFF202830),
+      surfaceContainerHigh: Color(0xFF253452),
+      onSurface: RemoraColors.darkBrandText,
+      onSurfaceVariant: Color(0xFFABB9BB),
+      outline: Color(0xFF364158),
+      outlineVariant: Color(0xFF748099),
+    ),
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    final base = Theme.of(context);
+    final paper = base.brightness == Brightness.dark ? _dark : _light;
+    return Theme(data: enabled ? paper : base, child: child);
+  }
+}
+
+ThemeData _buildTheme(Brightness brightness, {ColorScheme? paper}) {
   final dark = brightness == Brightness.dark;
-  final background = dark ? RemoraColors.darkBg : RemoraColors.lightBg;
-  final surface = dark ? RemoraColors.darkSurface : RemoraColors.lightSurface;
-  final surfaceMuted = dark
-      ? RemoraColors.darkSurfaceMuted
-      : RemoraColors.lightSurfaceMuted;
-  final surfaceElevated = dark
-      ? RemoraColors.darkSurfaceElevated
-      : RemoraColors.lightSurfaceElevated;
-  final foreground = dark ? RemoraColors.darkFg : RemoraColors.lightFg;
-  final foregroundMuted = dark
-      ? RemoraColors.darkFgMuted
-      : RemoraColors.lightFgMuted;
-  final foregroundSubtle = dark
-      ? RemoraColors.darkFgSubtle
-      : RemoraColors.lightFgSubtle;
-  final primary = dark ? RemoraColors.darkPrimary : RemoraColors.lightPrimary;
-  final onPrimary = dark
-      ? RemoraColors.darkPrimaryFg
-      : RemoraColors.lightPrimaryFg;
-  final primaryContainer = dark
-      ? RemoraColors.darkPrimarySubtle
-      : RemoraColors.lightPrimarySubtle;
+  final background =
+      paper?.surfaceContainerLowest ??
+      (dark ? RemoraColors.darkBg : RemoraColors.lightBg);
+  final surface =
+      paper?.surface ??
+      (dark ? RemoraColors.darkSurface : RemoraColors.lightSurface);
+  final surfaceMuted =
+      paper?.surfaceContainer ??
+      (dark ? RemoraColors.darkSurfaceMuted : RemoraColors.lightSurfaceMuted);
+  final surfaceElevated =
+      paper?.surfaceContainerHigh ??
+      (dark
+          ? RemoraColors.darkSurfaceElevated
+          : RemoraColors.lightSurfaceElevated);
+  final foreground =
+      paper?.onSurface ?? (dark ? RemoraColors.darkFg : RemoraColors.lightFg);
+  final foregroundMuted =
+      paper?.onSurfaceVariant ??
+      (dark ? RemoraColors.darkFgMuted : RemoraColors.lightFgMuted);
+  final foregroundSubtle =
+      paper?.onSurfaceVariant ??
+      (dark ? RemoraColors.darkFgSubtle : RemoraColors.lightFgSubtle);
+  final primary =
+      paper?.primary ??
+      (dark ? RemoraColors.darkPrimary : RemoraColors.lightPrimary);
+  final onPrimary =
+      paper?.onPrimary ??
+      (dark ? RemoraColors.darkPrimaryFg : RemoraColors.lightPrimaryFg);
+  final primaryContainer =
+      paper?.primaryContainer ??
+      (dark ? RemoraColors.darkPrimarySubtle : RemoraColors.lightPrimarySubtle);
   final secondary = dark ? RemoraColors.darkAccent : RemoraColors.lightAccent;
   final onSecondary = dark
       ? RemoraColors.darkAccentFg
@@ -294,10 +351,12 @@ ThemeData _buildTheme(Brightness brightness) {
   final tertiaryContainer = dark
       ? RemoraColors.darkOchreSubtle
       : RemoraColors.lightOchreSubtle;
-  final outline = dark ? RemoraColors.darkBorder : RemoraColors.lightBorder;
-  final outlineStrong = dark
-      ? RemoraColors.darkBorderStrong
-      : RemoraColors.lightBorderStrong;
+  final outline =
+      paper?.outline ??
+      (dark ? RemoraColors.darkBorder : RemoraColors.lightBorder);
+  final outlineStrong =
+      paper?.outlineVariant ??
+      (dark ? RemoraColors.darkBorderStrong : RemoraColors.lightBorderStrong);
   final danger = dark ? RemoraColors.darkDanger : RemoraColors.lightDanger;
   final dangerContainer = dark
       ? RemoraColors.darkDangerSubtle
@@ -340,7 +399,19 @@ ThemeData _buildTheme(Brightness brightness) {
         scrim: const Color(0xFF000000),
       );
 
-  final textTheme = _textTheme(foreground, foregroundMuted);
+  var textTheme = _textTheme(foreground, foregroundMuted);
+  if (paper != null) {
+    textTheme = textTheme.apply(fontFamily: 'NotoSans');
+    const heading = TextStyle(
+      fontFamily: 'NotoSerifDisplay',
+      fontWeight: FontWeight.w400,
+    );
+    textTheme = textTheme.copyWith(
+      headlineLarge: textTheme.headlineLarge?.merge(heading),
+      headlineSmall: textTheme.headlineSmall?.merge(heading),
+      titleLarge: textTheme.titleLarge?.merge(heading),
+    );
+  }
   final controlShape = RoundedRectangleBorder(
     borderRadius: BorderRadius.circular(RemoraRadii.control),
   );
@@ -531,7 +602,7 @@ ThemeData _buildTheme(Brightness brightness) {
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: surfaceMuted,
+      fillColor: paper?.surface ?? surfaceMuted,
       contentPadding: const EdgeInsets.symmetric(
         horizontal: RemoraSpacing.md,
         vertical: RemoraSpacing.sm,
@@ -543,7 +614,7 @@ ThemeData _buildTheme(Brightness brightness) {
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(RemoraRadii.control),
-        borderSide: BorderSide(color: outline),
+        borderSide: BorderSide(color: paper?.outlineVariant ?? outline),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(RemoraRadii.control),
