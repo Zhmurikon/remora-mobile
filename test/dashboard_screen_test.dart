@@ -137,18 +137,16 @@ Future<void> _pumpDashboard(
         ).copyWith(textScaler: TextScaler.linear(textScale)),
         child: child!,
       ),
-      home: PaperTheme(
-        child: DashboardView(
-          name: name,
-          dashboard: dashboard,
-          setTitle: setTitle,
-          setId: setId,
-          libraryLoading: libraryLoading,
-          now: DateTime(2026, 10, 1, 10),
-          onRefresh: onRefresh ?? () async {},
-          onOpenSets: () {},
-          onOpenSet: onOpenSet ?? (_, _) {},
-        ),
+      home: DashboardView(
+        name: name,
+        dashboard: dashboard,
+        setTitle: setTitle,
+        setId: setId,
+        libraryLoading: libraryLoading,
+        now: DateTime(2026, 10, 1, 10),
+        onRefresh: onRefresh ?? () async {},
+        onOpenSets: () {},
+        onOpenSet: onOpenSet ?? (_, _) {},
       ),
     ),
   );

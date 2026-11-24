@@ -9,6 +9,7 @@ import 'package:uuid/uuid.dart';
 import '../../data/api_client.dart';
 import 'assistant_upload.dart';
 import 'generation_screen.dart';
+import '../../widgets/ink_illustration.dart';
 import 'workspace.dart';
 
 const _results = {
@@ -181,7 +182,7 @@ class _AssistantScreenState extends ConsumerState<AssistantScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          const SectionHeading('Новая задача'),
+          const SectionHeading('Новая задача', drawing: InkDrawing.folder),
           RemoteContent(
             ref.watch(rights),
             retry: () => ref.invalidate(rights),
@@ -249,7 +250,9 @@ class _AssistantScreenState extends ConsumerState<AssistantScreen> {
                             ),
                       ],
                     ),
+                  const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
+                    isExpanded: true,
                     initialValue: result,
                     decoration: const InputDecoration(labelText: 'Результат'),
                     items: [
@@ -268,6 +271,7 @@ class _AssistantScreenState extends ConsumerState<AssistantScreen> {
                       title: const Text('Параметры результата'),
                       children: [
                         DropdownButtonFormField<String>(
+                          isExpanded: true,
                           initialValue: detail,
                           decoration: const InputDecoration(
                             labelText: 'Подробность',

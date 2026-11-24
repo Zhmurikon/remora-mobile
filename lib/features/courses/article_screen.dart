@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../widgets/ink_motion.dart';
 import '../../data/db/app_database.dart';
 import '../catalog/catalog_provider.dart';
 import 'article_content_widget.dart';
@@ -164,10 +165,14 @@ class _ArticleScreenState extends ConsumerState<ArticleScreen> {
                       ? null
                       : () =>
                             _toggleSaved('article', article.id, article.setId),
-                  icon: Icon(
-                    actions.isSaved('article', article.id)
-                        ? Icons.bookmark
-                        : Icons.bookmark_outline,
+                  icon: InkReveal(
+                    change: actions.isSaved('article', article.id),
+                    onMount: false,
+                    child: Icon(
+                      actions.isSaved('article', article.id)
+                          ? Icons.bookmark
+                          : Icons.bookmark_outline,
+                    ),
                   ),
                   label: Text(
                     actions.isSaved('article', article.id)
@@ -179,10 +184,14 @@ class _ArticleScreenState extends ConsumerState<ArticleScreen> {
                   onPressed: actions.isBusy('set', article.setId)
                       ? null
                       : () => _toggleSaved('set', article.setId, article.setId),
-                  icon: Icon(
-                    actions.isSaved('set', article.setId)
-                        ? Icons.bookmark
-                        : Icons.bookmark_outline,
+                  icon: InkReveal(
+                    change: actions.isSaved('set', article.setId),
+                    onMount: false,
+                    child: Icon(
+                      actions.isSaved('set', article.setId)
+                          ? Icons.bookmark
+                          : Icons.bookmark_outline,
+                    ),
                   ),
                   label: Text(
                     actions.isSaved('set', article.setId)
@@ -217,6 +226,7 @@ class _ArticleScreenState extends ConsumerState<ArticleScreen> {
     if (saved) {
       final confirmed = await showDialog<bool>(
         context: context,
+        animationStyle: InkMotion.styleOf(context),
         builder: (context) => AlertDialog(
           title: const Text('Убрать из сохранённых?'),
           content: Text(
@@ -245,6 +255,7 @@ class _ArticleScreenState extends ConsumerState<ArticleScreen> {
     final label = type == 'article' ? 'текста статьи' : 'набора';
     final confirmed = await showDialog<bool>(
       context: context,
+      animationStyle: InkMotion.styleOf(context),
       builder: (context) => AlertDialog(
         title: Text('Создать копию $label?'),
         content: const Text(

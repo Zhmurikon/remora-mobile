@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../widgets/ink_motion.dart';
+import '../../widgets/ink_illustration.dart';
 import '../../data/api_client.dart';
 import '../auth/auth_provider.dart';
 
@@ -62,7 +64,7 @@ class RemoteContent<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => value.when(
-    data: builder,
+    data: (data) => InkReveal(child: builder(data)),
     loading: () => const Padding(
       padding: EdgeInsets.all(24),
       child: Center(child: CircularProgressIndicator()),
@@ -77,13 +79,24 @@ class RemoteContent<T> extends StatelessWidget {
 }
 
 class SectionHeading extends StatelessWidget {
-  const SectionHeading(this.text, {super.key});
+  const SectionHeading(this.text, {this.drawing, super.key});
+  final InkDrawing? drawing;
   final String text;
 
   @override
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.fromLTRB(0, 20, 0, 8),
-    child: Text(text, style: Theme.of(context).textTheme.titleLarge),
+    child: Row(
+      children: [
+        Expanded(
+          child: Text(text, style: Theme.of(context).textTheme.titleLarge),
+        ),
+        if (drawing != null) ...[
+          const SizedBox(width: 12),
+          InkIllustration(drawing!, width: 66, height: 46),
+        ],
+      ],
+    ),
   );
 }
 
@@ -98,6 +111,7 @@ Future<String?> askText(
   var value = initial;
   return showDialog<String>(
     context: context,
+    animationStyle: InkMotion.styleOf(context),
     builder: (context) => AlertDialog(
       scrollable: true,
       title: Text(title),
@@ -156,7 +170,11 @@ class _ActionButtonState extends State<ActionButton> {
   @override
   Widget build(BuildContext context) => OutlinedButton(
     onPressed: busy || widget.run == null ? null : submit,
-    child: Text(busy ? 'Подождите…' : widget.label),
+    child: InkReveal(
+      onMount: false,
+      change: busy,
+      child: Text(busy ? 'Подождите…' : widget.label),
+    ),
   );
 }
 
@@ -174,14 +192,17 @@ class WorkspaceMenu extends StatelessWidget {
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('Разделы кабинета')),
     body: ListView(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       children: [
-        for (final (path, name, icon) in workspaceSections)
+        for (final (path, name, icon) in workspaceSections) ...[
           ListTile(
-            leading: Icon(icon),
+            leading: Icon(icon, color: Theme.of(context).colorScheme.primary),
             title: Text(name),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => context.push(path),
           ),
+          const Divider(height: 1),
+        ],
       ],
     ),
   );

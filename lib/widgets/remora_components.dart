@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../app/theme.dart';
+import 'ink_illustration.dart';
 
 enum RemoraSurfaceLevel { flat, tonal, grouped }
 
@@ -520,7 +521,7 @@ class RemoraBottomAction extends StatelessWidget {
 
 enum KnowledgeMotifType { books, cards, connections }
 
-/// Лёгкий геометрический мотив; декоративен и не подменяет знак «Запоминальни».
+/// Рисунок на полях заголовка.
 class KnowledgeMotif extends StatelessWidget {
   const KnowledgeMotif({required this.type, super.key, this.size = 96});
 
@@ -528,149 +529,15 @@ class KnowledgeMotif extends StatelessWidget {
   final double size;
 
   @override
-  Widget build(BuildContext context) {
-    return ExcludeSemantics(
-      child: IgnorePointer(
-        child: CustomPaint(
-          size: Size.square(size),
-          painter: _KnowledgeMotifPainter(
-            type: type,
-            primary: Theme.of(context).colorScheme.primary,
-            accent: Theme.of(context).colorScheme.secondary,
-            ochre: context.remora.ochre,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _KnowledgeMotifPainter extends CustomPainter {
-  const _KnowledgeMotifPainter({
-    required this.type,
-    required this.primary,
-    required this.accent,
-    required this.ochre,
-  });
-
-  final KnowledgeMotifType type;
-  final Color primary;
-  final Color accent;
-  final Color ochre;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final scale = size.shortestSide / 100;
-    canvas.save();
-    canvas.scale(scale, scale);
-    switch (type) {
-      case KnowledgeMotifType.books:
-        _paintBooks(canvas);
-      case KnowledgeMotifType.cards:
-        _paintCards(canvas);
-      case KnowledgeMotifType.connections:
-        _paintConnections(canvas);
-    }
-    canvas.restore();
-  }
-
-  void _paintBooks(Canvas canvas) {
-    final line = Paint()
-      ..color = primary
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.4
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
-    final page = Path()
-      ..moveTo(13, 67)
-      ..quadraticBezierTo(31, 58, 49, 68)
-      ..lineTo(49, 31)
-      ..quadraticBezierTo(31, 21, 13, 31)
-      ..close();
-    final facingPage = Path()
-      ..moveTo(51, 68)
-      ..quadraticBezierTo(69, 58, 87, 67)
-      ..lineTo(87, 31)
-      ..quadraticBezierTo(69, 21, 51, 31)
-      ..close();
-    canvas.drawPath(page, line);
-    canvas.drawPath(facingPage, line);
-    canvas.drawLine(const Offset(50, 31), const Offset(50, 72), line);
-    canvas.drawLine(const Offset(22, 39), const Offset(41, 36), line);
-    canvas.drawLine(const Offset(59, 36), const Offset(78, 39), line);
-    canvas.drawCircle(
-      const Offset(78, 20),
-      5,
-      Paint()..color = ochre.withValues(alpha: 0.9),
-    );
-    canvas.drawLine(
-      const Offset(70, 23),
-      const Offset(60, 29),
-      Paint()
-        ..color = accent
-        ..strokeWidth = 2
-        ..strokeCap = StrokeCap.round,
-    );
-  }
-
-  void _paintCards(Canvas canvas) {
-    final line = Paint()
-      ..color = primary
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.4
-      ..strokeJoin = StrokeJoin.round;
-    final back = RRect.fromRectAndRadius(
-      const Rect.fromLTWH(27, 18, 52, 62),
-      const Radius.circular(8),
-    );
-    final front = RRect.fromRectAndRadius(
-      const Rect.fromLTWH(18, 27, 52, 62),
-      const Radius.circular(8),
-    );
-    canvas.drawRRect(back, line..color = ochre);
-    canvas.drawRRect(front, line..color = primary);
-    canvas.drawLine(const Offset(31, 48), const Offset(57, 48), line);
-    canvas.drawLine(const Offset(31, 58), const Offset(50, 58), line);
-    canvas.drawCircle(
-      const Offset(70, 29),
-      7,
-      Paint()..color = accent.withValues(alpha: 0.9),
-    );
-  }
-
-  void _paintConnections(Canvas canvas) {
-    final line = Paint()
-      ..color = primary.withValues(alpha: 0.72)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.2
-      ..strokeCap = StrokeCap.round;
-    final path = Path()
-      ..moveTo(17, 68)
-      ..cubicTo(28, 45, 36, 55, 48, 36)
-      ..cubicTo(61, 17, 70, 46, 84, 28);
-    canvas.drawPath(path, line);
-    for (final node in [
-      (const Offset(17, 68), primary),
-      (const Offset(48, 36), accent),
-      (const Offset(84, 28), ochre),
-    ]) {
-      canvas.drawCircle(node.$1, 6, Paint()..color = node.$2);
-      canvas.drawCircle(
-        node.$1,
-        10,
-        Paint()
-          ..color = node.$2.withValues(alpha: 0.22)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 2,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _KnowledgeMotifPainter oldDelegate) {
-    return oldDelegate.type != type ||
-        oldDelegate.primary != primary ||
-        oldDelegate.accent != accent ||
-        oldDelegate.ochre != ochre;
-  }
+  Widget build(BuildContext context) => IgnorePointer(
+    child: InkIllustration(
+      switch (type) {
+        KnowledgeMotifType.books => InkDrawing.books,
+        KnowledgeMotifType.cards => InkDrawing.cards,
+        KnowledgeMotifType.connections => InkDrawing.match,
+      },
+      width: size,
+      height: size,
+    ),
+  );
 }

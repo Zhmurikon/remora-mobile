@@ -1,31 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-/// Базовая палитра «Живой тетради знаний».
+import '../widgets/ink_motion.dart';
+
+/// Палитра «На полях лекции» из packages/ui/src/styles/tokens.css.
 ///
-/// Виджеты используют роли [ColorScheme] и [RemoraThemeTokens], а не эти
-/// значения напрямую. Публичные имена сохранены для постепенного переноса
-/// существующих экранов без смешивания двух палитр.
+/// Цвета общие для навигации, учебных материалов и состояний в кабинете.
 abstract final class RemoraColors {
   // Бумага и чернила шапки «Запоминальни».
   static const lightBrandText = Color(0xFF172229);
   static const darkBrandText = Color(0xFFEBF0EF);
   static const darkBrandInk = Color(0xFFB6C7FF);
 
-  // Светлая тема: бумага, хвойные чернила, нефрит и тёплые пометки.
-  static const lightBg = Color(0xFFF8F4EA);
-  static const lightSurface = Color(0xFFFFFCF6);
-  static const lightSurfaceMuted = Color(0xFFF1ECE0);
-  static const lightSurfaceElevated = Color(0xFFE8E1D2);
-  static const lightBorder = Color(0xFFD8D2C4);
-  static const lightBorderStrong = Color(0xFFB8B2A5);
-  static const lightFg = Color(0xFF123B33);
-  static const lightFgMuted = Color(0xFF52655E);
-  static const lightFgSubtle = Color(0xFF707F79);
-  static const lightPrimary = Color(0xFF087D67);
-  static const lightPrimaryHover = Color(0xFF066552);
+  // Светлая тема: бумага, синие чернила и тёплые пометки.
+  static const lightBg = Color(0xFFFBFBF9);
+  static const lightSurface = Color(0xFFFFFFFF);
+  static const lightSurfaceMuted = Color(0xFFF3F5FA);
+  static const lightSurfaceElevated = Color(0xFFE9EFFF);
+  static const lightBorder = Color(0xFFD9DFEC);
+  static const lightBorderStrong = Color(0xFF748099);
+  static const lightFg = lightBrandText;
+  static const lightFgMuted = Color(0xFF56627A);
+  static const lightFgSubtle = Color(0xFF56627A);
+  static const lightPrimary = Color(0xFF284BB2);
+  static const lightPrimaryHover = Color(0xFF233D89);
   static const lightPrimaryFg = Color(0xFFFFFFFF);
-  static const lightPrimarySubtle = Color(0xFFD9F0E8);
+  static const lightPrimarySubtle = Color(0xFFE9EFFF);
   static const lightAccent = Color(0xFFE76F51);
   static const lightAccentFg = Color(0xFF3D120A);
   static const lightAccentSubtle = Color(0xFFFFE3D8);
@@ -38,20 +38,20 @@ abstract final class RemoraColors {
   static const lightDanger = Color(0xFFB43D3D);
   static const lightDangerSubtle = Color(0xFFF9DEDC);
 
-  // Тёмная тема: чернильно-зелёная основа и самостоятельные тональные слои.
-  static const darkBg = Color(0xFF061A16);
-  static const darkSurface = Color(0xFF0B2821);
-  static const darkSurfaceMuted = Color(0xFF10352B);
-  static const darkSurfaceElevated = Color(0xFF174438);
-  static const darkBorder = Color(0xFF31574D);
-  static const darkBorderStrong = Color(0xFF52766C);
-  static const darkFg = Color(0xFFF7F1E4);
-  static const darkFgMuted = Color(0xFFB9C8C1);
-  static const darkFgSubtle = Color(0xFF91A59D);
-  static const darkPrimary = Color(0xFF58DDB9);
-  static const darkPrimaryHover = Color(0xFF77E8C9);
-  static const darkPrimaryFg = Color(0xFF063B30);
-  static const darkPrimarySubtle = Color(0xFF174E40);
+  // Тёмная тема: графитовая бумага и светло-синие чернила.
+  static const darkBg = Color(0xFF14191C);
+  static const darkSurface = Color(0xFF191F23);
+  static const darkSurfaceMuted = Color(0xFF202830);
+  static const darkSurfaceElevated = Color(0xFF253452);
+  static const darkBorder = Color(0xFF364158);
+  static const darkBorderStrong = Color(0xFF748099);
+  static const darkFg = darkBrandText;
+  static const darkFgMuted = Color(0xFFABB9BB);
+  static const darkFgSubtle = Color(0xFFABB9BB);
+  static const darkPrimary = Color(0xFFAAC1FF);
+  static const darkPrimaryHover = Color(0xFFB6C7FF);
+  static const darkPrimaryFg = Color(0xFF172442);
+  static const darkPrimarySubtle = Color(0xFF253452);
   static const darkAccent = Color(0xFFFF8168);
   static const darkAccentFg = Color(0xFF40130B);
   static const darkAccentSubtle = Color(0xFF51291F);
@@ -255,91 +255,36 @@ extension RemoraThemeContext on BuildContext {
       Theme.of(this).extension<RemoraTypography>()!;
 }
 
-ThemeData remoraLightTheme() => _buildTheme(Brightness.light);
+ThemeData remoraLightTheme({bool reducedMotion = false}) =>
+    _buildTheme(Brightness.light, reducedMotion);
 
-ThemeData remoraDarkTheme() => _buildTheme(Brightness.dark);
+ThemeData remoraDarkTheme({bool reducedMotion = false}) =>
+    _buildTheme(Brightness.dark, reducedMotion);
 
-/// Палитра «На полях лекции» из packages/ui/src/styles/tokens.css.
-class PaperTheme extends StatelessWidget {
-  const PaperTheme({required this.child, this.enabled = true, super.key});
-
-  final Widget child;
-  final bool enabled;
-
-  static final _light = _buildTheme(
-    Brightness.light,
-    paper: const ColorScheme.light(
-      primary: Color(0xFF284BB2),
-      onPrimary: Colors.white,
-      primaryContainer: Color(0xFFE9EFFF),
-      surfaceContainerLowest: Color(0xFFFBFBF9),
-      surface: Colors.white,
-      surfaceContainer: Color(0xFFF3F5FA),
-      surfaceContainerHigh: Color(0xFFE9EFFF),
-      onSurface: RemoraColors.lightBrandText,
-      onSurfaceVariant: Color(0xFF56627A),
-      outline: Color(0xFFD9DFEC),
-      outlineVariant: Color(0xFF748099),
-    ),
-  );
-  static final _dark = _buildTheme(
-    Brightness.dark,
-    paper: const ColorScheme.dark(
-      primary: Color(0xFFAAC1FF),
-      onPrimary: Color(0xFF172442),
-      primaryContainer: Color(0xFF253452),
-      surfaceContainerLowest: Color(0xFF14191C),
-      surface: Color(0xFF191F23),
-      surfaceContainer: Color(0xFF202830),
-      surfaceContainerHigh: Color(0xFF253452),
-      onSurface: RemoraColors.darkBrandText,
-      onSurfaceVariant: Color(0xFFABB9BB),
-      outline: Color(0xFF364158),
-      outlineVariant: Color(0xFF748099),
-    ),
-  );
-
-  @override
-  Widget build(BuildContext context) {
-    final base = Theme.of(context);
-    final paper = base.brightness == Brightness.dark ? _dark : _light;
-    return Theme(data: enabled ? paper : base, child: child);
-  }
-}
-
-ThemeData _buildTheme(Brightness brightness, {ColorScheme? paper}) {
+ThemeData _buildTheme(Brightness brightness, bool reducedMotion) {
   final dark = brightness == Brightness.dark;
-  final background =
-      paper?.surfaceContainerLowest ??
-      (dark ? RemoraColors.darkBg : RemoraColors.lightBg);
-  final surface =
-      paper?.surface ??
-      (dark ? RemoraColors.darkSurface : RemoraColors.lightSurface);
-  final surfaceMuted =
-      paper?.surfaceContainer ??
-      (dark ? RemoraColors.darkSurfaceMuted : RemoraColors.lightSurfaceMuted);
-  final surfaceElevated =
-      paper?.surfaceContainerHigh ??
-      (dark
-          ? RemoraColors.darkSurfaceElevated
-          : RemoraColors.lightSurfaceElevated);
-  final foreground =
-      paper?.onSurface ?? (dark ? RemoraColors.darkFg : RemoraColors.lightFg);
-  final foregroundMuted =
-      paper?.onSurfaceVariant ??
-      (dark ? RemoraColors.darkFgMuted : RemoraColors.lightFgMuted);
-  final foregroundSubtle =
-      paper?.onSurfaceVariant ??
-      (dark ? RemoraColors.darkFgSubtle : RemoraColors.lightFgSubtle);
-  final primary =
-      paper?.primary ??
-      (dark ? RemoraColors.darkPrimary : RemoraColors.lightPrimary);
-  final onPrimary =
-      paper?.onPrimary ??
-      (dark ? RemoraColors.darkPrimaryFg : RemoraColors.lightPrimaryFg);
-  final primaryContainer =
-      paper?.primaryContainer ??
-      (dark ? RemoraColors.darkPrimarySubtle : RemoraColors.lightPrimarySubtle);
+  final background = dark ? RemoraColors.darkBg : RemoraColors.lightBg;
+  final surface = dark ? RemoraColors.darkSurface : RemoraColors.lightSurface;
+  final surfaceMuted = dark
+      ? RemoraColors.darkSurfaceMuted
+      : RemoraColors.lightSurfaceMuted;
+  final surfaceElevated = dark
+      ? RemoraColors.darkSurfaceElevated
+      : RemoraColors.lightSurfaceElevated;
+  final foreground = dark ? RemoraColors.darkFg : RemoraColors.lightFg;
+  final foregroundMuted = dark
+      ? RemoraColors.darkFgMuted
+      : RemoraColors.lightFgMuted;
+  final foregroundSubtle = dark
+      ? RemoraColors.darkFgSubtle
+      : RemoraColors.lightFgSubtle;
+  final primary = dark ? RemoraColors.darkPrimary : RemoraColors.lightPrimary;
+  final onPrimary = dark
+      ? RemoraColors.darkPrimaryFg
+      : RemoraColors.lightPrimaryFg;
+  final primaryContainer = dark
+      ? RemoraColors.darkPrimarySubtle
+      : RemoraColors.lightPrimarySubtle;
   final secondary = dark ? RemoraColors.darkAccent : RemoraColors.lightAccent;
   final onSecondary = dark
       ? RemoraColors.darkAccentFg
@@ -351,12 +296,10 @@ ThemeData _buildTheme(Brightness brightness, {ColorScheme? paper}) {
   final tertiaryContainer = dark
       ? RemoraColors.darkOchreSubtle
       : RemoraColors.lightOchreSubtle;
-  final outline =
-      paper?.outline ??
-      (dark ? RemoraColors.darkBorder : RemoraColors.lightBorder);
-  final outlineStrong =
-      paper?.outlineVariant ??
-      (dark ? RemoraColors.darkBorderStrong : RemoraColors.lightBorderStrong);
+  final outline = dark ? RemoraColors.darkBorder : RemoraColors.lightBorder;
+  final outlineStrong = dark
+      ? RemoraColors.darkBorderStrong
+      : RemoraColors.lightBorderStrong;
   final danger = dark ? RemoraColors.darkDanger : RemoraColors.lightDanger;
   final dangerContainer = dark
       ? RemoraColors.darkDangerSubtle
@@ -390,28 +333,29 @@ ThemeData _buildTheme(Brightness brightness, {ColorScheme? paper}) {
         onSurfaceVariant: foregroundMuted,
         outline: outline,
         outlineVariant: outlineStrong,
-        inverseSurface: dark ? RemoraColors.lightFg : RemoraColors.darkFg,
-        onInverseSurface: dark ? RemoraColors.darkFg : RemoraColors.lightFg,
+        inverseSurface: foreground,
+        onInverseSurface: surface,
         inversePrimary: dark
             ? RemoraColors.lightPrimary
             : RemoraColors.darkPrimary,
-        shadow: dark ? const Color(0xFF000000) : const Color(0xFF29443B),
+        shadow: dark ? const Color(0xFF000000) : const Color(0xFF172229),
         scrim: const Color(0xFF000000),
       );
 
-  var textTheme = _textTheme(foreground, foregroundMuted);
-  if (paper != null) {
-    textTheme = textTheme.apply(fontFamily: 'NotoSans');
-    const heading = TextStyle(
-      fontFamily: 'NotoSerifDisplay',
-      fontWeight: FontWeight.w400,
-    );
-    textTheme = textTheme.copyWith(
-      headlineLarge: textTheme.headlineLarge?.merge(heading),
-      headlineSmall: textTheme.headlineSmall?.merge(heading),
-      titleLarge: textTheme.titleLarge?.merge(heading),
-    );
-  }
+  final body = _textTheme(
+    foreground,
+    foregroundMuted,
+  ).apply(fontFamily: 'NotoSans');
+  const heading = TextStyle(
+    fontFamily: 'NotoSerifDisplay',
+    fontWeight: FontWeight.w400,
+  );
+  final textTheme = body.copyWith(
+    headlineLarge: body.headlineLarge?.merge(heading),
+    headlineMedium: body.headlineMedium?.merge(heading),
+    headlineSmall: body.headlineSmall?.merge(heading),
+    titleLarge: body.titleLarge?.merge(heading),
+  );
   final controlShape = RoundedRectangleBorder(
     borderRadius: BorderRadius.circular(RemoraRadii.control),
   );
@@ -430,6 +374,17 @@ ThemeData _buildTheme(Brightness brightness, {ColorScheme? paper}) {
 
   return ThemeData(
     useMaterial3: true,
+    pageTransitionsTheme: PageTransitionsTheme(
+      builders: {
+        ...const PageTransitionsTheme().builders,
+        TargetPlatform.android: InkPageTransitions(reduced: reducedMotion),
+      },
+    ),
+    expansionTileTheme: ExpansionTileThemeData(
+      expansionAnimationStyle: reducedMotion
+          ? AnimationStyle.noAnimation
+          : InkMotion.style,
+    ),
     brightness: brightness,
     colorScheme: scheme,
     scaffoldBackgroundColor: background,
@@ -602,7 +557,7 @@ ThemeData _buildTheme(Brightness brightness, {ColorScheme? paper}) {
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: paper?.surface ?? surfaceMuted,
+      fillColor: surface,
       contentPadding: const EdgeInsets.symmetric(
         horizontal: RemoraSpacing.md,
         vertical: RemoraSpacing.sm,
@@ -614,7 +569,7 @@ ThemeData _buildTheme(Brightness brightness, {ColorScheme? paper}) {
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(RemoraRadii.control),
-        borderSide: BorderSide(color: paper?.outlineVariant ?? outline),
+        borderSide: BorderSide(color: outlineStrong),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(RemoraRadii.control),
@@ -708,13 +663,11 @@ ThemeData _buildTheme(Brightness brightness, {ColorScheme? paper}) {
       padding: const EdgeInsets.symmetric(horizontal: RemoraSpacing.xs),
     ),
     snackBarTheme: SnackBarThemeData(
-      backgroundColor: dark ? RemoraColors.lightFg : RemoraColors.darkSurface,
+      backgroundColor: scheme.inverseSurface,
       contentTextStyle: textTheme.bodyMedium?.copyWith(
-        color: dark ? RemoraColors.darkFg : RemoraColors.lightSurface,
+        color: scheme.onInverseSurface,
       ),
-      actionTextColor: dark
-          ? RemoraColors.darkPrimary
-          : RemoraColors.lightPrimary,
+      actionTextColor: scheme.inversePrimary,
       behavior: SnackBarBehavior.floating,
       shape: controlShape,
     ),
@@ -747,12 +700,10 @@ ThemeData _buildTheme(Brightness brightness, {ColorScheme? paper}) {
     ),
     tooltipTheme: TooltipThemeData(
       decoration: BoxDecoration(
-        color: dark ? RemoraColors.lightFg : RemoraColors.darkSurface,
+        color: scheme.inverseSurface,
         borderRadius: BorderRadius.circular(RemoraRadii.small),
       ),
-      textStyle: textTheme.bodySmall?.copyWith(
-        color: dark ? RemoraColors.darkFg : RemoraColors.lightSurface,
-      ),
+      textStyle: textTheme.bodySmall?.copyWith(color: scheme.onInverseSurface),
       waitDuration: const Duration(milliseconds: 500),
     ),
     focusColor: primary.withValues(alpha: 0.16),

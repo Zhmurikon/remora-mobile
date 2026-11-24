@@ -3,13 +3,13 @@ import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_highlight/flutter_highlight.dart';
-import 'package:flutter_highlight/themes/github.dart';
 import 'package:flutter_math_fork/flutter_math.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:markdown/markdown.dart' as md;
 
 import '../../app/theme.dart';
 import '../../core/markdown_math.dart';
+import '../../widgets/code_ink_theme.dart';
 
 /// Рендерер содержимого стороны карточки.
 ///
@@ -137,7 +137,7 @@ class CardContentWidget extends StatelessWidget {
       child: HighlightView(
         value,
         language: codeLanguage ?? 'plaintext',
-        theme: isDark ? _darkCodeTheme : githubTheme,
+        theme: codeInkTheme(isDark),
         textStyle: TextStyle(
           fontSize: fontSize * 0.85,
           fontFamily: 'monospace',
@@ -190,31 +190,6 @@ class CardContentWidget extends StatelessWidget {
       ),
     );
   }
-
-  static const _darkCodeTheme = <String, TextStyle>{
-    'root': TextStyle(
-      color: Color(0xFFF8F8F2),
-      backgroundColor: Color(0xFF272822),
-    ),
-    'comment': TextStyle(color: Color(0xFF75715E)),
-    'keyword': TextStyle(color: Color(0xFFF92672)),
-    'string': TextStyle(color: Color(0xFFE6DB74)),
-    'number': TextStyle(color: Color(0xFFAE81FF)),
-    'built_in': TextStyle(color: Color(0xFF66D9EF)),
-    'function': TextStyle(color: Color(0xFFA6E22E)),
-    'class': TextStyle(color: Color(0xFFA6E22E)),
-    'params': TextStyle(color: Color(0xFFF8F8F2)),
-    'meta': TextStyle(color: Color(0xFF75715E)),
-    'title': TextStyle(color: Color(0xFFA6E22E)),
-    'attribute': TextStyle(color: Color(0xFFA6E22E)),
-    'symbol': TextStyle(color: Color(0xFFAE81FF)),
-    'literal': TextStyle(color: Color(0xFFAE81FF)),
-    'type': TextStyle(color: Color(0xFF66D9EF)),
-    'regexp': TextStyle(color: Color(0xFFE6DB74)),
-    'variable': TextStyle(color: Color(0xFFF8F8F2)),
-    'operator': TextStyle(color: Color(0xFFF92672)),
-    'punctuation': TextStyle(color: Color(0xFFF8F8F2)),
-  };
 }
 
 /// Обычный текст карточки с безопасным Markdown и формулами `$…$` / `$$…$$`.
@@ -235,17 +210,17 @@ class _MixedTextContent extends StatelessWidget {
     final nodes = mathMarkdownDocument().parseLines(
       value.replaceAll('\r\n', '\n').split('\n'),
     );
-    return SelectionArea(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          for (var index = 0; index < nodes.length; index++) ...[
-            _block(nodes[index]),
-            if (index < nodes.length - 1) const SizedBox(height: 12),
-          ],
+    // В тренировке нажатие по надписи обрабатывает сама карточка ответа.
+    // Область выделения для чтения добавляет экран разбора после теста.
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (var index = 0; index < nodes.length; index++) ...[
+          _block(nodes[index]),
+          if (index < nodes.length - 1) const SizedBox(height: 12),
         ],
-      ),
+      ],
     );
   }
 

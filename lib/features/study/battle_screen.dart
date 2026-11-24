@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../widgets/ink_motion.dart';
 import '../../data/api_client.dart';
 import '../../data/preferences.dart';
 import 'battle_answer_retry.dart';
@@ -98,6 +99,7 @@ class _BattleSetupScreenState extends ConsumerState<BattleSetupScreen> {
         ),
         const SizedBox(height: 16),
         DropdownButtonFormField<String>(
+          isExpanded: true,
           initialValue: _direction,
           decoration: const InputDecoration(labelText: 'Направление'),
           items: const [
@@ -333,10 +335,13 @@ class _BattleScreenState extends ConsumerState<BattleScreen>
               ),
             ),
           if (room.status == 'active')
-            _Question(
-              question: room.questions[_index],
-              busy: _answering || _answerRetry.pending != null,
-              onAnswer: _answer,
+            InkReveal(
+              change: _index,
+              child: _Question(
+                question: room.questions[_index],
+                busy: _answering || _answerRetry.pending != null,
+                onAnswer: _answer,
+              ),
             ),
           if (_answerRetry.pending != null && !_answering)
             OutlinedButton(

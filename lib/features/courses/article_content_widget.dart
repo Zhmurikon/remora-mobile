@@ -4,13 +4,13 @@ import 'dart:math' as math;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_highlight/flutter_highlight.dart';
-import 'package:flutter_highlight/themes/github.dart';
 import 'package:flutter_math_fork/flutter_math.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:markdown/markdown.dart' as md;
 
 import '../../app/theme.dart';
 import '../../core/markdown_math.dart';
+import '../../widgets/code_ink_theme.dart';
 
 /// Безопасный рендер теории статьи.
 ///
@@ -244,7 +244,7 @@ class _ArticleRenderer {
         child: HighlightView(
           code.trimRight(),
           language: language,
-          theme: isDark ? _darkCodeTheme : githubTheme,
+          theme: codeInkTheme(isDark),
           textStyle: const TextStyle(
             fontFamily: 'monospace',
             fontSize: 14,
@@ -517,23 +517,6 @@ class _ArticleRenderer {
         return _inline(node.children ?? []);
     }
   }
-
-  static const _darkCodeTheme = <String, TextStyle>{
-    'root': TextStyle(
-      color: Color(0xFFF8F8F2),
-      backgroundColor: Color(0xFF272822),
-    ),
-    'comment': TextStyle(color: Color(0xFF75715E)),
-    'keyword': TextStyle(color: Color(0xFFF92672)),
-    'string': TextStyle(color: Color(0xFFE6DB74)),
-    'number': TextStyle(color: Color(0xFFAE81FF)),
-    'built_in': TextStyle(color: Color(0xFF66D9EF)),
-    'function': TextStyle(color: Color(0xFFA6E22E)),
-    'title': TextStyle(color: Color(0xFFA6E22E)),
-    'type': TextStyle(color: Color(0xFF66D9EF)),
-    'literal': TextStyle(color: Color(0xFFAE81FF)),
-    'operator': TextStyle(color: Color(0xFFF92672)),
-  };
 }
 
 /// Подписанные MinIO-ссылки содержат query-параметры после расширения файла.

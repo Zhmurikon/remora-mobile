@@ -29,7 +29,6 @@ import '../features/workspace/collection_screens.dart';
 import '../features/workspace/workspace.dart';
 import 'app_shell.dart';
 import 'home_screen.dart';
-import 'theme.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final status = ValueNotifier(ref.read(authProvider).status);
@@ -46,13 +45,11 @@ final routerProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(
         path: '/splash',
-        builder: (context, state) => const PaperTheme(child: _AuthSplash()),
+        builder: (context, state) => const _AuthSplash(),
       ),
       StatefulShellRoute.indexedStack(
-        builder: (context, state, navigationShell) => PaperTheme(
-          enabled: navigationShell.currentIndex == 0,
-          child: AppShell(navigationShell: navigationShell),
-        ),
+        builder: (context, state, navigationShell) =>
+            AppShell(navigationShell: navigationShell),
         branches: [
           StatefulShellBranch(
             routes: [
@@ -141,13 +138,38 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/auth/login',
-        builder: (context, state) => const PaperTheme(child: LoginScreen()),
+        builder: (context, state) => const LoginScreen(),
       ),
       GoRoute(
         path: '/auth/register',
-        builder: (context, state) => const PaperTheme(child: RegisterScreen()),
+        builder: (context, state) => const RegisterScreen(),
       ),
       // ── Обучение ──
+      GoRoute(
+        path: '/course/:courseId/study',
+        builder: (_, state) => StudySetupScreen.course(
+          courseId: state.pathParameters['courseId']!,
+          title: state.uri.queryParameters['title'] ?? 'Весь курс',
+        ),
+      ),
+      GoRoute(
+        path: '/course/:courseId/study/flashcards',
+        builder: (_, _) => const FlashcardsScreen(),
+      ),
+      GoRoute(
+        path: '/course/:courseId/study/learn',
+        builder: (_, _) => const LearnScreen(),
+      ),
+      GoRoute(
+        path: '/course/:courseId/study/write',
+        builder: (_, _) => const WriteScreen(),
+      ),
+      GoRoute(
+        path: '/course/:courseId/study/result',
+        builder: (_, state) => SessionResultScreen.course(
+          courseId: state.pathParameters['courseId']!,
+        ),
+      ),
       GoRoute(
         path: '/set/:setId/study',
         builder: (context, state) {

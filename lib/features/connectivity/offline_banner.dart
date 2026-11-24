@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../widgets/ink_motion.dart';
 import '../../app/theme.dart';
 import '../../data/connectivity_controller.dart';
 
@@ -19,15 +20,14 @@ class ConnectivityShell extends ConsumerWidget {
     final offline = ref.watch(
       connectivityControllerProvider.select((s) => s.isOffline),
     );
-    if (!offline) return child;
 
     return Column(
       children: [
-        const _OfflineBanner(),
+        if (offline) const InkReveal(child: _OfflineBanner()),
         Expanded(
           child: MediaQuery.removePadding(
             context: context,
-            removeTop: true,
+            removeTop: offline,
             child: child,
           ),
         ),

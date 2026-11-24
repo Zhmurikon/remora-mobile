@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../widgets/ink_motion.dart';
 import 'theme.dart';
 
 /// Постоянная навигация между верхнеуровневыми разделами приложения.
@@ -15,7 +16,11 @@ class AppShell extends StatelessWidget {
         ? 'Ещё'
         : 'Настройки';
     return Scaffold(
-      body: navigationShell,
+      body: InkReveal(
+        change: navigationShell.currentIndex,
+        onMount: false,
+        child: navigationShell,
+      ),
       bottomNavigationBar: DecoratedBox(
         decoration: BoxDecoration(
           border: Border(
@@ -29,6 +34,7 @@ class AppShell extends StatelessWidget {
           top: false,
           minimum: const EdgeInsets.only(bottom: RemoraSpacing.xxs),
           child: NavigationBar(
+            animationDuration: InkMotion.styleOf(context).duration,
             selectedIndex: navigationShell.currentIndex,
             onDestinationSelected: (index) {
               navigationShell.goBranch(

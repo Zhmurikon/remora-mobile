@@ -14,6 +14,8 @@ import 'data/repositories/outbox_service.dart';
 import 'features/auth/auth_provider.dart';
 import 'features/connectivity/offline_banner.dart';
 
+import 'widgets/ink_motion.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final prefs = await SharedPreferences.getInstance();
@@ -63,12 +65,15 @@ class RemoraApp extends ConsumerWidget {
       }
     });
 
+    final reducedMotion = MediaQuery.disableAnimationsOf(context);
     return MaterialApp.router(
       title: appDisplayName,
       debugShowCheckedModeBanner: false,
-      theme: remoraLightTheme(),
-      darkTheme: remoraDarkTheme(),
-      themeAnimationDuration: const Duration(milliseconds: 180),
+      theme: remoraLightTheme(reducedMotion: reducedMotion),
+      darkTheme: remoraDarkTheme(reducedMotion: reducedMotion),
+      themeAnimationDuration: reducedMotion
+          ? Duration.zero
+          : InkMotion.duration,
       themeAnimationCurve: Curves.easeOutCubic,
       themeMode: switch (mode) {
         AppThemeMode.system => ThemeMode.system,

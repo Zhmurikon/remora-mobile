@@ -7,6 +7,7 @@ import '../../core/fsrs.dart';
 import '../api_client.dart';
 import '../db/app_database.dart';
 import '../media_cache.dart';
+import 'set_repository.dart';
 
 /// CRUD для review_outbox и card_states — ядро офлайн-обучения.
 class StudyRepository {
@@ -73,17 +74,12 @@ class StudyRepository {
 
   /// Все состояния для набора.
   Future<List<CardStateRow>> getSetStates(String setId) async {
-    final cardIds =
-        await (_db.selectOnly(_db.cards, distinct: true)
-              ..addColumns([_db.cards.id])
-              ..where(_db.cards.setId.equals(setId)))
-            .map((row) => row.read(_db.cards.id)!)
-            .get();
-
-    if (cardIds.isEmpty) return [];
+    final cardIds = _db.selectOnly(_db.cards)
+      ..addColumns([_db.cards.id])
+      ..where(_db.cards.setId.equals(setId));
     return (_db.select(
       _db.cardStates,
-    )..where((s) => s.cardId.isIn(cardIds))).get();
+    )..where((s) => s.cardId.isInQuery(cardIds))).get();
   }
 
   /// Обновить или создать состояние карточки.
@@ -180,21 +176,7 @@ class StudyRepository {
       ...fresh,
       ...practice,
     ]).take(sessionLimit).toList();
-    final items = [
-      for (final e in selected)
-        QueueItem(
-          card: _queueCardFromRow(e.card),
-          direction: e.direction,
-          state: _stateData(e.card.id, e.direction, e.fsrs),
-          previews: [
-            for (final p in previewIntervals(e.fsrs, now))
-              RatingPreview(
-                rating: p.rating,
-                intervalSeconds: p.intervalSeconds,
-              ),
-          ],
-        ),
-    ];
+    final items = [for (final e in selected) _queueItem(e, now)];
 
     return StudyQueue(
       setId: setId,
@@ -217,6 +199,109 @@ class StudyRepository {
       reviewsLeftToday: due.length,
     );
   }
+
+  QueueItem _queueItem(_OfflineEntry e, DateTime now) => QueueItem(
+    card: _queueCardFromRow(e.card),
+    sourceSetId: e.card.setId,
+    direction: e.direction,
+    state: _stateData(e.card.id, e.direction, e.fsrs),
+    previews: [
+      for (final p in previewIntervals(e.fsrs, now))
+        RatingPreview(rating: p.rating, intervalSeconds: p.intervalSeconds),
+    ],
+  );
+
+  Future<void> downloadFullSet(RemoraApiClient api, String setId) async {
+    await SetRepository(_db, api, _mediaCache).downloadSet(setId);
+  }
+
+  /// Для свободного прохода берём все карточки, включая повторённые сегодня.
+  /// Метка полного скачивания отличает пустой материал от недокачанного.
+  Future<List<QueueItem>?> fullSetItems(String setId) async {
+    final complete =
+        await (_db.select(_db.syncMeta)..where(
+              (m) => m.entityType.equals('set') & m.entityId.equals(setId),
+            ))
+            .getSingleOrNull();
+    if (complete == null) return null;
+    final cards = await _cards(setId);
+    final states = {
+      for (final s in await getSetStates(setId))
+        if (s.direction == 'term_to_def') s.cardId: s,
+    };
+    final now = DateTime.now().toUtc();
+    return [
+      for (final card in cards)
+        _queueItem(
+          _OfflineEntry(
+            card,
+            'term_to_def',
+            states[card.id] != null
+                ? _fsrsFromRow(states[card.id]!)
+                : initialState(now),
+          ),
+          now,
+        ),
+    ];
+  }
+
+  Future<StudyQueue?> offlineCourseQueue(
+    String courseId,
+  ) => _db.transaction(() async {
+    final bundle =
+        await (_db.select(_db.syncMeta)..where(
+              (m) =>
+                  m.entityType.equals('course_bundle') &
+                  m.entityId.equals(courseId),
+            ))
+            .getSingleOrNull();
+    final course = await (_db.select(
+      _db.courses,
+    )..where((c) => c.id.equals(courseId))).getSingleOrNull();
+    if (bundle == null || course == null) return null;
+    final manifest =
+        await (_db.select(_db.syncMeta)..where(
+              (m) =>
+                  m.entityType.equals('course_deck') &
+                  m.entityId.equals(courseId),
+            ))
+            .getSingleOrNull();
+    final Set<String> setIds;
+    if (manifest?.revision case final revision?) {
+      setIds = (jsonDecode(revision) as List).cast<String>().toSet();
+    } else {
+      // В версиях до 0.3.2 метка полного скачивания ставилась после всех статей.
+      final articles = await (_db.select(
+        _db.courseArticles,
+      )..where((a) => a.courseId.equals(courseId))).get();
+      setIds = articles.map((a) => a.setId).toSet();
+    }
+    final items = <QueueItem>[];
+    for (final setId in setIds) {
+      final part = await fullSetItems(setId);
+      if (part == null) return null;
+      items.addAll(part);
+    }
+    final settings = await _readStudySettings('course/$courseId');
+    return StudyQueue(
+      setId: null,
+      setTitle: course.title,
+      langTerm: 'ru',
+      langDefinition: 'ru',
+      answerStrictness: settings.answerStrictness,
+      learnQuestionTypes: settings.learnQuestionTypes,
+      learnSuccessesRequired: settings.learnSuccessesRequired,
+      learnTypingCheck: settings.learnTypingCheck,
+      learnMatchPercent: settings.learnMatchPercent,
+      mode: 'flashcards',
+      schedulerVersion: schedulerVersion,
+      items: items,
+      dueTotal: 0,
+      newTotal: 0,
+      newLeftToday: 0,
+      reviewsLeftToday: 0,
+    );
+  });
 
   /// Сохраняет содержимое карточек из онлайн-очереди — чтобы набор потом
   /// открывался офлайн даже без явного скачивания. Upsert не удаляет уже

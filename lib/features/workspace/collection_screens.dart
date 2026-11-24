@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../courses/article_content_widget.dart';
+import '../../widgets/ink_illustration.dart';
 import 'workspace.dart';
 
 const _art = {
@@ -76,7 +77,16 @@ class SavedArticlesScreen extends ConsumerWidget {
               .where((item) => item['target_type'] == 'article')
               .toList();
           if (articles.isEmpty) {
-            return const Center(child: Text('Пока нет сохранённых статей'));
+            return const Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  InkIllustration(InkDrawing.folder, width: 112, height: 82),
+                  SizedBox(height: 16),
+                  Text('Пока нет сохранённых статей'),
+                ],
+              ),
+            );
           }
           return ListView.builder(
             itemCount: articles.length,

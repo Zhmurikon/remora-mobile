@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
+
+import '../../widgets/ink_motion.dart';
+import '../../widgets/ink_illustration.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/theme.dart';
 import '../../data/api_client.dart';
 import 'study_provider.dart';
+import '../library/library_provider.dart';
+import '../../widgets/library_status.dart';
 import 'test_setup_screen.dart';
 
 /// Экран выбора режима обучения перед стартом сессии.
@@ -13,7 +18,17 @@ class StudySetupScreen extends ConsumerStatefulWidget {
     super.key,
     required this.setId,
     required this.setTitle,
-  });
+  }) : isCourse = false;
+
+  const StudySetupScreen.course({
+    super.key,
+    required String courseId,
+    required String title,
+  }) : setId = courseId,
+       setTitle = title,
+       isCourse = true;
+
+  final bool isCourse;
 
   final String setId;
   final String setTitle;
@@ -29,7 +44,12 @@ class _StudySetupScreenState extends ConsumerState<StudySetupScreen> {
     if (_starting != null) return;
     setState(() => _starting = mode.name);
 
-    await ref.read(studySessionProvider.notifier).begin(widget.setId, mode);
+    final notifier = ref.read(studySessionProvider.notifier);
+    if (widget.isCourse) {
+      await notifier.beginCourse(widget.setId, mode);
+    } else {
+      await notifier.begin(widget.setId, mode);
+    }
     if (!mounted) return;
 
     final session = ref.read(studySessionProvider);
@@ -39,7 +59,11 @@ class _StudySetupScreenState extends ConsumerState<StudySetupScreen> {
       return;
     }
 
-    context.go('/set/${widget.setId}/study/${mode.name}');
+    if (widget.isCourse) {
+      context.pushReplacement('/course/${widget.setId}/study/${mode.name}');
+    } else {
+      context.go('/set/${widget.setId}/study/${mode.name}');
+    }
   }
 
   Future<void> _startStandardTest() async {
@@ -68,23 +92,37 @@ class _StudySetupScreenState extends ConsumerState<StudySetupScreen> {
   @override
   Widget build(BuildContext context) {
     final busy = _starting != null;
+    final library = widget.isCourse ? null : ref.watch(libraryProvider);
+    final set = library?.sets.where((s) => s.id == widget.setId).firstOrNull;
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.setTitle),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.tune_rounded),
-            tooltip: 'Настройки заучивания',
-            onPressed: busy
-                ? null
-                : () => context.push(
-                    '/set/${widget.setId}/study/settings'
-                    '?title=${Uri.encodeComponent(widget.setTitle)}',
-                  ),
-          ),
+          if (!widget.isCourse)
+            IconButton(
+              icon: const Icon(Icons.tune_rounded),
+              tooltip: 'Настройки заучивания',
+              onPressed: busy
+                  ? null
+                  : () => context.push(
+                      '/set/${widget.setId}/study/settings'
+                      '?title=${Uri.encodeComponent(widget.setTitle)}',
+                    ),
+            ),
         ],
       ),
       body: StudyModeView(
+        course: widget.isCourse,
+        footer: library == null
+            ? null
+            : LibraryStatusFooter(
+                savedLabel: set?.isSaved == true
+                    ? 'Набор сохранён в библиотеке.'
+                    : null,
+                downloaded: library.downloadedSetIds.contains(widget.setId),
+                outdated: library.outdatedSetIds.contains(widget.setId),
+                hasUpdates: set?.hasUpdates == true,
+              ),
         starting: _starting,
         enabled: !busy,
         onFlashcards: () => _start(StudyMode.flashcards),
@@ -111,11 +149,15 @@ class StudyModeView extends StatelessWidget {
     required this.onLearn,
     required this.onWrite,
     required this.onTest,
+    this.course = false,
+    this.footer,
     this.onBattle = _noop,
     required this.onCustomQuiz,
     super.key,
   });
 
+  final bool course;
+  final Widget? footer;
   final String? starting;
   final bool enabled;
   final VoidCallback onFlashcards;
@@ -130,54 +172,54 @@ class StudyModeView extends StatelessWidget {
     final entries = [
       _ModeEntry(
         id: StudyMode.flashcards.name,
-        icon: Icons.style_rounded,
+        drawing: InkDrawing.cards,
         title: 'Карточки',
         description: 'Переворачивайте и оценивайте себя',
-        tone: _ModeTone.primary,
         onTap: onFlashcards,
       ),
       _ModeEntry(
         id: StudyMode.learn.name,
-        icon: Icons.school_rounded,
+        drawing: InkDrawing.books,
         title: 'Учить',
         description: 'Адаптивные вопросы под ваш прогресс',
-        tone: _ModeTone.ochre,
         recommended: true,
         onTap: onLearn,
       ),
       _ModeEntry(
         id: StudyMode.write.name,
-        icon: Icons.edit_rounded,
+        drawing: InkDrawing.write,
         title: 'Писать',
         description: 'Ввод ответа с проверкой написания',
-        tone: _ModeTone.success,
         onTap: onWrite,
       ),
-      _ModeEntry(
-        id: 'test',
-        icon: Icons.fact_check_rounded,
-        title: 'Тест',
-        description: 'Быстрая проверка в готовом формате',
-        tone: _ModeTone.accent,
-        onTap: onTest,
-      ),
-      _ModeEntry(
-        id: 'battle',
-        icon: Icons.sports_kabaddi_rounded,
-        title: 'Битва',
-        description: 'Соревнуйтесь с другом на одном наборе',
-        tone: _ModeTone.primary,
-        onTap: onBattle,
-      ),
+      if (!course)
+        _ModeEntry(
+          id: 'test',
+          drawing: InkDrawing.choice,
+          title: 'Тест',
+          description: 'Быстрая проверка в готовом формате',
+          onTap: onTest,
+        ),
+      if (!course)
+        _ModeEntry(
+          id: 'battle',
+          drawing: InkDrawing.match,
+          title: 'Битва',
+          description: 'Соревнуйтесь с другом на одном наборе',
+          onTap: onBattle,
+        ),
     ];
     final textScale = MediaQuery.textScalerOf(context).scale(1);
-    final tileHeight = textScale > 1.15 ? 230.0 : 196.0;
 
     return SafeArea(
       top: false,
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final wide = constraints.maxWidth >= 1000;
+          final columns = constraints.maxWidth >= 720 && textScale <= 1.3
+              ? 3
+              : constraints.maxWidth >= 360 && textScale <= 1.5
+              ? 2
+              : 1;
           return SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(
               RemoraSpacing.lg,
@@ -200,31 +242,49 @@ class StudyModeView extends StatelessWidget {
                     ),
                     const SizedBox(height: RemoraSpacing.xs),
                     Text(
-                      'Выберите готовый режим или соберите свой квиз.',
+                      course
+                          ? 'Карточки всех материалов перемешиваются перед каждым проходом.'
+                          : 'Выберите готовый режим или соберите свой квиз.',
                       style: Theme.of(context).textTheme.bodyLarge,
                     ),
                     const SizedBox(height: RemoraSpacing.xl),
-                    GridView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: entries.length,
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: wide ? 4 : 2,
-                        mainAxisExtent: wide ? 204 : tileHeight,
-                        crossAxisSpacing: RemoraSpacing.sm,
-                        mainAxisSpacing: RemoraSpacing.sm,
+                    for (
+                      var start = 0;
+                      start < entries.length;
+                      start += columns
+                    ) ...[
+                      if (start > 0) const SizedBox(height: RemoraSpacing.sm),
+                      IntrinsicHeight(
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            for (
+                              var column = 0;
+                              column < columns;
+                              column++
+                            ) ...[
+                              if (column > 0)
+                                const SizedBox(width: RemoraSpacing.sm),
+                              Expanded(
+                                child: start + column >= entries.length
+                                    ? const SizedBox.shrink()
+                                    : _ModeCard(
+                                        entry: entries[start + column],
+                                        loading:
+                                            starting ==
+                                            entries[start + column].id,
+                                        enabled: enabled,
+                                      ),
+                              ),
+                            ],
+                          ],
+                        ),
                       ),
-                      itemBuilder: (context, index) {
-                        final entry = entries[index];
-                        return _ModeCard(
-                          entry: entry,
-                          loading: starting == entry.id,
-                          enabled: enabled,
-                        );
-                      },
-                    ),
+                    ],
                     const SizedBox(height: RemoraSpacing.sm),
-                    _CustomQuizCard(enabled: enabled, onTap: onCustomQuiz),
+                    if (!course)
+                      _CustomQuizCard(enabled: enabled, onTap: onCustomQuiz),
+                    ?footer,
                   ],
                 ),
               ),
@@ -236,26 +296,22 @@ class StudyModeView extends StatelessWidget {
   }
 }
 
-enum _ModeTone { primary, ochre, success, accent }
-
 void _noop() {}
 
 class _ModeEntry {
   const _ModeEntry({
     required this.id,
-    required this.icon,
+    required this.drawing,
     required this.title,
     required this.description,
-    required this.tone,
     required this.onTap,
     this.recommended = false,
   });
 
   final String id;
-  final IconData icon;
+  final InkDrawing drawing;
   final String title;
   final String description;
-  final _ModeTone tone;
   final VoidCallback onTap;
   final bool recommended;
 }
@@ -274,21 +330,7 @@ class _ModeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final (color, container) = switch (entry.tone) {
-      _ModeTone.primary => (
-        theme.colorScheme.primary,
-        theme.colorScheme.primaryContainer,
-      ),
-      _ModeTone.ochre => (context.remora.ochre, context.remora.ochreContainer),
-      _ModeTone.success => (
-        context.remora.success,
-        context.remora.successContainer,
-      ),
-      _ModeTone.accent => (
-        theme.colorScheme.tertiary,
-        theme.colorScheme.tertiaryContainer,
-      ),
-    };
+    final color = theme.colorScheme.primary;
 
     return Semantics(
       button: true,
@@ -297,10 +339,14 @@ class _ModeCard extends StatelessWidget {
           ? '${entry.title}, рекомендуемый режим. ${entry.description}'
           : '${entry.title}. ${entry.description}',
       child: AnimatedOpacity(
-        duration: const Duration(milliseconds: 160),
+        duration: MediaQuery.disableAnimationsOf(context)
+            ? Duration.zero
+            : const Duration(milliseconds: 160),
         opacity: enabled || loading ? 1 : 0.46,
         child: Material(
-          color: container.withValues(alpha: 0.58),
+          color: entry.recommended
+              ? theme.colorScheme.primaryContainer
+              : theme.colorScheme.surface,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(RemoraRadii.card),
             side: BorderSide(
@@ -319,16 +365,21 @@ class _ModeCard extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Container(
-                        width: 48,
-                        height: 48,
-                        decoration: BoxDecoration(
-                          color: color.withValues(alpha: 0.14),
-                          borderRadius: BorderRadius.circular(
-                            RemoraRadii.control,
+                      Flexible(
+                        child: AnimatedRotation(
+                          turns:
+                              loading &&
+                                  !MediaQuery.disableAnimationsOf(context)
+                              ? -0.018
+                              : 0,
+                          duration: InkMotion.styleOf(context).duration!,
+                          curve: InkMotion.curve,
+                          child: InkIllustration(
+                            entry.drawing,
+                            width: 72,
+                            height: 48,
                           ),
                         ),
-                        child: Icon(entry.icon, color: color),
                       ),
                       if (loading)
                         SizedBox.square(
@@ -346,7 +397,7 @@ class _ModeCard extends StatelessWidget {
                         ),
                     ],
                   ),
-                  const Spacer(),
+                  const SizedBox(height: RemoraSpacing.md),
                   Text(entry.title, style: theme.textTheme.titleLarge),
                   const SizedBox(height: RemoraSpacing.xxs),
                   Text(
@@ -355,6 +406,7 @@ class _ModeCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.bodyMedium,
                   ),
+                  const Spacer(),
                   const SizedBox(height: RemoraSpacing.xs),
                   Align(
                     alignment: AlignmentDirectional.bottomEnd,

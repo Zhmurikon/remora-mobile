@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../widgets/ink_motion.dart';
 import '../../../app/brand_logo.dart';
 import '../auth_provider.dart';
 
@@ -86,10 +87,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                     if (state.error != null) ...[
                       const SizedBox(height: 16),
-                      Text(
-                        state.error!,
-                        style: TextStyle(color: theme.colorScheme.error),
-                        textAlign: TextAlign.center,
+                      InkReveal(
+                        change: state.error,
+                        child: Text(
+                          state.error!,
+                          style: TextStyle(color: theme.colorScheme.error),
+                          textAlign: TextAlign.center,
+                        ),
                       ),
                     ],
                     const SizedBox(height: 24),

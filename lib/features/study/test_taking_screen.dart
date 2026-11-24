@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../widgets/ink_motion.dart';
 import '../../app/theme.dart';
 import '../../data/api_client.dart';
 import 'card_content_widget.dart';
@@ -194,9 +195,7 @@ class _TestTakingScreenState extends ConsumerState<TestTakingScreen> {
         ),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(3),
-          child: LinearProgressIndicator(
-            value: (_currentIndex + 1) / questions.length,
-          ),
+          child: InkProgressBar(value: (_currentIndex + 1) / questions.length),
         ),
       ),
       body: SafeArea(
@@ -205,7 +204,11 @@ class _TestTakingScreenState extends ConsumerState<TestTakingScreen> {
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(16),
-                child: _buildQuestion(context, question, answers),
+                child: InkReveal(
+                  change: _currentIndex,
+                  onMount: false,
+                  child: _buildQuestion(context, question, answers),
+                ),
               ),
             ),
             _buildNavigation(context, question, answers),
@@ -367,7 +370,9 @@ class _TestTakingScreenState extends ConsumerState<TestTakingScreen> {
                               ? RemoraColors.darkSuccess
                               : RemoraColors.lightSuccess)
                         : null,
-                    foregroundColor: current == 'true' ? Colors.white : null,
+                    foregroundColor: current == 'true'
+                        ? Theme.of(context).colorScheme.onPrimary
+                        : null,
                   ),
                   child: const Text('Верно', style: TextStyle(fontSize: 16)),
                 ),
@@ -389,7 +394,9 @@ class _TestTakingScreenState extends ConsumerState<TestTakingScreen> {
                               ? RemoraColors.darkDanger
                               : RemoraColors.lightDanger)
                         : null,
-                    foregroundColor: current == 'false' ? Colors.white : null,
+                    foregroundColor: current == 'false'
+                        ? Theme.of(context).colorScheme.onPrimary
+                        : null,
                   ),
                   child: const Text('Неверно', style: TextStyle(fontSize: 16)),
                 ),
@@ -477,6 +484,7 @@ class _TestTakingScreenState extends ConsumerState<TestTakingScreen> {
               Expanded(
                 flex: 3,
                 child: DropdownButtonFormField<String>(
+                  isExpanded: true,
                   // Ключ с текущим выбором пересоздаёт поле при внешнем
                   // изменении ответа: initialValue применяется только при
                   // построении, поэтому без ключа сброс не отразился бы.
@@ -610,6 +618,7 @@ class _TestTakingScreenState extends ConsumerState<TestTakingScreen> {
 
     final result = await showDialog<bool>(
       context: context,
+      animationStyle: InkMotion.styleOf(context),
       builder: (ctx) => AlertDialog(
         title: const Text('Выйти из теста?'),
         content: Text(

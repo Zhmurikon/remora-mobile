@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 // Прячем Drift-класс Card (строка таблицы Cards) — он конфликтует с Material Card.
+import '../../widgets/ink_motion.dart';
+import '../../widgets/library_status.dart';
 import '../../data/db/app_database.dart' hide Card;
 import '../catalog/catalog_provider.dart';
 import 'courses_provider.dart';
@@ -80,7 +82,11 @@ class CourseDetailScreen extends ConsumerWidget {
       body: RefreshIndicator(
         onRefresh: () =>
             ref.read(courseViewProvider(courseId).notifier).refresh(),
-        child: _buildBody(context, ref, state, catalog, isOwned),
+        child: InkReveal(
+          onMount: false,
+          change: (state.isEmpty, state.isLoading && state.sections.isEmpty),
+          child: _buildBody(context, ref, state, catalog, isOwned),
+        ),
       ),
     );
   }
@@ -96,25 +102,10 @@ class CourseDetailScreen extends ConsumerWidget {
       return const Center(child: CircularProgressIndicator());
     }
 
-    if (state.isEmpty) {
-      return ListView(
-        children: [
-          const SizedBox(height: 120),
-          Icon(
-            Icons.menu_book_outlined,
-            size: 72,
-            color: Theme.of(context).colorScheme.outline,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            state.error ?? 'В курсе пока нет разделов.',
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyLarge,
-          ),
-        ],
-      );
-    }
-
+    final library = ref.watch(coursesListProvider);
+    final record = library.courses.where((c) => c.id == courseId).firstOrNull;
+    final saved =
+        catalog.savedCourseIds.contains(courseId) || record?.isSaved == true;
     final theme = Theme.of(context);
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -123,21 +114,45 @@ class CourseDetailScreen extends ConsumerWidget {
           Text(state.course!.description, style: theme.textTheme.bodyMedium),
           const SizedBox(height: 16),
         ],
-        if (!isOwned) ...[
-          _CourseLibraryActions(
-            courseId: courseId,
-            title: state.course?.title ?? courseTitle,
-            isSaved: catalog.savedCourseIds.contains(courseId),
-            isBusy: catalog.busyCourseIds.contains(courseId),
+        if (state.articles.isNotEmpty && (isOwned || saved)) ...[
+          FilledButton.icon(
+            onPressed: () => context.push(
+              '/course/$courseId/study?title=${Uri.encodeComponent(state.course?.title ?? courseTitle)}',
+            ),
+            icon: const Icon(Icons.shuffle_rounded),
+            label: const Text('Учить весь курс'),
           ),
           const SizedBox(height: 16),
         ],
+        if (state.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 32),
+            child: Text(
+              state.error ?? 'В курсе пока нет разделов.',
+              textAlign: TextAlign.center,
+            ),
+          ),
         for (final section in state.sections)
           _SectionBlock(
             section: section,
             articles: state.articlesOf(section.id),
             courseId: courseId,
           ),
+        if (!isOwned && state.course != null) ...[
+          _CourseLibraryActions(
+            courseId: courseId,
+            title: state.course?.title ?? courseTitle,
+            isSaved: saved,
+            isBusy: catalog.busyCourseIds.contains(courseId),
+          ),
+          const SizedBox(height: 16),
+        ],
+        LibraryStatusFooter(
+          savedLabel: saved ? 'Курс сохранён в библиотеке.' : null,
+          downloaded: library.downloadedCourseIds.contains(courseId),
+          outdated: library.outdatedCourseIds.contains(courseId),
+          hasUpdates: record?.hasUpdates ?? false,
+        ),
       ],
     );
   }
@@ -190,6 +205,7 @@ class _CourseLibraryActions extends ConsumerWidget {
   Future<void> _remove(BuildContext context, CatalogNotifier notifier) async {
     final confirmed = await showDialog<bool>(
       context: context,
+      animationStyle: InkMotion.styleOf(context),
       builder: (context) => AlertDialog(
         title: const Text('Убрать из сохранённых?'),
         content: const Text(
@@ -213,6 +229,7 @@ class _CourseLibraryActions extends ConsumerWidget {
   Future<void> _copy(BuildContext context, CatalogNotifier notifier) async {
     final confirmed = await showDialog<bool>(
       context: context,
+      animationStyle: InkMotion.styleOf(context),
       builder: (context) => AlertDialog(
         title: const Text('Создать копию курса?'),
         content: const Text(

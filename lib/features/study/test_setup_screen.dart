@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../widgets/ink_motion.dart';
 import '../../app/theme.dart';
 import '../../data/api_client.dart';
 
@@ -257,10 +258,13 @@ class QuizSetupView extends StatelessWidget {
                         const SizedBox(height: RemoraSpacing.md),
                         Semantics(
                           liveRegion: true,
-                          child: Text(
-                            error!,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: theme.colorScheme.error,
+                          child: InkReveal(
+                            change: error,
+                            child: Text(
+                              error!,
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: theme.colorScheme.error,
+                              ),
                             ),
                           ),
                         ),

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
+import '../../widgets/ink_motion.dart';
 import '../../app/theme.dart';
 import '../../core/format.dart';
 import '../../data/api_client.dart';
@@ -58,8 +58,7 @@ class _FlashcardsScreenState extends ConsumerState<FlashcardsScreen> {
 
     ref.listen<StudySessionState>(studySessionProvider, (prev, next) {
       if (next.isFinished && !(prev?.isFinished ?? false)) {
-        final setId = GoRouterState.of(context).pathParameters['setId'] ?? '';
-        context.go('/set/$setId/study/result');
+        openStudyResult(context);
       }
     });
 
@@ -127,14 +126,12 @@ class FlashcardStudyView extends StatelessWidget {
       child: Column(
         children: [
           Expanded(
-            child: AnimatedSwitcher(
-              duration: MediaQuery.disableAnimationsOf(context)
-                  ? Duration.zero
-                  : const Duration(milliseconds: 180),
-              switchInCurve: Curves.easeOutCubic,
-              switchOutCurve: Curves.easeOutCubic,
+            child: InkReveal(
+              change: (item.card.id, item.direction, isFlipped),
+              turnPage: true,
+              onMount: false,
               child: _FlashcardSurface(
-                key: ValueKey(isFlipped),
+                key: ValueKey((item.card.id, item.direction, isFlipped)),
                 item: item,
                 isAnswer: isFlipped,
                 onFlip: onFlip,

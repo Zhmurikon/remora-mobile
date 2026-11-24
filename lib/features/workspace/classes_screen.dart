@@ -3,7 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../widgets/ink_motion.dart';
 import '../../data/api_client.dart';
+import '../../widgets/ink_illustration.dart';
 import 'workspace.dart';
 
 const _roles = {
@@ -78,7 +80,17 @@ class ClassesScreen extends ConsumerWidget {
             retry: () => ref.invalidate(provider),
             builder: (items) => Column(
               children: [
-                if (items.isEmpty) const Text('Вы пока не состоите в классах'),
+                if (items.isEmpty) ...[
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    child: InkIllustration(
+                      InkDrawing.calendar,
+                      width: 96,
+                      height: 76,
+                    ),
+                  ),
+                  const Text('Вы пока не состоите в классах'),
+                ],
                 for (final item in items)
                   ListTile(
                     title: Text(item['title']),
@@ -159,6 +171,7 @@ class ClassScreen extends ConsumerWidget {
                           if (!context.mounted) return;
                           final selected = await showDialog<SetSummary>(
                             context: context,
+                            animationStyle: InkMotion.styleOf(context),
                             builder: (context) => SimpleDialog(
                               title: const Text('Добавить свой набор'),
                               children: [
@@ -193,6 +206,7 @@ class ClassScreen extends ConsumerWidget {
                         run: () async {
                           final data = await showDialog<Json>(
                             context: context,
+                            animationStyle: InkMotion.styleOf(context),
                             builder: (_) => _AssignmentDialog(sets),
                           );
                           if (data == null || !context.mounted) return;
@@ -315,6 +329,7 @@ class _AssignmentDialogState extends State<_AssignmentDialog> {
           onChanged: (v) => setState(() => id = v!),
         ),
         DropdownButtonFormField<String>(
+          isExpanded: true,
           initialValue: goal,
           decoration: const InputDecoration(labelText: 'Цель'),
           items: [

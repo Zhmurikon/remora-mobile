@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../widgets/ink_motion.dart';
 import '../../../app/brand_logo.dart';
 import '../auth_provider.dart';
 
@@ -130,14 +131,17 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     ),
                     if (state.error != null || state.notice != null) ...[
                       const SizedBox(height: 16),
-                      Text(
-                        state.error ?? state.notice!,
-                        style: TextStyle(
-                          color: state.error == null
-                              ? theme.colorScheme.primary
-                              : theme.colorScheme.error,
+                      InkReveal(
+                        change: state.error ?? state.notice,
+                        child: Text(
+                          state.error ?? state.notice!,
+                          style: TextStyle(
+                            color: state.error == null
+                                ? theme.colorScheme.primary
+                                : theme.colorScheme.error,
+                          ),
+                          textAlign: TextAlign.center,
                         ),
-                        textAlign: TextAlign.center,
                       ),
                     ],
                     const SizedBox(height: 24),

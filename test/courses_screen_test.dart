@@ -21,7 +21,7 @@ void main() {
     );
 
     expect(find.textContaining('Сбор и анализ данных'), findsOneWidget);
-    expect(find.text('Скачать для офлайна'), findsOneWidget);
+    expect(find.byTooltip('Скачать для офлайна'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -31,8 +31,14 @@ void main() {
     final course = _course(isSaved: true);
     await _pumpCourses(tester, courses: [course], downloadedIds: {course.id});
 
-    expect(find.text('Сохранённый курс'), findsOneWidget);
-    expect(find.text('Доступен офлайн'), findsOneWidget);
+    expect(find.bySemanticsLabel(RegExp('Сохранённый курс')), findsOneWidget);
+    expect(find.bySemanticsLabel(RegExp('Доступен офлайн')), findsOneWidget);
+    expect(find.text('Сохранённый курс'), findsNothing);
+    expect(find.text('Доступен офлайн'), findsNothing);
+    expect(
+      tester.getCenter(find.byIcon(Icons.bookmark_rounded)).dy,
+      tester.getCenter(find.byIcon(Icons.download_done_rounded)).dy,
+    );
   });
 
   testWidgets('пустое онлайн-состояние ведёт в каталог', (tester) async {
@@ -64,7 +70,7 @@ void main() {
       onDownload: (id) => downloaded = id,
     );
 
-    await tester.tap(find.text('Обновить офлайн-копию'));
+    await tester.tap(find.byTooltip('Обновить офлайн-копию'));
     expect(downloaded, course.id);
   });
 
@@ -74,9 +80,9 @@ void main() {
       final course = _course(isSaved: true, hasUpdates: true);
       await _pumpCourses(tester, courses: [course], downloadedIds: {course.id});
 
-      expect(find.text('Доступен офлайн'), findsOneWidget);
-      expect(find.text('Обновить офлайн-копию'), findsNothing);
-      expect(find.text('У автора есть непринятое обновление'), findsOneWidget);
+      expect(find.bySemanticsLabel(RegExp('Доступен офлайн')), findsOneWidget);
+      expect(find.byTooltip('Обновить офлайн-копию'), findsNothing);
+      expect(find.text('У автора есть непринятое обновление'), findsNothing);
     },
   );
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../widgets/ink_motion.dart';
 import '../../app/theme.dart';
 import '../../data/api_client.dart';
 import 'card_content_widget.dart';
@@ -132,12 +133,14 @@ class _TestResultScreenState extends ConsumerState<TestResultScreen> {
                       color: scoreColor.withValues(alpha: 0.12),
                     ),
                     child: Center(
-                      child: Text(
-                        '$scorePercent%',
-                        style: TextStyle(
-                          fontSize: 36,
-                          fontWeight: FontWeight.bold,
-                          color: scoreColor,
+                      child: InkReveal(
+                        child: Text(
+                          '$scorePercent%',
+                          style: TextStyle(
+                            fontSize: 36,
+                            fontWeight: FontWeight.bold,
+                            color: scoreColor,
+                          ),
                         ),
                       ),
                     ),
@@ -182,8 +185,14 @@ class _TestResultScreenState extends ConsumerState<TestResultScreen> {
           Text('Разбор вопросов', style: theme.textTheme.titleMedium),
           const SizedBox(height: 12),
           ...result.review.asMap().entries.map(
-            (entry) =>
-                _buildReviewCard(context, entry.key + 1, entry.value, isDark),
+            (entry) => SelectionArea(
+              child: _buildReviewCard(
+                context,
+                entry.key + 1,
+                entry.value,
+                isDark,
+              ),
+            ),
           ),
 
           // Кнопки

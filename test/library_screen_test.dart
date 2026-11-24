@@ -126,8 +126,15 @@ void main() {
       ),
     );
 
-    expect(find.bySemanticsLabel('Доступен офлайн'), findsOneWidget);
-    expect(find.bySemanticsLabel('Скачиваем набор'), findsOneWidget);
+    expect(
+      find.bySemanticsLabel(RegExp('Скачанный.*Доступен офлайн')),
+      findsOneWidget,
+    );
+    expect(find.bySemanticsLabel('Идёт загрузка'), findsOneWidget);
+    expect(
+      tester.getCenter(find.byIcon(Icons.download_done_rounded)).dy,
+      closeTo(tester.getCenter(find.text('173 карточки').first).dy, 1),
+    );
     expect(find.byTooltip('Обновить офлайн-копию'), findsOneWidget);
   });
 

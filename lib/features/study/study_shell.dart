@@ -2,8 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../widgets/ink_motion.dart';
 import '../../app/theme.dart';
 import 'study_provider.dart';
+
+void openStudyResult(BuildContext context) {
+  final params = GoRouterState.of(context).pathParameters;
+  if (params['courseId'] case final courseId?) {
+    context.pushReplacement('/course/$courseId/study/result');
+  } else {
+    context.go('/set/${params['setId']}/study/result');
+  }
+}
 
 /// Оболочка обучающей сессии: AppBar с прогрессом и offline-индикатор.
 class StudyShell extends ConsumerWidget {
@@ -46,8 +56,11 @@ class StudyShell extends ConsumerWidget {
           onPressed: () async {
             final shouldExit = await _confirmExit(context, state);
             if (shouldExit && context.mounted) {
+              final isCourse = GoRouterState.of(
+                context,
+              ).pathParameters.containsKey('courseId');
               await notifier.finish();
-              if (context.mounted) context.go('/');
+              if (!isCourse && context.mounted) context.go('/');
             }
           },
         ),
@@ -75,31 +88,31 @@ class StudyShell extends ConsumerWidget {
         bottom: state.total > 0
             ? PreferredSize(
                 preferredSize: const Size.fromHeight(3),
-                child: LinearProgressIndicator(
+                child: InkProgressBar(
                   value: state.progress,
                   backgroundColor: isDark
                       ? RemoraColors.darkSurfaceMuted
                       : RemoraColors.lightSurfaceMuted,
-                  valueColor: AlwaysStoppedAnimation(
-                    isDark
-                        ? RemoraColors.darkPrimary
-                        : RemoraColors.lightPrimary,
-                  ),
+                  color: isDark
+                      ? RemoraColors.darkPrimary
+                      : RemoraColors.lightPrimary,
                 ),
               )
             : null,
       ),
-      body: SafeArea(
-        child: child,
-      ),
+      body: SafeArea(child: child),
     );
   }
 
-  Future<bool> _confirmExit(BuildContext context, StudySessionState state) async {
+  Future<bool> _confirmExit(
+    BuildContext context,
+    StudySessionState state,
+  ) async {
     if (state.answered == 0) return true;
 
     final result = await showDialog<bool>(
       context: context,
+      animationStyle: InkMotion.styleOf(context),
       builder: (ctx) => AlertDialog(
         title: const Text('Завершить обучение?'),
         content: Text(

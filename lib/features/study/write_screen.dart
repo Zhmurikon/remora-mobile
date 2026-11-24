@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
+import '../../widgets/ink_motion.dart';
 import '../../app/theme.dart';
 import '../../core/answers.dart';
 import '../../data/api_client.dart';
@@ -19,6 +19,7 @@ class WriteScreen extends ConsumerStatefulWidget {
 
 class _WriteScreenState extends ConsumerState<WriteScreen> {
   final _controller = TextEditingController();
+  bool _submitting = false;
   String? _verdict;
   String? _expectedAnswer;
 
@@ -84,17 +85,22 @@ class _WriteScreenState extends ConsumerState<WriteScreen> {
   }) async {
     final state = ref.read(studySessionProvider);
     final item = state.currentItem;
-    if (item == null) return;
+    if (item == null || _submitting) return;
 
-    await ref
-        .read(studySessionProvider.notifier)
-        .answer(
-          item: item,
-          rating: rating,
-          answerCorrect: answerCorrect,
-          requeue: requeue,
-        );
-    _reset();
+    _submitting = true;
+    try {
+      await ref
+          .read(studySessionProvider.notifier)
+          .answer(
+            item: item,
+            rating: rating,
+            answerCorrect: answerCorrect,
+            requeue: requeue,
+          );
+      if (mounted) setState(_reset);
+    } finally {
+      _submitting = false;
+    }
   }
 
   @override
@@ -103,8 +109,7 @@ class _WriteScreenState extends ConsumerState<WriteScreen> {
 
     ref.listen<StudySessionState>(studySessionProvider, (prev, next) {
       if (next.isFinished && !(prev?.isFinished ?? false)) {
-        final setId = GoRouterState.of(context).pathParameters['setId'] ?? '';
-        context.go('/set/$setId/study/result');
+        openStudyResult(context);
       }
     });
 
@@ -120,7 +125,11 @@ class _WriteScreenState extends ConsumerState<WriteScreen> {
     return StudyShell(
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: _buildQuestion(context, item, state),
+        child: InkReveal(
+          change: (state.answered, item.card.id),
+          onMount: false,
+          child: _buildQuestion(context, item, state),
+        ),
       ),
     );
   }
@@ -204,7 +213,7 @@ class _WriteScreenState extends ConsumerState<WriteScreen> {
                   ),
                 if (_verdict != null) ...[
                   const SizedBox(height: 8),
-                  _buildVerdictBlock(context, item),
+                  InkReveal(child: _buildVerdictBlock(context, item)),
                 ],
               ],
             ),

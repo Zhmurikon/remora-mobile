@@ -121,7 +121,11 @@ class CourseRepository {
         )..where((section) => section.courseId.isIn(removedIds))).go();
         await (_db.delete(_db.syncMeta)..where(
               (meta) =>
-                  meta.entityType.isIn(['course', 'course_bundle']) &
+                  meta.entityType.isIn([
+                    'course',
+                    'course_bundle',
+                    'course_deck',
+                  ]) &
                   meta.entityId.isIn(removedIds),
             ))
             .go();
@@ -254,17 +258,36 @@ class CourseRepository {
       for (final section in detail.sections)
         for (final article in section.articles) article.setId,
     };
+    if (!detail.canEdit) {
+      // Для сохранённого курса сервер знает принятый состав. Публичное
+      // оглавление уже может содержать материалы из более новой версии.
+      final queue = await _api.getCourseStudyQueue(detail.id);
+      setIds.retainAll(
+        queue.items.map((item) => item.sourceSetId).whereType<String>(),
+      );
+    }
     for (final setId in setIds) {
       await sets.downloadSet(setId);
     }
-    await _db.syncMeta.insertOnConflictUpdate(
-      SyncMetaCompanion(
-        entityType: const Value('course_bundle'),
-        entityId: Value(detail.id),
-        lastSyncedAt: Value(DateTime.now()),
-        revision: Value(_contentRevision(detail.updatedAt)),
-      ),
-    );
+    final now = DateTime.now();
+    await _db.transaction(() async {
+      await _db.syncMeta.insertOnConflictUpdate(
+        SyncMetaCompanion(
+          entityType: const Value('course_deck'),
+          entityId: Value(detail.id),
+          lastSyncedAt: Value(now),
+          revision: Value(jsonEncode(setIds.toList())),
+        ),
+      );
+      await _db.syncMeta.insertOnConflictUpdate(
+        SyncMetaCompanion(
+          entityType: const Value('course_bundle'),
+          entityId: Value(detail.id),
+          lastSyncedAt: Value(now),
+          revision: Value(_contentRevision(detail.updatedAt)),
+        ),
+      );
+    });
   }
 
   Future<Set<String>> getDownloadedCourseIds() async {

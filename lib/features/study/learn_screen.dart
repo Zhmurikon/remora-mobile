@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
+import '../../widgets/ink_motion.dart';
 import '../../app/theme.dart';
 import '../../core/answers.dart';
 import '../../core/distractors.dart';
@@ -28,6 +28,7 @@ class LearnScreen extends ConsumerStatefulWidget {
 
 class _LearnScreenState extends ConsumerState<LearnScreen> {
   final _controller = TextEditingController();
+  bool _submitting = false;
   bool _showAnswer = false;
   // null | 'correct' | 'incorrect' | 'self_check'
   String? _verdict;
@@ -58,23 +59,28 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
   Future<void> _advance(int rating, bool correct) async {
     final state = ref.read(studySessionProvider);
     final item = state.currentItem;
-    if (item == null) return;
+    if (item == null || _submitting) return;
 
     final key = '${item.card.id}:${item.direction}';
     final priorSuccesses = _successCounts[key] ?? 0;
     final requeue =
         !correct || (priorSuccesses + 1) < state.learnSuccessesRequired;
-    if (correct) _successCounts[key] = priorSuccesses + 1;
 
-    await ref
-        .read(studySessionProvider.notifier)
-        .answer(
-          item: item,
-          rating: rating,
-          answerCorrect: correct,
-          requeue: requeue,
-        );
-    _reset();
+    _submitting = true;
+    try {
+      await ref
+          .read(studySessionProvider.notifier)
+          .answer(
+            item: item,
+            rating: rating,
+            answerCorrect: correct,
+            requeue: requeue,
+          );
+      if (correct) _successCounts[key] = priorSuccesses + 1;
+      if (mounted) setState(_reset);
+    } finally {
+      _submitting = false;
+    }
   }
 
   void _checkTypedAnswer(QueueItem item, StudySessionState state) {
@@ -116,8 +122,7 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
 
     ref.listen<StudySessionState>(studySessionProvider, (prev, next) {
       if (next.isFinished && !(prev?.isFinished ?? false)) {
-        final setId = GoRouterState.of(context).pathParameters['setId'] ?? '';
-        context.go('/set/$setId/study/result');
+        openStudyResult(context);
       }
     });
 
@@ -142,7 +147,13 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
         child: Column(
           children: [
             _buildHeader(context, kind, currentSuccesses, state),
-            Expanded(child: _buildQuestion(context, item, state, kind, pool)),
+            Expanded(
+              child: InkReveal(
+                change: (state.answered, item.card.id, kind),
+                onMount: false,
+                child: _buildQuestion(context, item, state, kind, pool),
+              ),
+            ),
           ],
         ),
       ),
@@ -439,7 +450,8 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
       }
     }
 
-    return Opacity(
+    return AnimatedOpacity(
+      duration: InkMotion.styleOf(context).duration!,
       opacity: opacity,
       child: Material(
         color: fillColor,
@@ -502,15 +514,20 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 if (item.card.hint != null) _hintChip(context, item.card.hint!),
-                _questionSurface(
-                  context,
-                  label: _showAnswer ? 'ОТВЕТ' : 'ВОПРОС',
-                  answer: _showAnswer,
-                  child: CardContentWidget(
-                    value: _showAnswer ? answerText : questionText,
-                    contentType: item.card.contentType,
-                    codeLanguage: item.card.codeLanguage,
-                    imageUrl: _showAnswer ? answerImage : questionImage,
+                InkReveal(
+                  change: _showAnswer,
+                  turnPage: true,
+                  onMount: false,
+                  child: _questionSurface(
+                    context,
+                    label: _showAnswer ? 'ОТВЕТ' : 'ВОПРОС',
+                    answer: _showAnswer,
+                    child: CardContentWidget(
+                      value: _showAnswer ? answerText : questionText,
+                      contentType: item.card.contentType,
+                      codeLanguage: item.card.codeLanguage,
+                      imageUrl: _showAnswer ? answerImage : questionImage,
+                    ),
                   ),
                 ),
                 if (!_showAnswer) ...[
@@ -577,7 +594,7 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
                     onPressed: () => _advance(rating, rating >= 3),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: colors[i],
-                      foregroundColor: Colors.white,
+                      foregroundColor: Theme.of(context).colorScheme.onPrimary,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
@@ -646,7 +663,9 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
                 ),
                 const SizedBox(height: 12),
                 if (_verdict != null)
-                  _buildTypingResult(context, expected, item, state),
+                  InkReveal(
+                    child: _buildTypingResult(context, expected, item, state),
+                  ),
                 if (_verdict == null) ...[
                   Row(
                     children: [

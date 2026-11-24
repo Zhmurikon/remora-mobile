@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:remora_mobile/app/theme.dart';
 import 'package:remora_mobile/data/api_client.dart';
@@ -79,6 +80,41 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('плитки тренировки вмещают подписи шрифтами приложения', (
+    tester,
+  ) async {
+    for (final family in ['NotoSans', 'NotoSerifDisplay']) {
+      final font = FontLoader(family);
+      for (final weight in ['Regular', 'Bold']) {
+        font.addFont(rootBundle.load('assets/fonts/$family-$weight.ttf'));
+      }
+      await font.load();
+    }
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    tester.view.devicePixelRatio = 1;
+    for (final (width, scale) in [(390.0, 1.0), (320.0, 2.0)]) {
+      tester.view.physicalSize = Size(width, 800);
+      await tester.pumpWidget(
+        app(
+          StudyModeView(
+            starting: null,
+            enabled: true,
+            onFlashcards: () {},
+            onLearn: () {},
+            onWrite: () {},
+            onTest: () {},
+            onCustomQuiz: () {},
+          ),
+          textScale: scale,
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(find.text('Как будем учиться?'), findsOneWidget);
+    }
+  });
+
   testWidgets('режимы выдерживают масштаб 1,3 и landscape', (tester) async {
     tester.view.physicalSize = const Size(900, 420);
     tester.view.devicePixelRatio = 1;
@@ -141,14 +177,15 @@ void main() {
   testWidgets('карточка показывает вопрос и доступное действие ответа', (
     tester,
   ) async {
-    var flipped = false;
+    var flips = 0;
+    final item = queueItem();
     await tester.pumpWidget(
       app(
         FlashcardStudyView(
-          item: queueItem(),
+          item: item,
           isFlipped: false,
           submitting: false,
-          onFlip: () => flipped = true,
+          onFlip: () => flips++,
           onRate: (_) {},
         ),
       ),
@@ -156,8 +193,11 @@ void main() {
 
     expect(find.text('ВОПРОС'), findsOneWidget);
     expect(find.text('Показать ответ'), findsOneWidget);
+    await tester.tap(find.text(item.card.term));
+    await tester.pump();
+    expect(flips, 1);
     await tester.tap(find.text('Показать ответ'));
-    expect(flipped, isTrue);
+    expect(flips, 2);
     expect(tester.takeException(), isNull);
   });
 

@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+
+import '../../widgets/ink_motion.dart';
+import '../../widgets/ink_illustration.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -78,6 +81,7 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
   ) async {
     final confirmed = await showDialog<bool>(
       context: context,
+      animationStyle: InkMotion.styleOf(context),
       builder: (context) => AlertDialog(
         title: const Text('Убрать из сохранённых?'),
         content: const Text(
@@ -387,7 +391,6 @@ class _FeaturedCourse extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final python = item.title.toLowerCase().contains('python');
     return Semantics(
       container: true,
       label: 'Рекомендуемый курс «${item.title}», автор ${item.author}',
@@ -403,22 +406,15 @@ class _FeaturedCourse extends StatelessWidget {
           child: Stack(
             children: [
               PositionedDirectional(
-                end: -20,
-                bottom: -22,
-                child: Opacity(
-                  opacity: theme.brightness == Brightness.dark ? 0.72 : 0.88,
-                  child: python
-                      ? Image.asset(
-                          'assets/illustrations/python-course.png',
-                          width: 176,
-                          height: 176,
-                          fit: BoxFit.contain,
-                        )
-                      : _GeneratedCourseCover(
-                          item: item,
-                          size: 176,
-                          featured: true,
-                        ),
+                end: 8,
+                bottom: 12,
+                child: InkIllustration(
+                  InkDrawing.drawer,
+                  width: (MediaQuery.sizeOf(context).width * 0.22).clamp(
+                    56,
+                    120,
+                  ),
+                  height: 78,
                 ),
               ),
               Padding(
@@ -524,7 +520,7 @@ class _CatalogCourseRow extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _GeneratedCourseCover(item: item, size: 94),
+        const InkIllustration(InkDrawing.notebook, width: 76, height: 82),
         const SizedBox(width: RemoraSpacing.sm),
         Expanded(
           child: Semantics(
@@ -628,116 +624,15 @@ class _CourseActions extends StatelessWidget {
     }
     return IconButton(
       tooltip: isSaved ? 'Убрать из сохранённых' : 'Сохранить курс',
-      icon: Icon(
-        isSaved ? Icons.bookmark_rounded : Icons.bookmark_outline_rounded,
+      icon: InkReveal(
+        change: isSaved,
+        child: Icon(
+          isSaved ? Icons.bookmark_rounded : Icons.bookmark_outline_rounded,
+        ),
       ),
       onPressed: isSaved ? onRemove : onSave,
     );
   }
-}
-
-class _GeneratedCourseCover extends StatelessWidget {
-  const _GeneratedCourseCover({
-    required this.item,
-    required this.size,
-    this.featured = false,
-  });
-
-  final CourseSearchItem item;
-  final double size;
-  final bool featured;
-
-  @override
-  Widget build(BuildContext context) {
-    return ExcludeSemantics(
-      child: CustomPaint(
-        size: Size.square(size),
-        painter: _CourseCoverPainter(
-          seed: item.title.codeUnits.fold(0, (sum, value) => sum + value),
-          primary: Theme.of(context).colorScheme.primary,
-          accent: Theme.of(context).colorScheme.tertiary,
-          ochre: context.remora.ochre,
-          ink: Theme.of(context).colorScheme.onSurface,
-          surface: Theme.of(context).colorScheme.surface,
-          featured: featured,
-        ),
-      ),
-    );
-  }
-}
-
-class _CourseCoverPainter extends CustomPainter {
-  const _CourseCoverPainter({
-    required this.seed,
-    required this.primary,
-    required this.accent,
-    required this.ochre,
-    required this.ink,
-    required this.surface,
-    required this.featured,
-  });
-
-  final int seed;
-  final Color primary;
-  final Color accent;
-  final Color ochre;
-  final Color ink;
-  final Color surface;
-  final bool featured;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final rect = Offset.zero & size;
-    final radius = Radius.circular(featured ? 28 : 14);
-    final colors = [primary, accent, ochre];
-    final main = colors[seed % colors.length];
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(rect, radius),
-      Paint()..color = main.withValues(alpha: 0.20),
-    );
-    canvas.save();
-    canvas.clipRRect(RRect.fromRectAndRadius(rect, radius));
-    canvas.drawCircle(
-      Offset(size.width * 0.72, size.height * 0.28),
-      size.shortestSide * 0.24,
-      Paint()..color = ochre.withValues(alpha: 0.82),
-    );
-    final mountain = Path()
-      ..moveTo(0, size.height)
-      ..lineTo(size.width * 0.36, size.height * 0.56)
-      ..lineTo(size.width * 0.56, size.height * 0.76)
-      ..lineTo(size.width * 0.78, size.height * 0.44)
-      ..lineTo(size.width, size.height * 0.62)
-      ..lineTo(size.width, size.height)
-      ..close();
-    canvas.drawPath(mountain, Paint()..color = main.withValues(alpha: 0.86));
-    final ridge = Path()
-      ..moveTo(size.width * 0.3, size.height)
-      ..lineTo(size.width * 0.68, size.height * 0.62)
-      ..lineTo(size.width, size.height * 0.78)
-      ..lineTo(size.width, size.height)
-      ..close();
-    canvas.drawPath(ridge, Paint()..color = ink.withValues(alpha: 0.72));
-    final grid = Paint()
-      ..color = surface.withValues(alpha: 0.32)
-      ..strokeWidth = 1;
-    for (var i = 1; i < 5; i++) {
-      final p = size.width * i / 5;
-      canvas.drawLine(Offset(p, 0), Offset(p, size.height), grid);
-      canvas.drawLine(Offset(0, p), Offset(size.width, p), grid);
-    }
-    canvas.restore();
-  }
-
-  @override
-  bool shouldRepaint(covariant _CourseCoverPainter oldDelegate) =>
-      oldDelegate.seed != seed ||
-      oldDelegate.primary != primary ||
-      oldDelegate.accent != accent ||
-      oldDelegate.ochre != ochre ||
-      oldDelegate.ink != ink ||
-      oldDelegate.surface != surface ||
-      oldDelegate.featured != featured;
 }
 
 class _CatalogSkeleton extends StatelessWidget {

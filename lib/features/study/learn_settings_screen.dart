@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../widgets/ink_motion.dart';
 import '../../data/api_client.dart';
 import '../../data/network_errors.dart';
 import '../../data/repositories/outbox_service.dart';
@@ -250,9 +251,12 @@ class _LearnSettingsScreenState extends ConsumerState<LearnSettingsScreen> {
                   ),
                   if (_message != null) ...[
                     const SizedBox(height: 16),
-                    Text(
-                      _message!,
-                      style: Theme.of(context).textTheme.bodySmall,
+                    InkReveal(
+                      change: _message,
+                      child: Text(
+                        _message!,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
                     ),
                   ],
                   const SizedBox(height: 20),

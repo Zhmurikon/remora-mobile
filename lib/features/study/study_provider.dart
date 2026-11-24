@@ -7,6 +7,7 @@ import 'package:uuid/uuid.dart';
 import '../../core/log.dart';
 import '../../data/api_client.dart';
 import '../../data/db/app_database.dart';
+import '../../data/network_errors.dart';
 import '../../data/repositories/outbox_service.dart';
 import '../../data/repositories/study_repository.dart';
 import '../dashboard/dashboard_provider.dart';
@@ -151,6 +152,8 @@ class StudySessionNotifier extends StateNotifier<StudySessionState> {
       isFinished: false,
       error: null,
       index: 0,
+      items: [],
+      total: 0,
       answered: 0,
       correct: 0,
     );
@@ -213,6 +216,112 @@ class StudySessionNotifier extends StateNotifier<StudySessionState> {
     }
   }
 
+  Future<void> beginCourse(String courseId, StudyMode mode) async {
+    state = state.copyWith(
+      mode: mode,
+      items: [],
+      index: 0,
+      total: 0,
+      answered: 0,
+      correct: 0,
+      isLoading: true,
+      isFinished: false,
+    );
+    try {
+      StudyQueue? queue;
+      List<QueueItem> items;
+      var online = true;
+      try {
+        queue = await _api.getCourseStudyQueue(courseId);
+        items = await _allCourseItems(queue);
+        try {
+          await _study.saveStudySettings('course/$courseId', queue);
+          await _study.persistQueueStates(items);
+        } catch (_) {
+          // Сбой обновления офлайн-кэша не должен прерывать готовую тренировку.
+        }
+      } catch (error) {
+        if (!isNetworkFailure(error)) rethrow;
+        online = false;
+        queue = await _study.offlineCourseQueue(courseId);
+        if (queue == null) {
+          state = state.copyWith(
+            isLoading: false,
+            isOnline: false,
+            error:
+                'Чтобы учиться без интернета, сначала скачайте курс целиком.',
+          );
+          return;
+        }
+        items = queue.items;
+      }
+      if (!mounted) return;
+      _outbox.sessionId = null;
+      final shuffled = {
+        for (final item in items) item.card.id: item,
+      }.values.toList()..shuffle();
+      _applyQueue(queue, isOnline: online, items: shuffled);
+      if (shuffled.isEmpty) {
+        state = state.copyWith(error: 'В материалах курса пока нет карточек.');
+      }
+      unawaited(_refreshPendingCount());
+    } catch (_) {
+      if (mounted) {
+        state = state.copyWith(
+          isLoading: false,
+          error:
+              'Не удалось загрузить все карточки курса. Проверьте доступ к курсу и попробуйте ещё раз.',
+        );
+      }
+    }
+  }
+
+  Future<List<QueueItem>> _allCourseItems(StudyQueue queue) async {
+    if (queue.items.length >= queue.newTotal + queue.dueTotal) {
+      return queue.items;
+    }
+    // API чередует материалы. В курсе до 100 статей, поэтому первая порция
+    // из 200 карточек содержит каждый непустой набор.
+    final setIds = queue.items
+        .map((item) => item.sourceSetId!)
+        .toSet()
+        .toList();
+    final items = <QueueItem>[];
+    // Не посылаем сотню запросов одновременно на больших курсах.
+    for (var i = 0; i < setIds.length; i += 4) {
+      final parts = await Future.wait(
+        setIds.skip(i).take(4).map(_fullCourseSet),
+      );
+      items.addAll(parts.expand((part) => part));
+    }
+    return items;
+  }
+
+  Future<List<QueueItem>> _fullCourseSet(String setId) async {
+    final part = await _api.getStudyQueue(
+      setId: setId,
+      mode: 'flashcards',
+      scope: 'all',
+      limit: 200,
+    );
+    final total = part.newTotal + part.dueTotal;
+    if (part.items.length >= total) {
+      return part.items;
+    }
+    // Полная карточка материала приходит без лимита учебной очереди.
+    await _study.downloadFullSet(_api, setId);
+    final all = await _study.fullSetItems(setId);
+    final byId = {for (final item in all ?? <QueueItem>[]) item.card.id: item};
+    if (byId.length != total ||
+        !part.items.every((item) => byId.containsKey(item.card.id))) {
+      throw StateError('Состав материала изменился');
+    }
+    for (final item in part.items) {
+      byId[item.card.id] = item;
+    }
+    return byId.values.toList();
+  }
+
   String _emptyQueueMessage(StudyMode mode) {
     if (mode == StudyMode.write) {
       return 'На сегодня всё повторено. Откройте «Карточки», '
@@ -222,10 +331,14 @@ class StudySessionNotifier extends StateNotifier<StudySessionState> {
   }
 
   /// Применить очередь (онлайн или офлайн) к состоянию сессии.
-  void _applyQueue(StudyQueue queue, {required bool isOnline}) {
+  void _applyQueue(
+    StudyQueue queue, {
+    required bool isOnline,
+    List<QueueItem>? items,
+  }) {
     state = state.copyWith(
-      items: queue.items,
-      total: queue.items.length,
+      items: items ?? queue.items,
+      total: (items ?? queue.items).length,
       isLoading: false,
       isOnline: isOnline,
       setTitle: queue.setTitle,

@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+
+import '../../widgets/ink_motion.dart';
+import '../../widgets/library_status.dart';
+import '../../widgets/ink_illustration.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -143,7 +147,9 @@ class LibraryView extends StatelessWidget {
         proxyDecorator: (child, index, animation) => AnimatedBuilder(
           animation: animation,
           builder: (context, _) {
-            final value = Curves.easeOut.transform(animation.value);
+            final value = MediaQuery.disableAnimationsOf(context)
+                ? 0.0
+                : Curves.easeOut.transform(animation.value);
             return Transform.scale(
               scale: 1 + (0.018 * value),
               child: DecoratedBox(
@@ -196,7 +202,18 @@ class LibraryView extends StatelessWidget {
         ),
         child: SafeArea(
           bottom: false,
-          child: RefreshIndicator(onRefresh: onRefresh, child: content),
+          child: RefreshIndicator(
+            onRefresh: onRefresh,
+            child: InkReveal(
+              onMount: false,
+              change: (
+                sets.isEmpty,
+                sets.isEmpty && state.isLoading,
+                customOrder,
+              ),
+              child: content,
+            ),
+          ),
         ),
       ),
     );
@@ -331,7 +348,18 @@ class _LibraryHeader extends StatelessWidget {
             ],
           ),
           const SizedBox(height: RemoraSpacing.xs),
-          Text('Наборов: $count', style: theme.textTheme.bodyLarge),
+          Row(
+            children: [
+              const InkIllustration(InkDrawing.cards, width: 44, height: 32),
+              const SizedBox(width: RemoraSpacing.xs),
+              Flexible(
+                child: Text(
+                  'Наборов: $count',
+                  style: theme.textTheme.bodyLarge,
+                ),
+              ),
+            ],
+          ),
           if (showReorderHint) ...[
             const SizedBox(height: RemoraSpacing.xxs),
             Text(
@@ -369,14 +397,20 @@ class _SetRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final count = '${set.cardsCount} ${_cardWord(set.cardsCount)}';
     final metadata = <String>[
-      '${set.cardsCount} ${_cardWord(set.cardsCount)}',
       if (set.courseTitle != null && set.courseTitle!.isNotEmpty)
         set.courseTitle!,
       if (set.articleTitle != null && set.articleTitle!.isNotEmpty)
         set.articleTitle!,
     ].join(' · ');
-    final openLabel = 'Набор «${set.title}», $metadata';
+    final ready = isDownloaded && !isDownloading && !isOutdated;
+    final openLabel = [
+      'Набор «${set.title}»',
+      count,
+      if (ready) 'Доступен офлайн',
+      if (metadata.isNotEmpty) metadata,
+    ].join(', ');
 
     return Material(
       color: theme.colorScheme.surface,
@@ -430,21 +464,31 @@ class _SetRow extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: RemoraSpacing.xxs),
-                          Text(
-                            metadata,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.bodySmall,
-                          ),
-                          if (set.isSaved && set.hasUpdates) ...[
-                            const SizedBox(height: RemoraSpacing.xxs),
-                            Text(
-                              'Оригинал обновлён',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: context.remora.warning,
+                          Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  count,
+                                  style: theme.textTheme.bodySmall,
+                                ),
                               ),
+                              if (ready) ...[
+                                const SizedBox(width: RemoraSpacing.xxs),
+                                Icon(
+                                  Icons.download_done_rounded,
+                                  size: 16,
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                              ],
+                            ],
+                          ),
+                          if (metadata.isNotEmpty)
+                            Text(
+                              metadata,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.bodySmall,
                             ),
-                          ],
                         ],
                       ),
                     ),
@@ -452,111 +496,20 @@ class _SetRow extends StatelessWidget {
                 ),
               ),
             ),
-            Padding(
-              padding: const EdgeInsetsDirectional.only(end: RemoraSpacing.xs),
-              child: _SetOfflineAction(
-                isOnline: isOnline,
-                isDownloading: isDownloading,
-                isDownloaded: isDownloaded,
-                isOutdated: isOutdated,
-                onDownload: onDownload,
+            if (!ready)
+              Padding(
+                padding: const EdgeInsetsDirectional.only(
+                  end: RemoraSpacing.xs,
+                ),
+                child: LibraryDownloadIcon(
+                  online: isOnline,
+                  downloading: isDownloading,
+                  downloaded: isDownloaded,
+                  outdated: isOutdated,
+                  onDownload: onDownload,
+                ),
               ),
-            ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _SetOfflineAction extends StatelessWidget {
-  const _SetOfflineAction({
-    required this.isOnline,
-    required this.isDownloading,
-    required this.isDownloaded,
-    required this.isOutdated,
-    required this.onDownload,
-  });
-
-  final bool isOnline;
-  final bool isDownloading;
-  final bool isDownloaded;
-  final bool isOutdated;
-  final VoidCallback onDownload;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final tokens = context.remora;
-    final canDownload =
-        isOnline && !isDownloading && (!isDownloaded || isOutdated);
-    final (label, icon, foreground, background) = isDownloading
-        ? (
-            'Скачиваем набор',
-            Icons.downloading_rounded,
-            theme.colorScheme.primary,
-            theme.colorScheme.primaryContainer,
-          )
-        : isOutdated
-        ? (
-            'Обновить офлайн-копию',
-            Icons.sync_rounded,
-            tokens.warning,
-            tokens.warningContainer,
-          )
-        : isDownloaded
-        ? (
-            'Доступен офлайн',
-            Icons.download_done_rounded,
-            tokens.success,
-            tokens.successContainer,
-          )
-        : isOnline
-        ? (
-            'Скачать для офлайна',
-            Icons.download_rounded,
-            theme.colorScheme.primary,
-            theme.colorScheme.primaryContainer,
-          )
-        : (
-            'Только онлайн',
-            Icons.cloud_outlined,
-            theme.colorScheme.onSurfaceVariant,
-            tokens.surfaceMuted,
-          );
-
-    final status = SizedBox.square(
-      dimension: RemoraSizes.minTouchTarget,
-      child: Center(
-        child: Container(
-          width: 36,
-          height: 36,
-          decoration: BoxDecoration(color: background, shape: BoxShape.circle),
-          child: isDownloading
-              ? Padding(
-                  padding: const EdgeInsets.all(9),
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: foreground,
-                  ),
-                )
-              : Icon(icon, size: 20, color: foreground),
-        ),
-      ),
-    );
-
-    if (!canDownload) return Semantics(label: label, child: status);
-    return Semantics(
-      button: true,
-      label: label,
-      child: IconButton(
-        onPressed: onDownload,
-        tooltip: label,
-        icon: Container(
-          width: 36,
-          height: 36,
-          decoration: BoxDecoration(color: background, shape: BoxShape.circle),
-          child: Icon(icon, size: 20, color: foreground),
         ),
       ),
     );

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../widgets/ink_motion.dart';
 import '../../data/api_client.dart';
 import '../../data/preferences.dart';
 import '../auth/auth_provider.dart';
@@ -82,6 +83,7 @@ class GenerationScreen extends ConsumerWidget {
                     if (!context.mounted) return;
                     final target = await showDialog<String>(
                       context: context,
+                      animationStyle: InkMotion.styleOf(context),
                       builder: (c) => SimpleDialog(
                         title: const Text('Сохранить в курс'),
                         children: [
@@ -137,6 +139,7 @@ class GenerationScreen extends ConsumerWidget {
                         if (title == null || !context.mounted) return;
                         final visibility = await showDialog<String>(
                           context: context,
+                          animationStyle: InkMotion.styleOf(context),
                           builder: (c) => SimpleDialog(
                             title: const Text('Кому доступен набор?'),
                             children: [

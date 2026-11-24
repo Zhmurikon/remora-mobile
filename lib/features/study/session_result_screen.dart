@@ -2,13 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../widgets/ink_motion.dart';
 import '../../app/theme.dart';
 import '../../data/api_client.dart';
 import 'study_provider.dart';
 
 /// Экран результатов сессии + статистика набора.
 class SessionResultScreen extends ConsumerStatefulWidget {
-  const SessionResultScreen({super.key, required this.setId});
+  const SessionResultScreen({super.key, required this.setId})
+    : isCourse = false;
+  const SessionResultScreen.course({super.key, required String courseId})
+    : setId = courseId,
+      isCourse = true;
+
+  final bool isCourse;
 
   final String setId;
 
@@ -24,7 +31,11 @@ class _SessionResultScreenState extends ConsumerState<SessionResultScreen> {
   @override
   void initState() {
     super.initState();
-    _loadStats();
+    if (widget.isCourse) {
+      _isLoadingStats = false;
+    } else {
+      _loadStats();
+    }
   }
 
   Future<void> _loadStats() async {
@@ -66,7 +77,8 @@ class _SessionResultScreenState extends ConsumerState<SessionResultScreen> {
         title: const Text('Результаты'),
         leading: IconButton(
           icon: const Icon(Icons.close),
-          onPressed: () => context.go('/'),
+          onPressed: () =>
+              widget.isCourse ? _returnToCourse() : context.go('/'),
         ),
       ),
       body: ListView(
@@ -86,10 +98,12 @@ class _SessionResultScreenState extends ConsumerState<SessionResultScreen> {
                       color: accuracyColor.withValues(alpha: 0.12),
                     ),
                     child: Center(
-                      child: Icon(
-                        Icons.check_circle_outline,
-                        size: 48,
-                        color: accuracyColor,
+                      child: InkReveal(
+                        child: Icon(
+                          Icons.check_circle_outline,
+                          size: 48,
+                          color: accuracyColor,
+                        ),
                       ),
                     ),
                   ),
@@ -186,6 +200,12 @@ class _SessionResultScreenState extends ConsumerState<SessionResultScreen> {
             width: double.infinity,
             child: FilledButton(
               onPressed: () async {
+                if (widget.isCourse) {
+                  context.pushReplacement(
+                    '/course/${widget.setId}/study?title=${Uri.encodeComponent(state.setTitle)}',
+                  );
+                  return;
+                }
                 await ref
                     .read(studySessionProvider.notifier)
                     .begin(widget.setId, state.mode);
@@ -193,21 +213,32 @@ class _SessionResultScreenState extends ConsumerState<SessionResultScreen> {
                   context.go('/set/${widget.setId}/study/${state.mode.name}');
                 }
               },
-              child: const Text('Продолжить учить'),
+              child: Text(
+                widget.isCourse ? 'Выбрать режим' : 'Продолжить учить',
+              ),
             ),
           ),
           const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
             child: OutlinedButton(
-              onPressed: () => context.go('/sets'),
-              child: const Text('К наборам'),
+              onPressed: () =>
+                  widget.isCourse ? _returnToCourse() : context.go('/sets'),
+              child: Text(widget.isCourse ? 'К курсу' : 'К наборам'),
             ),
           ),
           const SizedBox(height: 24),
         ],
       ),
     );
+  }
+
+  void _returnToCourse() {
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go('/course/${widget.setId}');
+    }
   }
 
   Widget _statColumn(String value, String label, Color? color) {

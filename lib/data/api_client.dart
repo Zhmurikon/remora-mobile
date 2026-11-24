@@ -159,6 +159,20 @@ class RemoraApiClient {
     return StudyQueue.fromJson(response.data as Map<String, dynamic>);
   }
 
+  // Берём полный пул для свободного прохода во всех трёх режимах.
+  Future<StudyQueue> getCourseStudyQueue(String courseId) async {
+    final response = await _dio.get(
+      '/api/v1/study/courses/$courseId/queue',
+      queryParameters: {
+        'mode': 'flashcards',
+        'scope': 'all',
+        'direction': 'term_to_def',
+        'limit': 200,
+      },
+    );
+    return StudyQueue.fromJson(response.data as Map<String, dynamic>);
+  }
+
   /// Настройки заучивания для набора: свои, если переопределены, иначе общие.
   Future<SetLearnSettings> getSetLearnSettings(String setId) async {
     final response = await _dio.get('/api/v1/study/sets/$setId/learn-settings');
@@ -907,7 +921,7 @@ class StudyQueue {
 
   factory StudyQueue.fromJson(Map<String, dynamic> json) {
     return StudyQueue(
-      setId: json['set_id'] as String,
+      setId: json['set_id'] as String?,
       setTitle: json['set_title'] as String,
       langTerm: json['lang_term'] as String,
       langDefinition: json['lang_definition'] as String,
@@ -933,7 +947,7 @@ class StudyQueue {
     );
   }
 
-  final String setId;
+  final String? setId;
   final String setTitle;
   final String langTerm;
   final String langDefinition;
@@ -958,10 +972,12 @@ class QueueItem {
     required this.direction,
     required this.state,
     required this.previews,
+    this.sourceSetId,
   });
 
   factory QueueItem.fromJson(Map<String, dynamic> json) {
     return QueueItem(
+      sourceSetId: json['source_set_id'] as String?,
       card: QueueCard.fromJson(json['card'] as Map<String, dynamic>),
       direction: json['direction'] as String,
       state: CardStateData.fromJson(json['state'] as Map<String, dynamic>),
@@ -971,6 +987,7 @@ class QueueItem {
     );
   }
 
+  final String? sourceSetId;
   final QueueCard card;
   final String direction;
   final CardStateData state;
@@ -1925,6 +1942,7 @@ class CourseDetailData extends CourseSummaryData {
     super.tags,
     required this.author,
     this.sections = const [],
+    this.canEdit = false,
   });
 
   factory CourseDetailData.fromJson(Map<String, dynamic> json) {
@@ -1938,6 +1956,7 @@ class CourseDetailData extends CourseSummaryData {
       tags:
           (json['tags'] as List?)?.map((e) => e as String).toList() ?? const [],
       author: CourseAuthorData.fromJson(json['author'] as Map<String, dynamic>),
+      canEdit: json['can_edit'] == true,
       sections:
           (json['sections'] as List?)
               ?.map(
@@ -1948,6 +1967,7 @@ class CourseDetailData extends CourseSummaryData {
     );
   }
 
+  final bool canEdit;
   final CourseAuthorData author;
   final List<CourseSectionData> sections;
 }

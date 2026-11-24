@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:remora_mobile/app/theme.dart';
 
 void main() {
-  group('тема Remora', () {
+  group('тема Запоминальни', () {
     test('светлая и тёмная схемы используют разные тональные поверхности', () {
       final light = remoraLightTheme();
       final dark = remoraDarkTheme();
@@ -19,6 +19,31 @@ void main() {
       expect(lightTokens.surfaceMuted, isNot(light.colorScheme.surface));
       expect(darkTokens.surfaceMuted, isNot(dark.colorScheme.surface));
       expect(darkTokens.surfaceElevated, isNot(darkTokens.surfaceMuted));
+    });
+
+    test('диалоги, уведомления и учебные экраны получают общую палитру', () {
+      for (final theme in [remoraLightTheme(), remoraDarkTheme()]) {
+        final colors = theme.colorScheme;
+        expect(
+          colors.primary,
+          theme.brightness == Brightness.dark
+              ? const Color(0xFFAAC1FF)
+              : const Color(0xFF284BB2),
+        );
+        expect(theme.dialogTheme.backgroundColor, colors.surface);
+        expect(
+          theme.appBarTheme.titleTextStyle?.fontFamily,
+          'NotoSerifDisplay',
+        );
+        expect(theme.bottomSheetTheme.backgroundColor, colors.surface);
+        expect(
+          _contrast(
+            theme.snackBarTheme.actionTextColor!,
+            theme.snackBarTheme.backgroundColor!,
+          ),
+          greaterThanOrEqualTo(4.5),
+        );
+      }
     });
 
     test('состояния и дополнительные акценты заданы в обеих темах', () {

@@ -4,7 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../widgets/ink_motion.dart';
 import '../../data/api_client.dart';
+import '../../widgets/ink_illustration.dart';
 import 'workspace.dart';
 
 String rubles(int kopecks) =>
@@ -132,6 +134,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen>
                   ? null
                   : (v) => setState(() => interval = v.first),
             ),
+            const SizedBox(height: 12),
             TextField(
               controller: promo,
               enabled: !paying,
@@ -145,11 +148,24 @@ class _BillingScreenState extends ConsumerState<BillingScreen>
                 children: [
                   for (final plan in items)
                     ListTile(
+                      leading: InkIllustration(
+                        switch (plan['code']) {
+                          'pro' => InkDrawing.books,
+                          'plus' => InkDrawing.notebook,
+                          _ => InkDrawing.cards,
+                        },
+                        width: 42,
+                        height: 38,
+                      ),
                       title: Text(plan['name']),
-                      subtitle: Text(
-                        plan['code'] == 'free'
-                            ? 'Бесплатно'
-                            : rubles(plan['price_$interval'] ?? 0),
+                      subtitle: InkReveal(
+                        onMount: false,
+                        change: plan['price_$interval'],
+                        child: Text(
+                          plan['code'] == 'free'
+                              ? 'Бесплатно'
+                              : rubles(plan['price_$interval'] ?? 0),
+                        ),
                       ),
                       trailing:
                           plan['code'] == 'free' ||

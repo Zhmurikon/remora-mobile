@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../widgets/ink_motion.dart';
 import '../data/connectivity_controller.dart';
 import '../data/preferences.dart';
 import '../features/auth/auth_provider.dart';
@@ -42,6 +43,7 @@ class HomeScreen extends ConsumerWidget {
   Future<void> _confirmLogout(BuildContext context, WidgetRef ref) async {
     final confirmed = await showDialog<bool>(
       context: context,
+      animationStyle: InkMotion.styleOf(context),
       builder: (context) => AlertDialog(
         title: const Text('Выйти из аккаунта?'),
         content: const Text(
@@ -67,6 +69,7 @@ class HomeScreen extends ConsumerWidget {
   void _showDownloadsHint(BuildContext context) {
     showModalBottomSheet<void>(
       context: context,
+      sheetAnimationStyle: InkMotion.styleOf(context),
       showDragHandle: true,
       builder: (context) => const SafeArea(
         child: Padding(

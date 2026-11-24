@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+
+import '../../widgets/ink_motion.dart';
+import '../../widgets/ink_illustration.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -168,9 +171,10 @@ class _DashboardHeader extends StatelessWidget {
                   style: theme.textTheme.headlineLarge?.copyWith(height: 1.02),
                 ),
               ),
-              _GrowingBooksMotif(
-                size: enlargedText ? 96 : 112,
-                dark: theme.brightness == Brightness.dark,
+              InkIllustration(
+                InkDrawing.books,
+                width: enlargedText ? 96 : 112,
+                height: enlargedText ? 96 : 112,
               ),
             ],
           ),
@@ -223,11 +227,17 @@ class _ProgressOverview extends StatelessWidget {
           ],
         ),
         const SizedBox(height: RemoraSpacing.xs),
-        LinearProgressIndicator(
-          value: summary.goalProgress,
-          minHeight: 8,
-          borderRadius: BorderRadius.circular(RemoraRadii.large),
-          semanticsLabel: 'Прогресс дневной цели',
+        TweenAnimationBuilder<double>(
+          tween: Tween(end: summary.goalProgress),
+          duration: MediaQuery.disableAnimationsOf(context)
+              ? Duration.zero
+              : const Duration(milliseconds: 180),
+          builder: (context, value, _) => LinearProgressIndicator(
+            value: value,
+            minHeight: 8,
+            borderRadius: BorderRadius.circular(RemoraRadii.large),
+            semanticsLabel: 'Прогресс дневной цели',
+          ),
         ),
         const SizedBox(height: RemoraSpacing.md),
         Text('Последние 7 дней', style: Theme.of(context).textTheme.titleSmall),
@@ -436,7 +446,9 @@ class _WeekActivity extends StatelessWidget {
                   width: cellWidth,
                   child: Column(
                     children: [
-                      Container(
+                      AnimatedContainer(
+                        duration: InkMotion.styleOf(context).duration!,
+                        curve: InkMotion.curve,
                         width: circleSize,
                         height: circleSize,
                         decoration: BoxDecoration(
@@ -523,7 +535,11 @@ class _ContinuePanel extends StatelessWidget {
                 constraints: const BoxConstraints(minHeight: 64),
                 child: Row(
                   children: [
-                    const _CourseBookMotif(size: 82),
+                    const InkIllustration(
+                      InkDrawing.cards,
+                      width: 82,
+                      height: 64,
+                    ),
                     const SizedBox(width: RemoraSpacing.sm),
                     Expanded(
                       child: Column(
@@ -667,50 +683,6 @@ class _DashboardSkeleton extends StatelessWidget {
               child: const Center(child: CircularProgressIndicator()),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _GrowingBooksMotif extends StatelessWidget {
-  const _GrowingBooksMotif({required this.size, required this.dark});
-
-  final double size;
-  final bool dark;
-
-  @override
-  Widget build(BuildContext context) {
-    return ExcludeSemantics(
-      child: Opacity(
-        opacity: dark ? 1 : 0.96,
-        child: Image.asset(
-          'assets/illustrations/growing-books-v2.png',
-          width: size,
-          height: size,
-          fit: BoxFit.contain,
-          filterQuality: FilterQuality.high,
-        ),
-      ),
-    );
-  }
-}
-
-class _CourseBookMotif extends StatelessWidget {
-  const _CourseBookMotif({required this.size});
-
-  final double size;
-
-  @override
-  Widget build(BuildContext context) {
-    return ExcludeSemantics(
-      child: SizedBox(
-        width: size,
-        height: 64,
-        child: Image.asset(
-          'assets/illustrations/python-course.png',
-          fit: BoxFit.contain,
-          filterQuality: FilterQuality.high,
         ),
       ),
     );
