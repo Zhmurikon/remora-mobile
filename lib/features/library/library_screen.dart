@@ -43,7 +43,17 @@ class LibraryScreen extends ConsumerWidget {
       state: state,
       sets: sortedSets,
       customOrder: sortMode == ListSortMode.custom,
-      sortAction: const ListSortButton(storageKey: 'sets'),
+      sortAction: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.folder_outlined),
+            tooltip: 'Учить папку',
+            onPressed: () => context.push('/study/folders'),
+          ),
+          const ListSortButton(storageKey: 'sets'),
+        ],
+      ),
       onRefresh: notifier.refresh,
       onSearch: () => context.go('/catalog'),
       onOpenSet: (set) => context.push(

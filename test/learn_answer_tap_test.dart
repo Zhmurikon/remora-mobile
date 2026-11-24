@@ -39,6 +39,7 @@ class _Session extends StudySessionNotifier {
       mode: StudyMode.learn,
       items: [item],
       total: 1,
+      learnQuestionTypes: const ['choice'],
       isLoading: false,
     );
   }
@@ -53,6 +54,7 @@ class _Session extends StudySessionNotifier {
     bool? answerCorrect,
     int? durationMs,
     bool requeue = false,
+    QueueItem? consume,
   }) async {
     submitted.add(answerCorrect);
     await saved.future;
@@ -77,7 +79,7 @@ void main() {
             overrides: [studySessionProvider.overrideWith((_) => session)],
             child: MaterialApp(
               theme: remoraLightTheme(),
-              home: const LearnScreen(),
+              home: const LearnScreen(seed: 'choice-test'),
             ),
           ),
         );

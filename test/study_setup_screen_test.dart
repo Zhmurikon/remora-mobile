@@ -222,9 +222,9 @@ void main() {
     );
 
     expect(find.text('ОТВЕТ'), findsOneWidget);
-    expect(find.text('Не помню'), findsOneWidget);
-    expect(find.text('Хорошо'), findsOneWidget);
-    await tester.tap(find.text('Хорошо'));
+    expect(find.text('Не знаю'), findsOneWidget);
+    expect(find.text('Знаю'), findsOneWidget);
+    await tester.tap(find.text('Знаю'));
     expect(rating, 3);
     expect(tester.takeException(), isNull);
   });

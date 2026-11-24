@@ -54,6 +54,10 @@ class _CourseApi extends RemoraApiClient {
   );
 
   @override
+  Future<StudyQueue> getFolderLearnQueue(String folderId) async =>
+      queue(null, [_item('a', 0), _item('b', 1), _item('b', 2)], 3);
+
+  @override
   Future<StudyQueue> getCourseStudyQueue(String courseId) async {
     final request = RequestOptions(path: '/course');
     if (offline || forbidden) {
@@ -139,6 +143,38 @@ void main() {
     addTearDown(notifier.dispose);
     return notifier;
   }
+
+  test(
+    'просмотр и ответы на пары в папке сохраняют порядок и направление',
+    () async {
+      final api = _CourseApi({});
+      final notifier = session(api);
+      await notifier.beginFolder('folder');
+      final original = [...notifier.state.items];
+      notifier.deferPreview();
+      expect(notifier.state.items, [original[1], original[2], original[0]]);
+      expect(notifier.state.answered, 0);
+      final source = original[2];
+      await notifier.answer(
+        item: source.facing('def_to_term'),
+        consume: source,
+        rating: 1,
+        answerCorrect: false,
+        requeue: true,
+      );
+      expect(notifier.state.items.skip(notifier.state.index), [
+        original[1],
+        original[0],
+        source,
+      ]);
+      final pending = await repo.getPendingReviews();
+      expect(pending.single.cardId, source.card.id);
+      expect(pending.single.direction, 'def_to_term');
+      expect(pending.single.answerCorrect, false);
+      await notifier.finish();
+      expect(api.reviewed, [source.card.id]);
+    },
+  );
 
   test(
     'все режимы перемешивают весь курс, включая материал больше 200 карточек',

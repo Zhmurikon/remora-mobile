@@ -10,10 +10,18 @@ import 'study_provider.dart';
 /// Экран результатов сессии + статистика набора.
 class SessionResultScreen extends ConsumerStatefulWidget {
   const SessionResultScreen({super.key, required this.setId})
-    : isCourse = false;
+    : isCourse = false,
+      isFolder = false;
   const SessionResultScreen.course({super.key, required String courseId})
     : setId = courseId,
-      isCourse = true;
+      isCourse = true,
+      isFolder = false;
+
+  const SessionResultScreen.folder({super.key, required String folderId})
+    : setId = folderId,
+      isCourse = false,
+      isFolder = true;
+  final bool isFolder;
 
   final bool isCourse;
 
@@ -31,7 +39,7 @@ class _SessionResultScreenState extends ConsumerState<SessionResultScreen> {
   @override
   void initState() {
     super.initState();
-    if (widget.isCourse) {
+    if (widget.isCourse || widget.isFolder) {
       _isLoadingStats = false;
     } else {
       _loadStats();
@@ -200,6 +208,10 @@ class _SessionResultScreenState extends ConsumerState<SessionResultScreen> {
             width: double.infinity,
             child: FilledButton(
               onPressed: () async {
+                if (widget.isFolder) {
+                  context.go('/study/folders');
+                  return;
+                }
                 if (widget.isCourse) {
                   context.pushReplacement(
                     '/course/${widget.setId}/study?title=${Uri.encodeComponent(state.setTitle)}',
@@ -214,7 +226,11 @@ class _SessionResultScreenState extends ConsumerState<SessionResultScreen> {
                 }
               },
               child: Text(
-                widget.isCourse ? 'Выбрать режим' : 'Продолжить учить',
+                widget.isFolder
+                    ? 'Выбрать папку'
+                    : widget.isCourse
+                    ? 'Выбрать режим'
+                    : 'Продолжить учить',
               ),
             ),
           ),

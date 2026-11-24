@@ -273,8 +273,7 @@ class _RatingPanel extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final stacked = textScale > 1.15 || constraints.maxWidth < 380;
-        final children = List.generate(4, (index) {
-          final rating = index + 1;
+        final children = [1, 3].map((rating) {
           final preview = item.previews
               .where((value) => value.rating == rating)
               .firstOrNull;
@@ -287,7 +286,7 @@ class _RatingPanel extends StatelessWidget {
             enabled: !submitting,
             onPressed: () => onRate(rating),
           );
-        });
+        }).toList();
 
         if (stacked) {
           return GridView.count(
@@ -329,15 +328,10 @@ class _RatingButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final labels = ['Не помню', 'Трудно', 'Хорошо', 'Легко'];
-    final colors = [
-      theme.colorScheme.error,
-      context.remora.warning,
-      theme.colorScheme.primary,
-      context.remora.success,
-    ];
-    final label = labels[rating - 1];
-    final color = colors[rating - 1];
+    final label = rating == 3 ? 'Знаю' : 'Не знаю';
+    final color = rating == 3
+        ? theme.colorScheme.primary
+        : theme.colorScheme.error;
     final semantics = interval == null
         ? label
         : '$label, следующая через $interval';

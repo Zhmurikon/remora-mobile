@@ -6,8 +6,21 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
+    private val speech by lazy { LearnSpeech(this) }
+
+    override fun onStop() { speech.stop(); super.onStop() }
+    override fun onDestroy() { speech.close(); super.onDestroy() }
+
     override fun configureFlutterEngine(engine: FlutterEngine) {
         super.configureFlutterEngine(engine)
+        MethodChannel(engine.dartExecutor.binaryMessenger, "remora/learn-speech")
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "speak" -> speech.speak(call.arguments<List<Map<String, String>>>().orEmpty(), result)
+                    "stop" -> { speech.stop(); result.success(null) }
+                    else -> result.notImplemented()
+                }
+            }
         MethodChannel(engine.dartExecutor.binaryMessenger, "remora/media")
             .setMethodCallHandler { call, result ->
                 if (call.method != "duration") {

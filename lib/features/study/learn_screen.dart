@@ -1,158 +1,331 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:async';
 
-import '../../widgets/ink_motion.dart';
-import '../../app/theme.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:uuid/uuid.dart';
+
 import '../../core/answers.dart';
-import '../../core/distractors.dart';
-import '../../core/format.dart';
+import '../../core/learn_exercise.dart';
 import '../../data/api_client.dart';
+import '../workspace/workspace.dart';
 import 'card_content_widget.dart';
+import 'learn_pairs.dart';
 import 'study_provider.dart';
 import 'study_shell.dart';
 
-/// Порог стабильности (в днях), после которого спрашиваем строже.
-const _typingThreshold = 1;
-const _recallThreshold = 21;
-
-/// Режим «Учить»: адаптивные вопросы — выбор из 4 → ввод ответа → свободное
-/// воспроизведение с самооценкой. Тип вопроса на каждую карточку и набор
-/// включённых упражнений подбираются по настройкам заучивания набора
-/// (`state.learnQuestionTypes` и далее), как на вебе и в ботах.
 class LearnScreen extends ConsumerStatefulWidget {
-  const LearnScreen({super.key});
+  const LearnScreen({super.key, this.seed});
+  final String? seed;
 
   @override
   ConsumerState<LearnScreen> createState() => _LearnScreenState();
 }
 
-class _LearnScreenState extends ConsumerState<LearnScreen> {
-  final _controller = TextEditingController();
-  bool _submitting = false;
-  bool _showAnswer = false;
-  // null | 'correct' | 'incorrect' | 'self_check'
-  String? _verdict;
+class _LearnScreenState extends ConsumerState<LearnScreen>
+    with WidgetsBindingObserver {
+  static const _speech = MethodChannel('remora/learn-speech');
+  final _input = TextEditingController();
+  final _introduced = <String>{};
+  final _successes = <String, int>{};
+  late final _seed = widget.seed ?? const Uuid().v4();
+  int _turn = 0;
+  final _duration = Stopwatch()..start();
+  LearnKind? _previous;
+  LearnExercise? _held;
+  bool? _verdict, _writeTerm, _writeDefinition;
+  bool _revealed = false, _saving = false, _audio = false;
+  String? _picked;
   int? _similarity;
-  String? _pickedOption;
+  QueueItem? _visiblePair;
+  bool _pairAnswer = false;
+  int? _spokenTurn;
 
-  // Успешных ответов на карточку в этой сессии: ключ "cardId:direction".
-  // Ошибка не обнуляет уже набранные успехи — карточка просто возвращается
-  // в очередь, пока не наберёт нужное число (`learnSuccessesRequired`).
-  final Map<String, int> _successCounts = {};
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
 
   @override
   void dispose() {
-    _controller.dispose();
+    WidgetsBinding.instance.removeObserver(this);
+    _stop();
+    _input.dispose();
     super.dispose();
   }
 
-  void _reset() {
-    _controller.clear();
-    _showAnswer = false;
-    _verdict = null;
-    _similarity = null;
-    _pickedOption = null;
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) _stop();
   }
 
-  /// Записать ответ и продвинуться дальше. Считает успехи и решает,
-  /// возвращать ли карточку в конец очереди.
-  Future<void> _advance(int rating, bool correct) async {
+  void _stop() {
+    if (_audio) {
+      unawaited(_speech.invokeMethod<void>('stop').catchError((Object _) {}));
+    }
+  }
+
+  Future<void> _speak(
+    QueueItem item, {
+    bool answer = false,
+    bool both = false,
+    String? statement,
+  }) async {
+    if (!_audio ||
+        !mounted ||
+        WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed) {
+      return;
+    }
     final state = ref.read(studySessionProvider);
-    final item = state.currentItem;
-    if (item == null || _submitting) return;
+    final forward = item.direction == 'term_to_def';
+    Map<String, String> side(bool term) => {
+      'text': term ? item.card.term : item.card.definition,
+      'lang': term
+          ? item.langTerm ?? state.langTerm
+          : item.langDefinition ?? state.langDefinition,
+    };
+    final parts = [
+      side(answer ? !forward : forward),
+      if (both) side(!forward),
+      if (statement != null) {...side(false), 'text': statement},
+    ];
+    try {
+      final ok = await _speech.invokeMethod<bool>('speak', parts);
+      if (mounted && ok == false && _audio) _unavailable();
+    } on PlatformException {
+      if (mounted && _audio) _unavailable();
+    } on MissingPluginException {
+      if (mounted && _audio) _unavailable();
+    }
+  }
 
+  void _unavailable() {
+    setState(() => _audio = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Озвучка недоступна. Проверьте языки синтеза речи в настройках Android.',
+        ),
+      ),
+    );
+  }
+
+  void _readExercise(LearnExercise exercise) {
+    if (exercise.kind == LearnKind.pairs) {
+      _speak(
+        (_visiblePair ?? exercise.pairs.first).facing('def_to_term'),
+        answer: _pairAnswer,
+      );
+    } else {
+      final answer = _revealed || _verdict != null;
+      _speak(
+        exercise.item,
+        answer: answer,
+        both: exercise.kind == LearnKind.preview,
+        statement: answer ? null : exercise.statement,
+      );
+    }
+  }
+
+  Future<bool> _grade(QueueItem source, QueueItem item, bool correct) async {
+    if (_saving) return false;
+    setState(() => _saving = true);
     final key = '${item.card.id}:${item.direction}';
-    final priorSuccesses = _successCounts[key] ?? 0;
-    final requeue =
-        !correct || (priorSuccesses + 1) < state.learnSuccessesRequired;
-
-    _submitting = true;
+    final successes = (_successes[key] ?? 0) + (correct ? 1 : 0);
     try {
       await ref
           .read(studySessionProvider.notifier)
           .answer(
             item: item,
-            rating: rating,
+            consume: source,
+            rating: correct ? 3 : 1,
             answerCorrect: correct,
-            requeue: requeue,
+            durationMs: _duration.elapsedMilliseconds,
+            requeue:
+                !correct ||
+                successes <
+                    ref.read(studySessionProvider).learnSuccessesRequired,
           );
-      if (correct) _successCounts[key] = priorSuccesses + 1;
-      if (mounted) setState(_reset);
+      _successes[key] = successes;
+      _introduced.add(item.card.id);
+      _duration.reset();
+      return true;
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Не удалось сохранить ответ. Попробуйте ещё раз.'),
+          ),
+        );
+      }
+      return false;
     } finally {
-      _submitting = false;
+      if (mounted) setState(() => _saving = false);
     }
   }
 
-  void _checkTypedAnswer(QueueItem item, StudySessionState state) {
-    final isTermToDef = item.direction == 'term_to_def';
-    final expected = isTermToDef ? item.card.definition : item.card.term;
-    final typed = _controller.text;
-    if (typed.trim().isEmpty) return;
-
-    final options = AnswerOptions(strictness: state.answerStrictness);
-    var best = 0;
-    for (final candidate in [expected, ...item.card.altAnswers]) {
-      final s = answerSimilarity(typed, candidate, options);
-      if (s > best) best = s;
-    }
-
-    if (state.learnTypingCheck == 'self_check') {
+  Future<void> _submit(LearnExercise ex, bool correct, [String? picked]) async {
+    if (_saving || _verdict != null) return;
+    setState(() {
+      _verdict = correct;
+      _picked = picked;
+    });
+    final saved = await _grade(ex.source, ex.item, correct);
+    if (!mounted) return;
+    if (!saved) {
       setState(() {
-        _verdict = 'self_check';
-        _similarity = best;
+        _verdict = null;
+        _picked = null;
       });
+    } else if (ex.kind != LearnKind.recall && !_revealed) {
+      _speak(ex.item, answer: true);
+    }
+  }
+
+  void _next() {
+    if (_saving) return;
+    _stop();
+    final state = ref.read(studySessionProvider);
+    if (state.isFinished) {
+      openStudyResult(context);
       return;
     }
-
-    final correct = best >= state.learnMatchPercent;
     setState(() {
-      _verdict = correct ? 'correct' : 'incorrect';
-      _similarity = best;
+      if (_held?.kind != LearnKind.preview) _previous = _held?.kind;
+      _turn++;
+      _held = null;
+      _revealed = false;
+      _verdict = null;
+      _picked = null;
+      _similarity = null;
+      _visiblePair = null;
+      _pairAnswer = false;
+      _input.clear();
+      _duration.reset();
     });
-  }
-
-  void _pickOption(String option) {
-    if (_pickedOption != null) return;
-    setState(() => _pickedOption = option);
   }
 
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(studySessionProvider);
-
-    ref.listen<StudySessionState>(studySessionProvider, (prev, next) {
-      if (next.isFinished && !(prev?.isFinished ?? false)) {
+    final premium =
+        ref
+            .watch(workspaceDocument('billing/entitlements'))
+            .valueOrNull?['features']?['study.learn_narration'] ==
+        true;
+    if (!premium && _audio) {
+      _stop();
+      _audio = false;
+    }
+    ref.listen(studySessionProvider, (prev, next) {
+      if (next.isFinished && !_saving && prev?.isFinished != true) {
         openStudyResult(context);
       }
     });
-
-    if (state.isFinished) {
-      return const StudyShell(child: SizedBox.shrink());
-    }
-
-    final item = state.currentItem;
-    if (item == null) {
+    if (_held == null && state.currentItem == null) {
       return const StudyShell(child: Center(child: Text('Очередь пуста')));
     }
-
-    final pool = _answerPool(state, item.direction);
-    final hasChoice = _hasChoice(item, state, pool);
-    final kind = _questionKind(item, state, hasChoice);
-    final successKey = '${item.card.id}:${item.direction}';
-    final currentSuccesses = _successCounts[successKey] ?? 0;
-
+    final typing = state.learnQuestionTypes.contains('typing');
+    final term =
+        _writeTerm ?? (typing && state.currentItem?.direction == 'def_to_term');
+    final definition =
+        _writeDefinition ??
+        (typing && state.currentItem?.direction == 'term_to_def');
+    final ex = _held ??= prepareLearnExercise(
+      items: state.items,
+      index: state.index,
+      turn: _turn,
+      types: state.learnQuestionTypes,
+      writeTerm: term,
+      writeDefinition: definition,
+      seed: _seed,
+      previous: _previous,
+      introduced: _introduced,
+    );
+    if (_audio && _spokenTurn != _turn) {
+      _spokenTurn = _turn;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && identical(_held, ex)) _readExercise(ex);
+      });
+    }
     return StudyShell(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
         child: Column(
           children: [
-            _buildHeader(context, kind, currentSuccesses, state),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    ex.kind.title,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ),
+                if (premium)
+                  IconButton(
+                    tooltip: _audio ? 'Выключить озвучку' : 'Включить озвучку',
+                    icon: Icon(
+                      _audio ? Icons.volume_up : Icons.volume_off_outlined,
+                    ),
+                    onPressed: () {
+                      if (_audio) _stop();
+                      setState(() {
+                        _audio = !_audio;
+                        _spokenTurn = null;
+                      });
+                    },
+                  ),
+                PopupMenuButton<String>(
+                  tooltip: 'Настройки письма',
+                  onSelected: (value) {
+                    setState(() {
+                      if (ex.kind != LearnKind.pairs &&
+                          !_saving &&
+                          !_revealed &&
+                          _verdict == null &&
+                          _input.text.isEmpty) {
+                        _stop();
+                        _held = null;
+                        _spokenTurn = null;
+                      }
+                      _writeTerm = value == 'term' ? !term : term;
+                      _writeDefinition = value == 'definition'
+                          ? !definition
+                          : definition;
+                    });
+                  },
+                  itemBuilder: (_) => [
+                    CheckedPopupMenuItem(
+                      value: 'term',
+                      checked: term,
+                      child: const Text('Писать термин'),
+                    ),
+                    CheckedPopupMenuItem(
+                      value: 'definition',
+                      checked: definition,
+                      child: const Text('Писать определение'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
             Expanded(
-              child: InkReveal(
-                change: (state.answered, item.card.id, kind),
-                onMount: false,
-                child: _buildQuestion(context, item, state, kind, pool),
-              ),
+              child: ex.kind == LearnKind.pairs
+                  ? LearnPairs(
+                      key: ValueKey(_turn),
+                      pairs: ex.pairs,
+                      seed: '$_seed:$_turn',
+                      grade: (source, correct) =>
+                          _grade(source, source.facing('def_to_term'), correct),
+                      onSpeak: (item, answer) {
+                        _visiblePair = item;
+                        _pairAnswer = answer;
+                        _speak(item.facing('def_to_term'), answer: answer);
+                      },
+                      onNext: _next,
+                    )
+                  : _question(ex, state),
             ),
           ],
         ),
@@ -160,655 +333,154 @@ class _LearnScreenState extends ConsumerState<LearnScreen> {
     );
   }
 
-  // ── Подбор типа вопроса ──
-
-  /// Ответная сторона всех карточек очереди, приведённая к направлению
-  /// текущей карточки — источник дистракторов для «выбора из 4».
-  List<String> _answerPool(StudySessionState state, String direction) {
-    final isTermToDef = direction == 'term_to_def';
-    return state.items
-        .map((it) => isTermToDef ? it.card.definition : it.card.term)
-        .where((v) => v.isNotEmpty)
-        .toList();
-  }
-
-  bool _hasChoice(QueueItem item, StudySessionState state, List<String> pool) {
-    if (!state.learnQuestionTypes.contains('choice')) return false;
-    final isTermToDef = item.direction == 'term_to_def';
-    final expected = isTermToDef ? item.card.definition : item.card.term;
-    final preferred = isTermToDef
-        ? item.card.wrongDefinitionAnswers
-        : item.card.wrongTermAnswers;
-    final options = generateOptions(
-      DistractorOptions(
-        correct: expected,
-        pool: pool,
-        preferred: preferred,
-        alternatives: item.card.altAnswers,
-        seed: item.card.id,
-      ),
+  Widget _question(LearnExercise ex, StudySessionState state) {
+    final item = ex.item, card = item.card;
+    final forward = item.direction == 'term_to_def';
+    final expected = forward ? card.definition : card.term;
+    final writing =
+        ex.kind == LearnKind.writeDefinition || ex.kind == LearnKind.writeTerm;
+    final finished = _verdict != null;
+    Widget content(String value, {String? image}) => CardContentWidget(
+      value: value,
+      contentType: card.contentType,
+      codeLanguage: card.codeLanguage,
+      imageUrl: image,
     );
-    return options.length == 4;
-  }
-
-  List<String> _choiceOptions(
-    QueueItem item,
-    StudySessionState state,
-    List<String> pool,
-  ) {
-    final isTermToDef = item.direction == 'term_to_def';
-    final expected = isTermToDef ? item.card.definition : item.card.term;
-    final preferred = isTermToDef
-        ? item.card.wrongDefinitionAnswers
-        : item.card.wrongTermAnswers;
-    return generateOptions(
-      DistractorOptions(
-        correct: expected,
-        pool: pool.where((v) => v != expected).toList(),
-        preferred: preferred,
-        alternatives: item.card.altAnswers,
-        seed: '${item.card.id}:${item.direction}:${state.index}',
-      ),
-    );
-  }
-
-  /// Чем крепче карточка, тем строже спрашиваем; тип берём из включённых
-  /// в настройках, с запасным вариантом, если предпочитаемый недоступен.
-  String _questionKind(
-    QueueItem item,
-    StudySessionState state,
-    bool hasChoice,
-  ) {
-    final available = state.learnQuestionTypes
-        .where((k) => k != 'choice' || hasChoice)
-        .toList();
-    final fallback = available.isNotEmpty ? available.first : 'recall';
-    final stability = item.state.stability ?? 0;
-
-    if (stability >= _recallThreshold) {
-      return available.contains('recall') ? 'recall' : fallback;
-    }
-    if (stability >= _typingThreshold) {
-      if (available.contains('typing')) return 'typing';
-      if (available.contains('recall')) return 'recall';
-      return fallback;
-    }
-    if (hasChoice) return 'choice';
-    if (available.contains('typing')) return 'typing';
-    return fallback;
-  }
-
-  String _kindLabel(String kind) {
-    switch (kind) {
-      case 'choice':
-        return 'Выберите верный ответ';
-      case 'typing':
-        return 'Введите ответ';
-      default:
-        return 'Вспомните ответ и оцените себя';
-    }
-  }
-
-  Widget _buildHeader(
-    BuildContext context,
-    String kind,
-    int successes,
-    StudySessionState state,
-  ) {
-    final theme = Theme.of(context);
-    final required = state.learnSuccessesRequired;
-    final label = required > 1
-        ? '${_kindLabel(kind)} · успешно $successes из $required'
-        : _kindLabel(kind);
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: RemoraSpacing.sm),
-      child: Text(
-        label,
-        style: theme.textTheme.titleSmall?.copyWith(
-          color: context.remora.textSubtle,
-        ),
-      ),
-    );
-  }
-
-  Widget _hintChip(BuildContext context, String hint) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: RemoraSpacing.sm),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(
-            Icons.lightbulb_outline_rounded,
-            size: 20,
-            color: Theme.of(context).colorScheme.tertiary,
-          ),
-          const SizedBox(width: RemoraSpacing.xs),
-          Expanded(
-            child: Text(hint, style: Theme.of(context).textTheme.bodyMedium),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _questionSurface(
-    BuildContext context, {
-    required String label,
-    required Widget child,
-    bool answer = false,
-  }) {
-    final theme = Theme.of(context);
-    return Material(
-      color: answer ? context.remora.surfaceMuted : theme.colorScheme.surface,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(RemoraRadii.large),
-        side: BorderSide(color: theme.colorScheme.outline),
-      ),
+    Widget panel(String value, String? image) => Card(
       child: Padding(
-        padding: const EdgeInsets.all(RemoraSpacing.xl),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              label,
-              style: context.remoraType.compactLabel.copyWith(
-                color: answer
-                    ? theme.colorScheme.primary
-                    : context.remora.textSubtle,
-              ),
-            ),
-            const SizedBox(height: RemoraSpacing.lg),
-            child,
-          ],
-        ),
+        padding: const EdgeInsets.all(20),
+        child: content(value, image: image),
       ),
     );
-  }
-
-  Widget _buildQuestion(
-    BuildContext context,
-    QueueItem item,
-    StudySessionState state,
-    String kind,
-    List<String> pool,
-  ) {
-    switch (kind) {
-      case 'choice':
-        return _buildChoiceQuestion(context, item, state, pool);
-      case 'typing':
-        return _buildTypingQuestion(context, item, state);
-      case 'recall':
-      default:
-        return _buildRecallQuestion(context, item, state);
-    }
-  }
-
-  // ── Выбор из 4 ──
-
-  Widget _buildChoiceQuestion(
-    BuildContext context,
-    QueueItem item,
-    StudySessionState state,
-    List<String> pool,
-  ) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final isTermToDef = item.direction == 'term_to_def';
-    final questionText = isTermToDef ? item.card.term : item.card.definition;
-    final expected = isTermToDef ? item.card.definition : item.card.term;
-    final questionImage = isTermToDef
-        ? item.card.termImageUrl
-        : item.card.definitionImageUrl;
-    final options = _choiceOptions(item, state, pool);
-    final border = isDark ? RemoraColors.darkBorder : RemoraColors.lightBorder;
-    final success = isDark
-        ? RemoraColors.darkSuccess
-        : RemoraColors.lightSuccess;
-    final danger = isDark ? RemoraColors.darkDanger : RemoraColors.lightDanger;
-    final subtle = isDark
-        ? RemoraColors.darkFgSubtle
-        : RemoraColors.lightFgSubtle;
-    final pickedCorrect =
-        _pickedOption != null &&
-        normalizeOption(_pickedOption!) == normalizeOption(expected);
-
-    return SingleChildScrollView(
-      child: Column(
-        children: [
-          if (item.card.hint != null) _hintChip(context, item.card.hint!),
-          _questionSurface(
-            context,
-            label: 'ВОПРОС',
-            child: CardContentWidget(
-              value: questionText,
-              contentType: item.card.contentType,
-              codeLanguage: item.card.codeLanguage,
-              imageUrl: questionImage,
-            ),
-          ),
-          const SizedBox(height: 24),
-          for (var i = 0; i < options.length; i++) ...[
-            _buildChoiceOption(
-              context,
-              index: i,
-              option: options[i],
-              expected: expected,
-              contentType: item.card.contentType,
-              codeLanguage: item.card.codeLanguage,
-              border: border,
-              success: success,
-              danger: danger,
-              subtle: subtle,
-            ),
-            if (i < options.length - 1) const SizedBox(height: 8),
-          ],
-          if (_pickedOption != null) ...[
-            const SizedBox(height: RemoraSpacing.md),
-            SizedBox(
-              width: double.infinity,
-              height: RemoraSizes.minTouchTarget,
-              child: FilledButton(
-                onPressed: () => _advance(pickedCorrect ? 3 : 1, pickedCorrect),
-                child: const Text('Дальше'),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildChoiceOption(
-    BuildContext context, {
-    required int index,
-    required String option,
-    required String expected,
-    required String contentType,
-    required String? codeLanguage,
-    required Color border,
-    required Color success,
-    required Color danger,
-    required Color subtle,
-  }) {
-    final picked = _pickedOption;
-    final isCorrectOption =
-        normalizeOption(option) == normalizeOption(expected);
-
-    var borderColor = border;
-    Color? fillColor;
-    var opacity = 1.0;
-    if (picked != null) {
-      if (isCorrectOption) {
-        borderColor = success;
-        fillColor = success.withValues(alpha: 0.1);
-      } else if (option == picked) {
-        borderColor = danger;
-        fillColor = danger.withValues(alpha: 0.1);
+    final answers = ex.kind == LearnKind.truth
+        ? ['Верно', 'Неверно']
+        : ex.options;
+    final expectedChoice = ex.kind == LearnKind.truth
+        ? (ex.truth! ? 'Верно' : 'Неверно')
+        : expected;
+    void check() {
+      if (_input.text.trim().isEmpty || _saving || finished || _revealed) {
+        return;
+      }
+      final opts = AnswerOptions(
+        strictness: state.answerStrictness,
+        lang: forward
+            ? item.langDefinition ?? state.langDefinition
+            : item.langTerm ?? state.langTerm,
+      );
+      final score = [expected, ...card.altAnswers]
+          .map((value) => answerSimilarity(_input.text, value, opts))
+          .reduce((a, b) => a > b ? a : b);
+      setState(() => _similarity = score);
+      if (state.learnTypingCheck == 'self_check') {
+        setState(() => _revealed = true);
+        _speak(item, answer: true);
       } else {
-        opacity = 0.6;
+        _submit(ex, score >= state.learnMatchPercent);
       }
     }
 
-    return AnimatedOpacity(
-      duration: InkMotion.styleOf(context).duration!,
-      opacity: opacity,
-      child: Material(
-        color: fillColor,
-        borderRadius: BorderRadius.circular(12),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: picked == null ? () => _pickOption(option) : null,
-          child: Container(
-            constraints: const BoxConstraints(minHeight: 48),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              border: Border.all(color: borderColor),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              children: [
-                Text(
-                  '${index + 1}',
-                  style: TextStyle(color: subtle, fontSize: 13),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: CardContentWidget(
-                    value: option,
-                    contentType: contentType,
-                    codeLanguage: codeLanguage,
-                    fontSize: 16,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
+    Widget nextButton(VoidCallback action) => FilledButton(
+      onPressed: _saving ? null : action,
+      child: const Text('Дальше'),
     );
-  }
-
-  // ── Карточка с самооценкой ──
-
-  Widget _buildRecallQuestion(
-    BuildContext context,
-    QueueItem item,
-    StudySessionState state,
-  ) {
-    final isTermToDef = item.direction == 'term_to_def';
-    final questionText = isTermToDef ? item.card.term : item.card.definition;
-    final answerText = isTermToDef ? item.card.definition : item.card.term;
-    final questionImage = isTermToDef
-        ? item.card.termImageUrl
-        : item.card.definitionImageUrl;
-    final answerImage = isTermToDef
-        ? item.card.definitionImageUrl
-        : item.card.termImageUrl;
-
-    return Column(
+    return ListView(
       children: [
-        Expanded(
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                if (item.card.hint != null) _hintChip(context, item.card.hint!),
-                InkReveal(
-                  change: _showAnswer,
-                  turnPage: true,
-                  onMount: false,
-                  child: _questionSurface(
-                    context,
-                    label: _showAnswer ? 'ОТВЕТ' : 'ВОПРОС',
-                    answer: _showAnswer,
-                    child: CardContentWidget(
-                      value: _showAnswer ? answerText : questionText,
-                      contentType: item.card.contentType,
-                      codeLanguage: item.card.codeLanguage,
-                      imageUrl: _showAnswer ? answerImage : questionImage,
-                    ),
+        if (card.hint?.isNotEmpty == true) Text(card.hint!),
+        panel(
+          forward ? card.term : card.definition,
+          forward ? card.termImageUrl : card.definitionImageUrl,
+        ),
+        if (ex.statement != null) panel(ex.statement!, null),
+        if (ex.kind == LearnKind.preview || _revealed || finished)
+          panel(
+            expected,
+            forward ? card.definitionImageUrl : card.termImageUrl,
+          ),
+        const SizedBox(height: 12),
+        if (ex.kind == LearnKind.preview)
+          nextButton(() {
+            _introduced.add(card.id);
+            ref.read(studySessionProvider.notifier).deferPreview();
+            _next();
+          }),
+        if (ex.kind == LearnKind.recall && !_revealed)
+          FilledButton.tonal(
+            onPressed: () {
+              setState(() => _revealed = true);
+              _speak(item, answer: true);
+            },
+            child: const Text('Показать ответ'),
+          ),
+        if (_revealed && !finished)
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: _saving ? null : () => _submit(ex, false),
+                  child: Text(writing ? 'Не засчитывать' : 'Не помню'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: FilledButton(
+                  onPressed: _saving ? null : () => _submit(ex, true),
+                  child: Text(writing ? 'Засчитать' : 'Помню'),
+                ),
+              ),
+            ],
+          ),
+        for (final option in answers)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Material(
+              color: finished && (option == _picked || option == expectedChoice)
+                  ? (option == expectedChoice
+                        ? Theme.of(context).colorScheme.primaryContainer
+                        : Theme.of(context).colorScheme.errorContainer)
+                  : Theme.of(context).colorScheme.surface,
+              shape: RoundedRectangleBorder(
+                side: BorderSide(color: Theme.of(context).colorScheme.outline),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: InkWell(
+                onTap: finished || _saving
+                    ? null
+                    : () => _submit(ex, option == expectedChoice, option),
+                borderRadius: BorderRadius.circular(12),
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: IgnorePointer(
+                    child: SelectionContainer.disabled(child: content(option)),
                   ),
                 ),
-                if (!_showAnswer) ...[
-                  const SizedBox(height: RemoraSpacing.md),
-                  FilledButton.tonalIcon(
-                    onPressed: () => setState(() => _showAnswer = true),
-                    icon: const Icon(Icons.touch_app_rounded),
-                    label: const Text('Показать ответ'),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ),
-        if (_showAnswer) ...[
-          const SizedBox(height: 16),
-          _buildRatingButtons(context, item),
-        ],
-      ],
-    );
-  }
-
-  Widget _buildRatingButtons(BuildContext context, QueueItem item) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    final labels = ['Не помню', 'Трудно', 'Хорошо', 'Легко'];
-    final colors = [
-      isDark ? RemoraColors.darkDanger : RemoraColors.lightDanger,
-      isDark ? RemoraColors.darkWarning : RemoraColors.lightWarning,
-      isDark ? RemoraColors.darkSuccess : RemoraColors.lightSuccess,
-      isDark ? RemoraColors.darkPrimary : RemoraColors.lightPrimary,
-    ];
-
-    return Row(
-      children: List.generate(4, (i) {
-        final rating = i + 1;
-        final preview = item.previews
-            .where((p) => p.rating == rating)
-            .firstOrNull;
-        final intervalLabel = preview != null
-            ? formatIntervalSeconds(preview.intervalSeconds)
-            : '';
-
-        return Expanded(
-          child: Padding(
-            padding: EdgeInsets.only(left: i > 0 ? 8 : 0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (intervalLabel.isNotEmpty)
-                  Text(
-                    intervalLabel,
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: isDark
-                          ? RemoraColors.darkFgSubtle
-                          : RemoraColors.lightFgSubtle,
-                    ),
-                  ),
-                const SizedBox(height: 4),
-                SizedBox(
-                  height: 48,
-                  child: ElevatedButton(
-                    onPressed: () => _advance(rating, rating >= 3),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: colors[i],
-                      foregroundColor: Theme.of(context).colorScheme.onPrimary,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                    child: Text(
-                      labels[i],
-                      style: const TextStyle(fontSize: 13),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      }),
-    );
-  }
-
-  // ── Ввод ответа ──
-
-  Widget _buildTypingQuestion(
-    BuildContext context,
-    QueueItem item,
-    StudySessionState state,
-  ) {
-    final isTermToDef = item.direction == 'term_to_def';
-    final questionText = isTermToDef ? item.card.term : item.card.definition;
-    final expected = isTermToDef ? item.card.definition : item.card.term;
-    final questionImage = isTermToDef
-        ? item.card.termImageUrl
-        : item.card.definitionImageUrl;
-
-    return Column(
-      children: [
-        Expanded(
-          child: SingleChildScrollView(
-            child: Column(
-              children: [
-                if (item.card.hint != null) _hintChip(context, item.card.hint!),
-                _questionSurface(
-                  context,
-                  label: 'ВОПРОС',
-                  child: CardContentWidget(
-                    value: questionText,
-                    contentType: item.card.contentType,
-                    codeLanguage: item.card.codeLanguage,
-                    imageUrl: questionImage,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                TextField(
-                  controller: _controller,
-                  enabled: _verdict == null,
-                  decoration: InputDecoration(
-                    hintText: 'Введите ответ…',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    filled: true,
-                  ),
-                  onSubmitted: (_) {
-                    if (_verdict == null) _checkTypedAnswer(item, state);
-                  },
-                  textInputAction: TextInputAction.done,
-                ),
-                const SizedBox(height: 12),
-                if (_verdict != null)
-                  InkReveal(
-                    child: _buildTypingResult(context, expected, item, state),
-                  ),
-                if (_verdict == null) ...[
-                  Row(
-                    children: [
-                      Expanded(
-                        child: FilledButton(
-                          onPressed: () => _checkTypedAnswer(item, state),
-                          child: const Text('Проверить'),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      TextButton(
-                        onPressed: () => _advance(1, false),
-                        child: const Text('Не знаю'),
-                      ),
-                    ],
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ),
-        if (_verdict != null) ...[
-          const SizedBox(height: 16),
-          _buildTypingPostButtons(context),
-        ],
-      ],
-    );
-  }
-
-  Widget _buildTypingResult(
-    BuildContext context,
-    String expected,
-    QueueItem item,
-    StudySessionState state,
-  ) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final subtle = isDark
-        ? RemoraColors.darkFgSubtle
-        : RemoraColors.lightFgSubtle;
-
-    if (_verdict == 'self_check') {
-      return Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: isDark
-              ? RemoraColors.darkSurfaceMuted
-              : RemoraColors.lightSurfaceMuted,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Правильный ответ',
-              style: TextStyle(fontSize: 12, color: subtle),
-            ),
-            const SizedBox(height: 4),
-            CardContentWidget(
-              value: expected,
-              contentType: item.card.contentType,
-              codeLanguage: item.card.codeLanguage,
-              imageUrl: item.direction == 'term_to_def'
-                  ? item.card.definitionImageUrl
-                  : item.card.termImageUrl,
-              fontSize: 16,
-            ),
-          ],
-        ),
-      );
-    }
-
-    final correct = _verdict == 'correct';
-    final color = correct
-        ? (isDark ? RemoraColors.darkSuccess : RemoraColors.lightSuccess)
-        : (isDark ? RemoraColors.darkDanger : RemoraColors.lightDanger);
-
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        children: [
-          Text(
-            correct ? '✓ Правильно' : '✗ Неправильно',
-            style: TextStyle(color: color, fontWeight: FontWeight.w600),
-          ),
-          if (_similarity != null)
-            Text(
-              'Совпадение: $_similarity% · нужно ${state.learnMatchPercent}%',
-              style: TextStyle(
-                fontSize: 12,
-                color: color.withValues(alpha: 0.8),
               ),
             ),
-          if (!correct) ...[
-            const SizedBox(height: 8),
-            const Text('Ответ:'),
-            CardContentWidget(
-              value: expected,
-              contentType: item.card.contentType,
-              codeLanguage: item.card.codeLanguage,
-              imageUrl: item.direction == 'term_to_def'
-                  ? item.card.definitionImageUrl
-                  : item.card.termImageUrl,
-              fontSize: 16,
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTypingPostButtons(BuildContext context) {
-    if (_verdict == 'self_check') {
-      return Row(
-        children: [
-          Expanded(
-            child: OutlinedButton(
-              onPressed: () => _advance(1, false),
-              child: const Text('Не засчитывать'),
-            ),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: FilledButton(
-              onPressed: () => _advance(3, true),
-              child: const Text('Засчитать'),
-            ),
+        if (writing && !_revealed && !finished) ...[
+          TextField(
+            controller: _input,
+            onSubmitted: (_) => check(),
+            decoration: const InputDecoration(labelText: 'Введите ответ'),
+          ),
+          FilledButton(
+            onPressed: _saving ? null : check,
+            child: const Text('Проверить'),
+          ),
+          TextButton(
+            onPressed: _saving ? null : () => _submit(ex, false),
+            child: const Text('Не знаю'),
           ),
         ],
-      );
-    }
-
-    final correct = _verdict == 'correct';
-    return SizedBox(
-      width: double.infinity,
-      height: 48,
-      child: FilledButton(
-        onPressed: () => _advance(correct ? 3 : 1, correct),
-        child: const Text('Дальше'),
-      ),
+        if (_similarity != null) Text('Совпадение $_similarity%'),
+        if (finished) ...[
+          Semantics(
+            liveRegion: true,
+            child: Text(_verdict! ? 'Правильно' : 'Повторим ещё раз'),
+          ),
+          nextButton(_next),
+        ],
+      ],
     );
   }
 }

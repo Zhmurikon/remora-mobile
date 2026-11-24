@@ -8,7 +8,9 @@ import 'study_provider.dart';
 
 void openStudyResult(BuildContext context) {
   final params = GoRouterState.of(context).pathParameters;
-  if (params['courseId'] case final courseId?) {
+  if (params['folderId'] case final folderId?) {
+    context.pushReplacement('/folder/$folderId/study/result');
+  } else if (params['courseId'] case final courseId?) {
     context.pushReplacement('/course/$courseId/study/result');
   } else {
     context.go('/set/${params['setId']}/study/result');

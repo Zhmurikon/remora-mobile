@@ -27,6 +27,8 @@ flutter build apk --release
 
 Для проверки с локальным Docker Compose выполните `adb reverse tcp:3000 tcp:3000`, `adb reverse tcp:9100 tcp:9100` и `flutter run --dart-define=REMORA_API_URL=http://127.0.0.1:3000`. Обычная сборка использует `https://zapominalnya.ru`.
 
+Для проверки сопоставления и синтеза речи на телефоне используйте `tool/test_learn_device.sh <id-из-adb-devices>`. Скрипт устанавливает отдельное приложение «Проверка заучивания» с учебными данными и удаляет его после успешного прогона.
+
 ## Структура
 
 ```

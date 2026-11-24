@@ -159,6 +159,14 @@ class RemoraApiClient {
     return StudyQueue.fromJson(response.data as Map<String, dynamic>);
   }
 
+  Future<StudyQueue> getFolderLearnQueue(String folderId) async {
+    final response = await _dio.get(
+      '/api/v1/study/folders/$folderId/queue',
+      queryParameters: {'mode': 'learn', 'scope': 'all', 'limit': 200},
+    );
+    return StudyQueue.fromJson(response.data as Map<String, dynamic>);
+  }
+
   // Берём полный пул для свободного прохода во всех трёх режимах.
   Future<StudyQueue> getCourseStudyQueue(String courseId) async {
     final response = await _dio.get(
@@ -973,10 +981,14 @@ class QueueItem {
     required this.state,
     required this.previews,
     this.sourceSetId,
+    this.langTerm,
+    this.langDefinition,
   });
 
   factory QueueItem.fromJson(Map<String, dynamic> json) {
     return QueueItem(
+      langTerm: json['lang_term'] as String?,
+      langDefinition: json['lang_definition'] as String?,
       sourceSetId: json['source_set_id'] as String?,
       card: QueueCard.fromJson(json['card'] as Map<String, dynamic>),
       direction: json['direction'] as String,
@@ -987,6 +999,20 @@ class QueueItem {
     );
   }
 
+  QueueItem facing(String value) => value == direction
+      ? this
+      : QueueItem(
+          card: card,
+          direction: value,
+          state: state,
+          previews: const [],
+          sourceSetId: sourceSetId,
+          langTerm: langTerm,
+          langDefinition: langDefinition,
+        );
+
+  final String? langTerm;
+  final String? langDefinition;
   final String? sourceSetId;
   final QueueCard card;
   final String direction;

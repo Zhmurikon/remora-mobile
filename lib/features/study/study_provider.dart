@@ -216,6 +216,38 @@ class StudySessionNotifier extends StateNotifier<StudySessionState> {
     }
   }
 
+  Future<void> beginFolder(String folderId) async {
+    state = state.copyWith(
+      mode: StudyMode.learn,
+      items: [],
+      index: 0,
+      total: 0,
+      answered: 0,
+      correct: 0,
+      isLoading: true,
+      isFinished: false,
+    );
+    try {
+      final queue = await _api.getFolderLearnQueue(folderId);
+      if (!mounted) return;
+      _outbox.sessionId = null;
+      _applyQueue(queue, isOnline: true);
+      if (queue.items.isEmpty) {
+        state = state.copyWith(error: 'В папке пока нет доступных карточек.');
+      }
+      unawaited(_refreshPendingCount());
+    } catch (error) {
+      if (mounted) {
+        state = state.copyWith(
+          isLoading: false,
+          error: isNetworkFailure(error)
+              ? 'Чтобы открыть папку, нужно подключение к интернету.'
+              : 'Не удалось открыть карточки папки.',
+        );
+      }
+    }
+  }
+
   Future<void> beginCourse(String courseId, StudyMode mode) async {
     state = state.copyWith(
       mode: mode,
@@ -359,6 +391,7 @@ class StudySessionNotifier extends StateNotifier<StudySessionState> {
     bool? answerCorrect,
     int? durationMs,
     bool requeue = false,
+    QueueItem? consume,
   }) async {
     final now = DateTime.now();
     final clientReviewId = _uuid.v4();
@@ -391,23 +424,22 @@ class StudySessionNotifier extends StateNotifier<StudySessionState> {
 
     final isCorrect = answerCorrect ?? (rating >= 3);
 
-    if (requeue) {
-      // Возвращаем карточку в конец очереди (learn mode при ошибке)
-      final newItems = [...state.items, item];
-      state = state.copyWith(
-        items: newItems,
-        index: state.index + 1,
-        total: newItems.length,
-        answered: state.answered + 1,
-        correct: state.correct + (isCorrect ? 1 : 0),
-      );
-    } else {
-      state = state.copyWith(
-        index: state.index + 1,
-        answered: state.answered + 1,
-        correct: state.correct + (isCorrect ? 1 : 0),
-      );
+    final items = [...state.items];
+    final source = consume ?? item;
+    if (consume != null) {
+      final position = items.indexOf(source, state.index);
+      if (position >= state.index) {
+        items.insert(state.index, items.removeAt(position));
+      }
     }
+    if (requeue) items.add(source);
+    state = state.copyWith(
+      items: items,
+      index: state.index + 1,
+      total: items.length,
+      answered: state.answered + 1,
+      correct: state.correct + (isCorrect ? 1 : 0),
+    );
 
     // Экран результатов читает серверную статистику сразу после завершения.
     // Поэтому последний ответ должен дождаться текущего flush, включая уже
@@ -421,6 +453,13 @@ class StudySessionNotifier extends StateNotifier<StudySessionState> {
     } else {
       unawaited(_refreshPendingCount());
     }
+  }
+
+  void deferPreview() {
+    if (state.currentItem == null) return;
+    final items = [...state.items];
+    items.add(items.removeAt(state.index));
+    state = state.copyWith(items: items);
   }
 
   /// Пропустить карточку без записи ответа.

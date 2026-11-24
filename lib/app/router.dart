@@ -14,6 +14,7 @@ import '../features/dashboard/dashboard_screen.dart';
 import '../features/library/library_screen.dart';
 import '../features/study/flashcards_screen.dart';
 import '../features/study/learn_screen.dart';
+import '../features/study/study_folders_screen.dart';
 import '../features/study/learn_settings_screen.dart';
 import '../features/study/session_result_screen.dart';
 import '../features/study/study_setup_screen.dart';
@@ -143,6 +144,20 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/auth/register',
         builder: (context, state) => const RegisterScreen(),
+      ),
+      GoRoute(
+        path: '/study/folders',
+        builder: (_, _) => const StudyFoldersScreen(),
+      ),
+      GoRoute(
+        path: '/folder/:folderId/study/learn',
+        builder: (_, _) => const LearnScreen(),
+      ),
+      GoRoute(
+        path: '/folder/:folderId/study/result',
+        builder: (_, state) => SessionResultScreen.folder(
+          folderId: state.pathParameters['folderId']!,
+        ),
       ),
       // ── Обучение ──
       GoRoute(

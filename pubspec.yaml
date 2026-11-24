@@ -1,7 +1,7 @@
 name: remora_mobile
 description: «Запоминальня» — платформа для заучивания через карточки. Мобильный клиент.
 publish_to: 'none'
-version: 0.3.3+9
+version: 0.3.4+10
 
 environment:
   sdk: ^3.12.2
@@ -59,6 +59,8 @@ dependencies:
   url_launcher: ^6.3.3
 
 dev_dependencies:
+  integration_test:
+    sdk: flutter
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0

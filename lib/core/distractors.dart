@@ -123,6 +123,9 @@ class _Ranked {
   _Ranked({required this.candidate, required this.score, required this.index});
 }
 
+List<T> shuffleWithSeed<T>(List<T> items, String seed) =>
+    _shuffle(items, _createRandom(seed));
+
 List<T> _shuffle<T>(List<T> items, double Function() random) {
   final result = List<T>.of(items);
   for (var i = result.length - 1; i > 0; i--) {

@@ -176,7 +176,10 @@ class StudyRepository {
       ...fresh,
       ...practice,
     ]).take(sessionLimit).toList();
-    final items = [for (final e in selected) _queueItem(e, now)];
+    final items = [
+      for (final e in selected)
+        _queueItem(e, now, setRow?.langTerm, setRow?.langDefinition),
+    ];
 
     return StudyQueue(
       setId: setId,
@@ -200,9 +203,16 @@ class StudyRepository {
     );
   }
 
-  QueueItem _queueItem(_OfflineEntry e, DateTime now) => QueueItem(
+  QueueItem _queueItem(
+    _OfflineEntry e,
+    DateTime now,
+    String? termLang,
+    String? defLang,
+  ) => QueueItem(
     card: _queueCardFromRow(e.card),
     sourceSetId: e.card.setId,
+    langTerm: termLang,
+    langDefinition: defLang,
     direction: e.direction,
     state: _stateData(e.card.id, e.direction, e.fsrs),
     previews: [
@@ -224,6 +234,9 @@ class StudyRepository {
             ))
             .getSingleOrNull();
     if (complete == null) return null;
+    final set = await (_db.select(
+      _db.sets,
+    )..where((s) => s.id.equals(setId))).getSingleOrNull();
     final cards = await _cards(setId);
     final states = {
       for (final s in await getSetStates(setId))
@@ -241,6 +254,8 @@ class StudyRepository {
                 : initialState(now),
           ),
           now,
+          set?.langTerm,
+          set?.langDefinition,
         ),
     ];
   }
