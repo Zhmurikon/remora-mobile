@@ -17,6 +17,8 @@ const _uuid = Uuid();
 /// Режим обучения.
 enum StudyMode { flashcards, learn, write }
 
+typedef StudyAttempt = ({QueueItem item, bool correct, String? given});
+
 /// Состояние текущей сессии обучения.
 class StudySessionState {
   StudySessionState({
@@ -29,6 +31,7 @@ class StudySessionState {
     required this.pending,
     required this.isOnline,
     required this.isLoading,
+    this.history = const [],
     this.error,
     this.setTitle = '',
     this.langTerm = 'ru',
@@ -45,6 +48,10 @@ class StudySessionState {
   final List<QueueItem> items;
   final int index;
   final int total;
+  final List<StudyAttempt> history;
+  int get streak =>
+      history.reversed.takeWhile((attempt) => attempt.correct).length;
+  bool get complete => index == items.length && answered == total;
   final int answered;
   final int correct;
   final int pending;
@@ -70,6 +77,7 @@ class StudySessionState {
     List<QueueItem>? items,
     int? index,
     int? total,
+    List<StudyAttempt>? history,
     int? answered,
     int? correct,
     int? pending,
@@ -91,6 +99,7 @@ class StudySessionState {
       items: items ?? this.items,
       index: index ?? this.index,
       total: total ?? this.total,
+      history: history ?? this.history,
       answered: answered ?? this.answered,
       correct: correct ?? this.correct,
       pending: pending ?? this.pending,
@@ -127,6 +136,7 @@ class StudySessionNotifier extends StateNotifier<StudySessionState> {
            items: [],
            index: 0,
            total: 0,
+           history: const [],
            answered: 0,
            correct: 0,
            pending: 0,
@@ -154,6 +164,7 @@ class StudySessionNotifier extends StateNotifier<StudySessionState> {
       index: 0,
       items: [],
       total: 0,
+      history: const [],
       answered: 0,
       correct: 0,
     );
@@ -222,6 +233,7 @@ class StudySessionNotifier extends StateNotifier<StudySessionState> {
       items: [],
       index: 0,
       total: 0,
+      history: const [],
       answered: 0,
       correct: 0,
       isLoading: true,
@@ -254,6 +266,7 @@ class StudySessionNotifier extends StateNotifier<StudySessionState> {
       items: [],
       index: 0,
       total: 0,
+      history: const [],
       answered: 0,
       correct: 0,
       isLoading: true,
@@ -392,6 +405,7 @@ class StudySessionNotifier extends StateNotifier<StudySessionState> {
     int? durationMs,
     bool requeue = false,
     QueueItem? consume,
+    String? given,
   }) async {
     final now = DateTime.now();
     final clientReviewId = _uuid.v4();
@@ -437,6 +451,10 @@ class StudySessionNotifier extends StateNotifier<StudySessionState> {
       items: items,
       index: state.index + 1,
       total: items.length,
+      history: [
+        ...state.history,
+        (item: item, correct: isCorrect, given: given),
+      ],
       answered: state.answered + 1,
       correct: state.correct + (isCorrect ? 1 : 0),
     );

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../widgets/ink_motion.dart';
+import 'space_rewards.dart';
 import '../../app/theme.dart';
 import '../../core/answers.dart';
 import '../../data/api_client.dart';
@@ -18,8 +18,11 @@ class WriteScreen extends ConsumerStatefulWidget {
 }
 
 class _WriteScreenState extends ConsumerState<WriteScreen> {
+  final _field = GlobalKey<SpaceFieldState>();
+  QueueItem? _held;
   final _controller = TextEditingController();
   bool _submitting = false;
+  int _turn = 0;
   String? _verdict;
   String? _expectedAnswer;
 
@@ -30,6 +33,7 @@ class _WriteScreenState extends ConsumerState<WriteScreen> {
   }
 
   void _reset() {
+    _turn++;
     _controller.clear();
     _verdict = null;
     _expectedAnswer = null;
@@ -40,7 +44,9 @@ class _WriteScreenState extends ConsumerState<WriteScreen> {
     final expected = isTermToDef ? item.card.definition : item.card.term;
     final typed = _controller.text;
 
-    if (typed.trim().isEmpty) return;
+    if (typed.trim().isEmpty || _submitting || _held != null) return;
+
+    FocusManager.instance.primaryFocus?.unfocus();
 
     // Проверяем также альтернативные ответы
     final allExpected = [expected, ...item.card.altAnswers];
@@ -68,6 +74,7 @@ class _WriteScreenState extends ConsumerState<WriteScreen> {
     setState(() {
       _verdict = bestResult!.verdict;
     });
+    if (_verdict != 'typo') _record(item, _verdict == 'correct');
   }
 
   int _verdictPriority(String verdict) {
@@ -78,56 +85,73 @@ class _WriteScreenState extends ConsumerState<WriteScreen> {
         : 2;
   }
 
-  Future<void> _submitRating(
-    int rating, {
-    bool? answerCorrect,
-    bool requeue = false,
-  }) async {
-    final state = ref.read(studySessionProvider);
-    final item = state.currentItem;
-    if (item == null || _submitting) return;
-
-    _submitting = true;
+  Future<void> _record(QueueItem item, bool correct) async {
+    if (_submitting) return;
+    setState(() {
+      _submitting = true;
+      _held = item;
+    });
     try {
       await ref
           .read(studySessionProvider.notifier)
           .answer(
             item: item,
-            rating: rating,
-            answerCorrect: answerCorrect,
-            requeue: requeue,
+            rating: correct ? 3 : 1,
+            answerCorrect: correct,
+            given: _controller.text,
+            requeue: !correct,
           );
-      if (mounted) setState(_reset);
-    } finally {
-      _submitting = false;
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _held = null;
+          _submitting = false;
+          _verdict = null;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Не удалось сохранить ответ. Попробуйте ещё раз.'),
+          ),
+        );
+      }
+      return;
     }
+    if (!mounted) return;
+    if (correct) {
+      await _field.currentState?.reward(ref.read(studySessionProvider).streak);
+    }
+    if (!mounted) return;
+    setState(() => _submitting = false);
+    if (correct) _next();
+  }
+
+  void _next() {
+    if (_submitting) return;
+    if (ref.read(studySessionProvider).isFinished) {
+      openStudyResult(context);
+      return;
+    }
+    _field.currentState?.fade();
+    setState(() {
+      _held = null;
+      _reset();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(studySessionProvider);
-
-    ref.listen<StudySessionState>(studySessionProvider, (prev, next) {
-      if (next.isFinished && !(prev?.isFinished ?? false)) {
-        openStudyResult(context);
-      }
-    });
-
-    if (state.isFinished) {
-      return const StudyShell(child: SizedBox.shrink());
-    }
-
-    final item = state.currentItem;
+    final item = _held ?? state.currentItem;
     if (item == null) {
       return const StudyShell(child: Center(child: Text('Очередь пуста')));
     }
 
     return StudyShell(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: InkReveal(
-          change: (state.answered, item.card.id),
-          onMount: false,
+      busy: _submitting,
+      child: SpaceField(
+        key: _field,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
           child: _buildQuestion(context, item, state),
         ),
       ),
@@ -177,22 +201,39 @@ class _WriteScreenState extends ConsumerState<WriteScreen> {
                   ),
                   const SizedBox(height: 12),
                 ],
-                CardContentWidget(
-                  value: questionText,
-                  contentType: item.card.contentType,
-                  codeLanguage: item.card.codeLanguage,
-                  imageUrl: questionImage,
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: CardContentWidget(
+                      value: questionText,
+                      contentType: item.card.contentType,
+                      codeLanguage: item.card.codeLanguage,
+                      imageUrl: questionImage,
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 24),
                 TextField(
+                  key: ValueKey(_turn),
                   controller: _controller,
-                  enabled: _verdict == null,
+                  readOnly: _verdict != null,
                   decoration: InputDecoration(
                     hintText: 'Введите ответ…',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
                     filled: true,
+                    fillColor: _verdict == 'correct'
+                        ? Color.alphaBlend(
+                            (isDark
+                                    ? RemoraColors.darkSuccess
+                                    : RemoraColors.lightSuccess)
+                                .withValues(alpha: .30),
+                            theme.colorScheme.surface,
+                          )
+                        : _verdict == 'incorrect'
+                        ? theme.colorScheme.errorContainer
+                        : theme.colorScheme.surface,
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: 16,
                       vertical: 14,
@@ -204,212 +245,62 @@ class _WriteScreenState extends ConsumerState<WriteScreen> {
                 ),
                 const SizedBox(height: 16),
                 if (_verdict == null)
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton(
-                      onPressed: () => _checkAnswer(item, state),
-                      child: const Text('Проверить'),
+                  FilledButton(
+                    onPressed: () => _checkAnswer(item, state),
+                    child: const Text('Проверить'),
+                  ),
+                if (_verdict == 'typo') ...[
+                  const Text('Проверьте написание'),
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    spacing: 8,
+                    children: [
+                      OutlinedButton(
+                        onPressed: _submitting
+                            ? null
+                            : () => setState(() => _verdict = null),
+                        child: const Text('Исправить'),
+                      ),
+                      FilledButton(
+                        onPressed: _submitting
+                            ? null
+                            : () {
+                                setState(() => _verdict = 'correct');
+                                _record(item, true);
+                              },
+                        child: const Text('Засчитать'),
+                      ),
+                    ],
+                  ),
+                ],
+                if (_verdict == 'incorrect') ...[
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        children: [
+                          const Text('Правильный ответ'),
+                          CardContentWidget(
+                            value: _expectedAnswer ?? '',
+                            contentType: item.card.contentType,
+                            codeLanguage: item.card.codeLanguage,
+                            imageUrl: isTermToDef
+                                ? item.card.definitionImageUrl
+                                : item.card.termImageUrl,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                if (_verdict != null) ...[
-                  const SizedBox(height: 8),
-                  InkReveal(child: _buildVerdictBlock(context, item)),
+                  const SizedBox(height: 12),
+                  FilledButton(
+                    onPressed: _submitting ? null : _next,
+                    child: const Text('Дальше'),
+                  ),
                 ],
               ],
             ),
           ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildVerdictBlock(BuildContext context, QueueItem item) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    if (_verdict == 'correct') {
-      return Column(
-        children: [
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color:
-                  (isDark
-                          ? RemoraColors.darkSuccess
-                          : RemoraColors.lightSuccess)
-                      .withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(
-              '✓ Правильно!',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: isDark
-                    ? RemoraColors.darkSuccess
-                    : RemoraColors.lightSuccess,
-                fontWeight: FontWeight.w600,
-                fontSize: 16,
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () => _submitRating(2, answerCorrect: true),
-                  child: const Text('Трудно'),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: FilledButton(
-                  onPressed: () => _submitRating(3, answerCorrect: true),
-                  child: const Text('Хорошо'),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: FilledButton(
-                  onPressed: () => _submitRating(4, answerCorrect: true),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: theme.colorScheme.primary,
-                  ),
-                  child: const Text('Легко'),
-                ),
-              ),
-            ],
-          ),
-        ],
-      );
-    }
-
-    if (_verdict == 'typo') {
-      return Column(
-        children: [
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color:
-                  (isDark
-                          ? RemoraColors.darkWarning
-                          : RemoraColors.lightWarning)
-                      .withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Column(
-              children: [
-                Text(
-                  '≈ Почти правильно — проверьте написание',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: isDark
-                        ? RemoraColors.darkWarning
-                        : RemoraColors.lightWarning,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                const Text('Ответ:'),
-                CardContentWidget(
-                  value: _expectedAnswer ?? '',
-                  contentType: item.card.contentType,
-                  codeLanguage: item.card.codeLanguage,
-                  imageUrl: item.direction == 'term_to_def'
-                      ? item.card.definitionImageUrl
-                      : item.card.termImageUrl,
-                  fontSize: 16,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () {
-                    setState(() {
-                      _controller.clear();
-                      _verdict = null;
-                    });
-                  },
-                  child: const Text('Попробовать ещё'),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: FilledButton(
-                  onPressed: () => _submitRating(3, answerCorrect: true),
-                  child: const Text('Засчитать'),
-                ),
-              ),
-            ],
-          ),
-        ],
-      );
-    }
-
-    // incorrect
-    return Column(
-      children: [
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: (isDark ? RemoraColors.darkDanger : RemoraColors.lightDanger)
-                .withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Column(
-            children: [
-              Text(
-                '✗ Неправильно',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: isDark
-                      ? RemoraColors.darkDanger
-                      : RemoraColors.lightDanger,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 4),
-              const Text('Ответ:'),
-              CardContentWidget(
-                value: _expectedAnswer ?? '',
-                contentType: item.card.contentType,
-                codeLanguage: item.card.codeLanguage,
-                imageUrl: item.direction == 'term_to_def'
-                    ? item.card.definitionImageUrl
-                    : item.card.termImageUrl,
-                fontSize: 16,
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(
-              child: FilledButton(
-                onPressed: () =>
-                    _submitRating(1, answerCorrect: false, requeue: true),
-                style: FilledButton.styleFrom(
-                  backgroundColor: theme.colorScheme.error,
-                ),
-                child: const Text('Не помню'),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: OutlinedButton(
-                onPressed: () => _submitRating(2, answerCorrect: false),
-                child: const Text('Пропустить'),
-              ),
-            ),
-          ],
         ),
       ],
     );

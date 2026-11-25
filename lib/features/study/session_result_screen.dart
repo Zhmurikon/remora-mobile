@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../widgets/ink_motion.dart';
+import 'study_result_card.dart';
+import 'card_content_widget.dart';
 import '../../app/theme.dart';
 import '../../data/api_client.dart';
 import 'study_provider.dart';
@@ -71,15 +72,6 @@ class _SessionResultScreenState extends ConsumerState<SessionResultScreen> {
 
     final answered = state.answered;
     final correct = state.correct;
-    final wrong = answered - correct;
-    final accuracy = answered > 0 ? (correct / answered * 100).round() : 0;
-
-    final accuracyColor = accuracy >= 80
-        ? (isDark ? RemoraColors.darkSuccess : RemoraColors.lightSuccess)
-        : accuracy >= 50
-        ? (isDark ? RemoraColors.darkWarning : RemoraColors.lightWarning)
-        : (isDark ? RemoraColors.darkDanger : RemoraColors.lightDanger);
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Результаты'),
@@ -92,63 +84,18 @@ class _SessionResultScreenState extends ConsumerState<SessionResultScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // Результаты сессии
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                children: [
-                  Container(
-                    width: 80,
-                    height: 80,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: accuracyColor.withValues(alpha: 0.12),
-                    ),
-                    child: Center(
-                      child: InkReveal(
-                        child: Icon(
-                          Icons.check_circle_outline,
-                          size: 48,
-                          color: accuracyColor,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    _modeTitle(state.mode),
-                    style: theme.textTheme.headlineSmall,
-                  ),
-                  const SizedBox(height: 8),
-                  Text('Сессия завершена', style: theme.textTheme.bodyMedium),
-                  const SizedBox(height: 20),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      _statColumn('$answered', 'Отвечено', null),
-                      _statColumn(
-                        '$correct',
-                        'Правильно',
-                        isDark
-                            ? RemoraColors.darkSuccess
-                            : RemoraColors.lightSuccess,
-                      ),
-                      _statColumn(
-                        '$wrong',
-                        'Ошибки',
-                        isDark
-                            ? RemoraColors.darkDanger
-                            : RemoraColors.lightDanger,
-                      ),
-                      _statColumn('$accuracy%', 'Точность', accuracyColor),
-                    ],
-                  ),
-                ],
-              ),
-            ),
+          Text(
+            'Сессия завершена',
+            textAlign: TextAlign.center,
+            style: theme.textTheme.headlineMedium,
           ),
-
+          const SizedBox(height: 16),
+          StudyResultCard(
+            correct: correct,
+            total: answered,
+            complete: state.complete,
+            answers: [for (final attempt in state.history) attempt.correct],
+          ),
           if (state.pending > 0) ...[
             const SizedBox(height: 12),
             Container(
@@ -185,22 +132,6 @@ class _SessionResultScreenState extends ConsumerState<SessionResultScreen> {
                 ],
               ),
             ),
-          ],
-
-          // Статистика набора
-          if (_isLoadingStats) ...[
-            const SizedBox(height: 24),
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.all(16),
-                child: CircularProgressIndicator(),
-              ),
-            ),
-          ] else if (_stats != null) ...[
-            const SizedBox(height: 24),
-            Text('Статистика набора', style: theme.textTheme.titleMedium),
-            const SizedBox(height: 12),
-            _buildStatsCard(context, _stats!, isDark),
           ],
 
           const SizedBox(height: 24),
@@ -243,6 +174,47 @@ class _SessionResultScreenState extends ConsumerState<SessionResultScreen> {
               child: Text(widget.isCourse ? 'К курсу' : 'К наборам'),
             ),
           ),
+          if (state.history.any((a) => !a.correct)) ...[
+            const SizedBox(height: 24),
+            Text('Разбор ошибок', style: theme.textTheme.titleLarge),
+            for (final a in state.history.where((a) => !a.correct))
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _side(a.item, answer: false),
+                      const SizedBox(height: 10),
+                      Text('Ваш ответ', style: theme.textTheme.labelMedium),
+                      Text(a.given ?? 'Не помню'),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Правильный ответ',
+                        style: theme.textTheme.labelMedium,
+                      ),
+                      _side(a.item, answer: true),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+          // Статистика набора
+          if (_isLoadingStats) ...[
+            const SizedBox(height: 24),
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(16),
+                child: CircularProgressIndicator(),
+              ),
+            ),
+          ] else if (_stats != null) ...[
+            const SizedBox(height: 24),
+            Text('Статистика набора', style: theme.textTheme.titleMedium),
+            const SizedBox(height: 12),
+            _buildStatsCard(context, _stats!, isDark),
+          ],
+
           const SizedBox(height: 24),
         ],
       ),
@@ -257,19 +229,13 @@ class _SessionResultScreenState extends ConsumerState<SessionResultScreen> {
     }
   }
 
-  Widget _statColumn(String value, String label, Color? color) {
-    return Column(
-      children: [
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: color,
-          ),
-        ),
-        Text(label, style: Theme.of(context).textTheme.bodySmall),
-      ],
+  Widget _side(QueueItem item, {required bool answer}) {
+    final term = (item.direction == 'term_to_def') != answer;
+    return CardContentWidget(
+      value: term ? item.card.term : item.card.definition,
+      contentType: item.card.contentType,
+      codeLanguage: item.card.codeLanguage,
+      imageUrl: term ? item.card.termImageUrl : item.card.definitionImageUrl,
     );
   }
 
@@ -453,16 +419,5 @@ class _SessionResultScreenState extends ConsumerState<SessionResultScreen> {
         ],
       ),
     );
-  }
-
-  String _modeTitle(StudyMode mode) {
-    switch (mode) {
-      case StudyMode.flashcards:
-        return 'Карточки';
-      case StudyMode.learn:
-        return 'Учить';
-      case StudyMode.write:
-        return 'Писать';
-    }
   }
 }

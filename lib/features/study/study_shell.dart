@@ -19,7 +19,8 @@ void openStudyResult(BuildContext context) {
 
 /// Оболочка обучающей сессии: AppBar с прогрессом и offline-индикатор.
 class StudyShell extends ConsumerWidget {
-  const StudyShell({super.key, required this.child});
+  const StudyShell({super.key, required this.child, this.busy = false});
+  final bool busy;
 
   final Widget child;
 
@@ -55,16 +56,15 @@ class StudyShell extends ConsumerWidget {
         leading: IconButton(
           icon: const Icon(Icons.close),
           tooltip: 'Завершить',
-          onPressed: () async {
-            final shouldExit = await _confirmExit(context, state);
-            if (shouldExit && context.mounted) {
-              final isCourse = GoRouterState.of(
-                context,
-              ).pathParameters.containsKey('courseId');
-              await notifier.finish();
-              if (!isCourse && context.mounted) context.go('/');
-            }
-          },
+          onPressed: busy
+              ? null
+              : () async {
+                  final shouldExit = await _confirmExit(context, state);
+                  if (shouldExit && context.mounted) {
+                    await notifier.finish();
+                    if (context.mounted) openStudyResult(context);
+                  }
+                },
         ),
         actions: [
           if (state.pending > 0) ...[

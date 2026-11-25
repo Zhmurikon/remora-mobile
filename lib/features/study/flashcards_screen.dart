@@ -4,10 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../widgets/ink_motion.dart';
 import '../../app/theme.dart';
-import '../../core/format.dart';
 import '../../data/api_client.dart';
-import 'card_content_widget.dart';
+import 'study_flip_card.dart';
 import 'study_provider.dart';
+import 'space_rewards.dart';
 import 'study_shell.dart';
 
 /// Режим «Карточки»: переворот, навигация, самооценка.
@@ -19,6 +19,8 @@ class FlashcardsScreen extends ConsumerStatefulWidget {
 }
 
 class _FlashcardsScreenState extends ConsumerState<FlashcardsScreen> {
+  final _field = GlobalKey<SpaceFieldState>();
+  QueueItem? _held;
   final _keyboardFocus = FocusNode();
   bool _isFlipped = false;
   bool _submitting = false;
@@ -41,12 +43,40 @@ class _FlashcardsScreenState extends ConsumerState<FlashcardsScreen> {
     final item = state.currentItem;
     if (item == null) return;
 
-    setState(() => _submitting = true);
-    await ref
-        .read(studySessionProvider.notifier)
-        .answer(item: item, rating: rating);
-    if (!mounted) return;
     setState(() {
+      _held = item;
+      _submitting = true;
+    });
+    try {
+      await ref
+          .read(studySessionProvider.notifier)
+          .answer(item: item, rating: rating);
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _held = null;
+          _submitting = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Не удалось сохранить ответ. Попробуйте ещё раз.'),
+          ),
+        );
+      }
+      return;
+    }
+    if (!mounted) return;
+    if (rating >= 3) {
+      await _field.currentState?.reward(ref.read(studySessionProvider).streak);
+    }
+    if (!mounted) return;
+    if (ref.read(studySessionProvider).isFinished) {
+      openStudyResult(context);
+      return;
+    }
+    _field.currentState?.fade();
+    setState(() {
+      _held = null;
       _isFlipped = false;
       _submitting = false;
     });
@@ -56,47 +86,37 @@ class _FlashcardsScreenState extends ConsumerState<FlashcardsScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(studySessionProvider);
 
-    ref.listen<StudySessionState>(studySessionProvider, (prev, next) {
-      if (next.isFinished && !(prev?.isFinished ?? false)) {
-        openStudyResult(context);
-      }
-    });
-
-    if (state.isFinished) {
-      return const StudyShell(child: SizedBox.shrink());
-    }
-
-    final item = state.currentItem;
+    final item = _held ?? state.currentItem;
     if (item == null) {
       return const StudyShell(child: Center(child: Text('Очередь пуста')));
     }
 
     return StudyShell(
-      child: KeyboardListener(
-        focusNode: _keyboardFocus,
-        autofocus: true,
-        onKeyEvent: (event) {
-          if (event is! KeyDownEvent) return;
-          switch (event.logicalKey) {
-            case LogicalKeyboardKey.space:
-            case LogicalKeyboardKey.enter:
-              _flip();
-            case LogicalKeyboardKey.digit1:
-              if (_isFlipped) _rate(1);
-            case LogicalKeyboardKey.digit2:
-              if (_isFlipped) _rate(2);
-            case LogicalKeyboardKey.digit3:
-              if (_isFlipped) _rate(3);
-            case LogicalKeyboardKey.digit4:
-              if (_isFlipped) _rate(4);
-          }
-        },
-        child: FlashcardStudyView(
-          item: item,
-          isFlipped: _isFlipped,
-          submitting: _submitting,
-          onFlip: _flip,
-          onRate: _rate,
+      busy: _submitting,
+      child: SpaceField(
+        key: _field,
+        child: KeyboardListener(
+          focusNode: _keyboardFocus,
+          autofocus: true,
+          onKeyEvent: (event) {
+            if (event is! KeyDownEvent) return;
+            switch (event.logicalKey) {
+              case LogicalKeyboardKey.space:
+              case LogicalKeyboardKey.enter:
+                _flip();
+              case LogicalKeyboardKey.digit1:
+                if (_isFlipped) _rate(1);
+              case LogicalKeyboardKey.digit2:
+                if (_isFlipped) _rate(3);
+            }
+          },
+          child: FlashcardStudyView(
+            item: item,
+            isFlipped: _isFlipped,
+            submitting: _submitting,
+            onFlip: _flip,
+            onRate: _rate,
+          ),
         ),
       ),
     );
@@ -127,266 +147,51 @@ class FlashcardStudyView extends StatelessWidget {
         children: [
           Expanded(
             child: InkReveal(
-              change: (item.card.id, item.direction, isFlipped),
-              turnPage: true,
+              change: (item.card.id, item.direction),
               onMount: false,
-              child: _FlashcardSurface(
-                key: ValueKey((item.card.id, item.direction, isFlipped)),
+              child: StudyFlipCard(
+                key: ValueKey((item.card.id, item.direction)),
                 item: item,
                 isAnswer: isFlipped,
-                onFlip: onFlip,
+                onFlip: submitting ? null : onFlip,
               ),
             ),
           ),
-          if (isFlipped) ...[
-            const SizedBox(height: RemoraSpacing.md),
-            _RatingPanel(item: item, submitting: submitting, onRate: onRate),
-          ],
+          const SizedBox(height: RemoraSpacing.md),
+          Visibility(
+            visible: isFlipped,
+            maintainSize: true,
+            maintainState: true,
+            maintainAnimation: true,
+            child: _RatingPanel(submitting: submitting, onRate: onRate),
+          ),
         ],
       ),
     );
   }
 }
 
-class _FlashcardSurface extends StatelessWidget {
-  const _FlashcardSurface({
-    required this.item,
-    required this.isAnswer,
-    required this.onFlip,
-    super.key,
-  });
-
-  final QueueItem item;
-  final bool isAnswer;
-  final VoidCallback onFlip;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isTermToDef = item.direction == 'term_to_def';
-    final text = isAnswer
-        ? (isTermToDef ? item.card.definition : item.card.term)
-        : (isTermToDef ? item.card.term : item.card.definition);
-    final imageUrl = isAnswer
-        ? (isTermToDef ? item.card.definitionImageUrl : item.card.termImageUrl)
-        : (isTermToDef ? item.card.termImageUrl : item.card.definitionImageUrl);
-
-    return Semantics(
-      button: !isAnswer,
-      liveRegion: isAnswer,
-      label: isAnswer ? 'Ответ. $text' : 'Вопрос. $text. Показать ответ',
-      onTap: isAnswer ? null : onFlip,
-      child: Material(
-        color: isAnswer
-            ? context.remora.surfaceMuted
-            : theme.colorScheme.surface,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(RemoraRadii.large),
-          side: BorderSide(color: theme.colorScheme.outline),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: isAnswer ? null : onFlip,
-          child: Padding(
-            padding: const EdgeInsets.all(RemoraSpacing.xl),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  isAnswer ? 'ОТВЕТ' : 'ВОПРОС',
-                  style: context.remoraType.compactLabel.copyWith(
-                    color: isAnswer
-                        ? theme.colorScheme.primary
-                        : context.remora.textSubtle,
-                  ),
-                ),
-                if (!isAnswer && item.card.hint != null) ...[
-                  const SizedBox(height: RemoraSpacing.md),
-                  _StudyHint(text: item.card.hint!),
-                ],
-                Expanded(
-                  child: Center(
-                    child: SingleChildScrollView(
-                      child: CardContentWidget(
-                        value: text,
-                        contentType: item.card.contentType,
-                        codeLanguage: item.card.codeLanguage,
-                        imageUrl: imageUrl,
-                      ),
-                    ),
-                  ),
-                ),
-                if (!isAnswer)
-                  Center(
-                    child: TextButton.icon(
-                      onPressed: onFlip,
-                      icon: const Icon(Icons.touch_app_rounded),
-                      label: const Text('Показать ответ'),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _StudyHint extends StatelessWidget {
-  const _StudyHint({required this.text});
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(
-          Icons.lightbulb_outline_rounded,
-          size: 20,
-          color: theme.colorScheme.tertiary,
-        ),
-        const SizedBox(width: RemoraSpacing.xs),
-        Expanded(child: Text(text, style: theme.textTheme.bodyMedium)),
-      ],
-    );
-  }
-}
-
 class _RatingPanel extends StatelessWidget {
-  const _RatingPanel({
-    required this.item,
-    required this.submitting,
-    required this.onRate,
-  });
+  const _RatingPanel({required this.submitting, required this.onRate});
 
-  final QueueItem item;
   final bool submitting;
   final ValueChanged<int> onRate;
 
   @override
   Widget build(BuildContext context) {
-    final textScale = MediaQuery.textScalerOf(context).scale(1);
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final stacked = textScale > 1.15 || constraints.maxWidth < 380;
-        final children = [1, 3].map((rating) {
-          final preview = item.previews
-              .where((value) => value.rating == rating)
-              .firstOrNull;
-          final interval = preview == null
-              ? null
-              : formatIntervalSeconds(preview.intervalSeconds);
-          return _RatingButton(
-            rating: rating,
-            interval: interval,
-            enabled: !submitting,
-            onPressed: () => onRate(rating),
-          );
-        }).toList();
-
-        if (stacked) {
-          return GridView.count(
-            crossAxisCount: 2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: RemoraSpacing.xs,
-            crossAxisSpacing: RemoraSpacing.xs,
-            childAspectRatio: 2.5,
-            children: children,
-          );
-        }
-        return Row(
-          children: [
-            for (var index = 0; index < children.length; index++) ...[
-              if (index > 0) const SizedBox(width: RemoraSpacing.xs),
-              Expanded(child: children[index]),
-            ],
-          ],
-        );
-      },
-    );
-  }
-}
-
-class _RatingButton extends StatelessWidget {
-  const _RatingButton({
-    required this.rating,
-    required this.interval,
-    required this.enabled,
-    required this.onPressed,
-  });
-
-  final int rating;
-  final String? interval;
-  final bool enabled;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final label = rating == 3 ? 'Знаю' : 'Не знаю';
-    final color = rating == 3
-        ? theme.colorScheme.primary
-        : theme.colorScheme.error;
-    final semantics = interval == null
-        ? label
-        : '$label, следующая через $interval';
-
-    return Semantics(
-      button: true,
-      enabled: enabled,
-      label: semantics,
-      child: ExcludeSemantics(
-        child: SizedBox(
-          height: 64,
-          child: rating == 3
-              ? FilledButton(
-                  onPressed: enabled ? onPressed : null,
-                  child: _RatingLabel(label: label, interval: interval),
-                )
-              : OutlinedButton(
-                  onPressed: enabled ? onPressed : null,
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: color,
-                    side: BorderSide(color: color),
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                  ),
-                  child: _RatingLabel(label: label, interval: interval),
-                ),
-        ),
-      ),
-    );
-  }
-}
-
-class _RatingLabel extends StatelessWidget {
-  const _RatingLabel({required this.label, required this.interval});
-
-  final String label;
-  final String? interval;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
+    return Wrap(
+      alignment: WrapAlignment.center,
+      spacing: 12,
+      runSpacing: 8,
       children: [
-        Text(
-          label,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontWeight: FontWeight.w700),
+        OutlinedButton(
+          onPressed: submitting ? null : () => onRate(1),
+          child: const Text('Не помню'),
         ),
-        if (interval != null)
-          Text(
-            interval!,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.labelSmall,
-          ),
+        FilledButton(
+          onPressed: submitting ? null : () => onRate(3),
+          child: const Text('Помню'),
+        ),
       ],
     );
   }

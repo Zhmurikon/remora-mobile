@@ -100,8 +100,39 @@ void main() {
 
     expect(notifier.state.isFinished, isTrue);
     expect(notifier.state.pending, 0);
+    expect(notifier.state.complete, isTrue);
+    expect(notifier.state.streak, 1);
+    expect(notifier.state.history.single.item.card.id, api.item.card.id);
     expect(synced, 1);
   });
+
+  test(
+    'ошибка сохраняется в разборе после повтора и очищается в новой сессии',
+    () async {
+      final db = AppDatabase.forTesting(NativeDatabase.memory());
+      addTearDown(db.close);
+      final api = _DelayedStudyApi()..releaseReview.complete();
+      final repo = StudyRepository(db);
+      final session = StudySessionNotifier(api, OutboxService(repo, api), repo);
+      addTearDown(session.dispose);
+      await session.begin('set-1', StudyMode.learn);
+      await session.answer(
+        item: api.item,
+        rating: 1,
+        answerCorrect: false,
+        requeue: true,
+        given: 'мой ответ',
+      );
+      expect(session.state.complete, isFalse);
+      await session.answer(item: api.item, rating: 3);
+      expect(session.state.history.map((a) => a.correct), [false, true]);
+      expect(session.state.history.first.given, 'мой ответ');
+      expect(session.state.streak, 1);
+      await session.begin('set-1', StudyMode.learn);
+      expect(session.state.history, isEmpty);
+      expect(session.state.streak, 0);
+    },
+  );
 
   test('карточки запрашивают весь набор без дневного лимита', () async {
     final db = AppDatabase.forTesting(NativeDatabase.memory());

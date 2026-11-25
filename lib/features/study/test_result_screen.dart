@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../widgets/ink_motion.dart';
+import 'study_result_card.dart';
 import '../../app/theme.dart';
 import '../../data/api_client.dart';
 import 'card_content_widget.dart';
@@ -101,12 +101,6 @@ class _TestResultScreenState extends ConsumerState<TestResultScreen> {
     }
 
     final scorePercent = result.score.clamp(0, 100).round();
-    final scoreColor = scorePercent >= 80
-        ? (isDark ? RemoraColors.darkSuccess : RemoraColors.lightSuccess)
-        : scorePercent >= 50
-        ? (isDark ? RemoraColors.darkWarning : RemoraColors.lightWarning)
-        : (isDark ? RemoraColors.darkDanger : RemoraColors.lightDanger);
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Результаты теста'),
@@ -118,69 +112,14 @@ class _TestResultScreenState extends ConsumerState<TestResultScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // Сводка
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                children: [
-                  // Оценка кружком
-                  Container(
-                    width: 100,
-                    height: 100,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: scoreColor.withValues(alpha: 0.12),
-                    ),
-                    child: Center(
-                      child: InkReveal(
-                        child: Text(
-                          '$scorePercent%',
-                          style: TextStyle(
-                            fontSize: 36,
-                            fontWeight: FontWeight.bold,
-                            color: scoreColor,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    '${result.correctCount} из ${result.total}',
-                    style: theme.textTheme.titleLarge,
-                  ),
-                  const SizedBox(height: 4),
-                  Text('правильных ответов', style: theme.textTheme.bodySmall),
-                  const SizedBox(height: 16),
-                  // Детали
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      _statChip(
-                        context,
-                        'Правильно',
-                        '${result.correctCount}',
-                        isDark
-                            ? RemoraColors.darkSuccess
-                            : RemoraColors.lightSuccess,
-                      ),
-                      _statChip(
-                        context,
-                        'Ошибки',
-                        '${result.total - result.correctCount}',
-                        isDark
-                            ? RemoraColors.darkDanger
-                            : RemoraColors.lightDanger,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
+          StudyResultCard(
+            correct: result.correctCount,
+            total: result.total,
+            complete: true,
+            score: scorePercent,
+            answers: [for (final answer in result.review) answer.correct],
           ),
           const SizedBox(height: 16),
-
           // Разбор вопросов
           Text('Разбор вопросов', style: theme.textTheme.titleMedium),
           const SizedBox(height: 12),
@@ -223,27 +162,6 @@ class _TestResultScreenState extends ConsumerState<TestResultScreen> {
           const SizedBox(height: 24),
         ],
       ),
-    );
-  }
-
-  Widget _statChip(
-    BuildContext context,
-    String label,
-    String value,
-    Color color,
-  ) {
-    return Column(
-      children: [
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: color,
-          ),
-        ),
-        Text(label, style: Theme.of(context).textTheme.bodySmall),
-      ],
     );
   }
 

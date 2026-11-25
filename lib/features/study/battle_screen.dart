@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+
+import 'study_result_card.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
@@ -411,14 +413,14 @@ class _BattleResult extends ConsumerWidget {
       appBar: AppBar(title: const Text('Результат битвы')),
       body: FutureBuilder<BattleResult>(
         future: ref.read(apiClientProvider).getBattleResult(room.id),
-        builder: (context, snapshot) => Center(
+        builder: (context, snapshot) => SingleChildScrollView(
           child: Padding(
             padding: const EdgeInsets.all(24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  room.winnerId == mine?.userId
+                  mine != null && room.winnerId == mine.userId
                       ? 'Победа'
                       : room.isDraw
                       ? 'Ничья'
@@ -426,6 +428,20 @@ class _BattleResult extends ConsumerWidget {
                   style: Theme.of(context).textTheme.headlineMedium,
                 ),
                 const SizedBox(height: 16),
+                if (mine != null &&
+                    mine.correctCount != null &&
+                    mine.answeredCount > 0)
+                  StudyResultCard(
+                    correct: mine.correctCount!,
+                    total: room.questionCount,
+                    complete: mine.answeredCount == room.questionCount,
+                    answers: [
+                      for (final answer
+                          in snapshot.data?.review ?? <BattleReview>[])
+                        answer.correct,
+                    ],
+                  ),
+
                 Text(
                   'Результаты',
                   style: Theme.of(context).textTheme.titleLarge,
